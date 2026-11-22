@@ -1,0 +1,40 @@
+.glass {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+}
+
+.card {
+  position: absolute;
+  /* Placeholder position until the grid engine (Phase 5) places widgets in the work area. */
+  top: 72px;
+  left: 24px;
+  width: 372px;
+  height: 180px;
+  box-sizing: border-box;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: #f1f1f4;
+  font-family: system-ui, sans-serif;
+}
+
+.label {
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+.value {
+  font-size: 30px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.meta {
+  font-size: 12px;
+  opacity: 0.6;
+}
