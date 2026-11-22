@@ -1,0 +1,12 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "layer",
+  "description": "Layer windows: widget rendering only. No filesystem, shell, HTTP or window APIs.",
+  "windows": ["layer-*"],
+  "permissions": [
+    "allow-layer-attach",
+    "allow-layer-subscribe",
+    "allow-layer-set-input-region",
+    "allow-layer-report"
+  ]
+}
