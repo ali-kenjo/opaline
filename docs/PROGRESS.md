@@ -37,7 +37,7 @@
 **Acceptance (brief §10, P0)**
 | Check | Result |
 | - | - |
-| CI green | ⏳ Can't run yet: there is no GitHub repository. All CI steps pass locally except Playwright, which needs two system libraries (`sudo`). |
+| CI green | ✅ First run on [github.com/ali-kenjo/opaline](https://github.com/ali-kenjo/opaline) (2026-11-22): lint, types, unit tests, fmt, clippy, Rust tests, Playwright WebKit (2/2) and the `.deb` job all passed. |
 | Core shows its tray | ✅ Tray icon registered through AppIndicator (StatusNotifierWatcher present). Visual confirmation pending. |
 | Test layer window connects to core | ✅ Both windows connect, subscribe and receive `system.loadavg` every second. |
 
@@ -45,4 +45,3 @@
 1. `sudo apt install libpipewire-0.3-dev libevent-2.1-7t64 libmanette-0.2-0` (PipeWire headers for P1; the other
    two let Playwright's WebKit run locally).
 2. A quick visual check of the running test build (see the session message for what to look at).
-3. Whether to create `github.com/ali-kenjo/opaline` now (public) and push, so CI can run.
