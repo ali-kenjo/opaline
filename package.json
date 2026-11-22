@@ -1,0 +1,17 @@
+{
+  "name": "opaline-workspace",
+  "private": true,
+  "license": "GPL-3.0-or-later",
+  "packageManager": "pnpm@12.21.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "pnpm --filter opaline-app tauri dev",
+    "build": "pnpm --filter opaline-app tauri build",
+    "lint": "pnpm --filter opaline-app lint",
+    "format": "pnpm --filter opaline-app format",
+    "typecheck": "pnpm --filter opaline-app typecheck",
+    "test": "pnpm --filter opaline-app test"
+  }
+}

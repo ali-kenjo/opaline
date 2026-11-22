@@ -1,0 +1,14 @@
+/target/
+node_modules/
+/app/dist/
+/app/src-tauri/gen/
+/test-results/
+/playwright-report/
+/app/test-results/
+/app/playwright-report/
+*.log
+*.tmp
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+*.tsbuildinfo

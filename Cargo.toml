@@ -1,0 +1,37 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/opaline-ipc",
+    "crates/opaline-core",
+    "app/src-tauri",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.90"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/ali-kenjo/opaline"
+authors = ["Ali Kenjo"]
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+unused_must_use = "deny"
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+dbg_macro = "deny"
+print_stdout = "warn"
+
+[profile.release]
+codegen-units = 1
+lto = "thin"
+opt-level = 3
+strip = "symbols"
+panic = "unwind"
