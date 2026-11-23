@@ -2,6 +2,7 @@
 //!
 //! See `docs/ARCHITECTURE.md` §3.
 
+pub mod alerts;
 pub mod app_service;
 pub mod commands;
 pub mod diagnose;

@@ -207,10 +207,18 @@ pub enum RejectReason {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "event", rename_all = "kebab-case")]
 pub enum CoreEvent {
-    MonitorsChanged { monitors: Vec<MonitorInfo> },
+    MonitorsChanged {
+        monitors: Vec<MonitorInfo>,
+    },
     PeekRequested,
     EditRequested,
-    UpdatesPaused { paused: bool },
+    UpdatesPaused {
+        paused: bool,
+    },
+    /// The user clicked "Open" on an alert notification: show that widget's detail.
+    AlertOpened {
+        rule: String,
+    },
 }
 
 /// An action the layer asks core to perform. Core validates every one against its own current

@@ -47,7 +47,8 @@ export function reduce(state: LayerState, event: LayerEvent): Partial<LayerState
         }
         case "peek-requested":
         case "edit-requested":
-          // Peek and Edit arrive with the layer work of Phase 4/5; nothing to show yet.
+        case "alert-opened":
+          // Peek, Edit and detail views arrive with Phases 3–5; nothing to show yet.
           return {};
       }
   }

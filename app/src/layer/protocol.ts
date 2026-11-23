@@ -41,7 +41,8 @@ export type CoreEvent =
   | { event: "monitors-changed"; monitors: Monitor[] }
   | { event: "peek-requested" }
   | { event: "edit-requested" }
-  | { event: "updates-paused"; paused: boolean };
+  | { event: "updates-paused"; paused: boolean }
+  | { event: "alert-opened"; rule: string };
 
 export type Command =
   | { cmd: "drive-eject"; drive: string }

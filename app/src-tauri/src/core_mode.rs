@@ -79,6 +79,10 @@ pub fn run(request: Option<AppRequest>) -> ExitCode {
             }
         });
     }
+    rt.spawn(opaline_core::engine::supervise(hub.clone(), "alerts", {
+        let hub = hub.clone();
+        move || opaline_core::alerts::run(hub.clone())
+    }));
     {
         let hub = hub.clone();
         let bus = bus.clone();

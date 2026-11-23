@@ -20,6 +20,7 @@ pub struct Settings {
     pub network: Network,
     pub calendar: Calendar,
     pub privacy: Privacy,
+    pub alerts: Vec<crate::alerts::Rule>,
 }
 
 impl Default for Settings {
@@ -30,6 +31,7 @@ impl Default for Settings {
             network: Network::default(),
             calendar: Calendar::default(),
             privacy: Privacy::default(),
+            alerts: crate::alerts::default_rules(),
         }
     }
 }
@@ -110,6 +112,14 @@ impl Default for Privacy {
 impl Settings {
     /// Checks values that serde can't (ranges, URL schemes).
     pub fn validate(&self) -> Result<(), String> {
+        let mut ids = std::collections::HashSet::new();
+        if self
+            .alerts
+            .iter()
+            .any(|r| !ids.insert(r.id.as_str()) || r.series.is_empty() || !r.threshold.is_finite())
+        {
+            return Err("invalid-alert-rule".into());
+        }
         if !(1..=31).contains(&self.network.billing_day) {
             return Err("billing-day-out-of-range".into());
         }
