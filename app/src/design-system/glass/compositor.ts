@@ -24,7 +24,28 @@ export interface Surface {
   lifted?: number;
   /** An expressive shape instead of a rounded rect: cubics in surface-local CSS px. */
   shape?: readonly Cubic[];
+  /** Per-widget style (ADR 0011); unset fields keep the designed look. */
+  look?: SurfaceLook;
 }
+
+/** Glass effects of one surface. Strengths are 0–2 where 1 is the designed look. */
+export interface SurfaceLook {
+  /** Extra blur, 0 (the designed blur) … 1 (much softer). */
+  blur?: number;
+  refraction?: number;
+  rim?: number;
+  grain?: number;
+  shadow?: number;
+  /** No wallpaper through this surface. */
+  opaque?: boolean;
+  /** Inside border, CSS px. */
+  borderWidth?: number;
+  /** Border color, 0–1 channels with alpha. */
+  borderColor?: readonly [number, number, number, number];
+}
+
+/** Mip levels the blur slider spans on the quarter-res wallpaper. */
+const MAX_BLUR_LOD = 4;
 
 export interface WallpaperPlacement {
   /** The layer window's origin inside its monitor (CSS px). */
@@ -35,7 +56,7 @@ export interface WallpaperPlacement {
 }
 
 const SHADOW_MARGIN = 48;
-const INSTANCE_FLOATS = 16;
+const INSTANCE_FLOATS = 28;
 const POLY_TEX_WIDTH = 512;
 const CURVE_STEPS = 8;
 
@@ -130,7 +151,7 @@ export class GlassCompositor {
     gl.enableVertexAttribArray(0);
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.instances);
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < INSTANCE_FLOATS / 4; i++) {
       const loc = 1 + i;
       gl.enableVertexAttribArray(loc);
       gl.vertexAttribPointer(loc, 4, gl.FLOAT, false, INSTANCE_FLOATS * 4, i * 16);
@@ -196,10 +217,12 @@ export class GlassCompositor {
     gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    // Mip levels give each surface its own extra blur (style) without another pass.
+    gl.generateMipmap(gl.TEXTURE_2D);
     if (which === "glass") this.wallpaperTex = tex;
     else this.backdropTex = tex;
     this.invalidate();
@@ -305,6 +328,13 @@ export class GlassCompositor {
         [s.hovered ? 1 : 0, s.pointer?.[0] ?? 0, s.pointer?.[1] ?? 0, s.lifted ?? 0],
         o + 12,
       );
+      const l = s.look;
+      data.set(
+        [(l?.blur ?? 0) * MAX_BLUR_LOD, l?.refraction ?? 1, l?.rim ?? 1, l?.grain ?? 1],
+        o + 16,
+      );
+      data.set([l?.shadow ?? 1, l?.opaque ? 1 : 0, l?.borderWidth ?? 0, 0], o + 20);
+      data.set(l?.borderColor ?? [0, 0, 0, 0], o + 24);
       polyStart += count;
     });
     gl.useProgram(this.glass);

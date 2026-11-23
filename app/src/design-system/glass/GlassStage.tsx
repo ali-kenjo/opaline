@@ -13,7 +13,12 @@ import {
   useRef,
   useState,
 } from "react";
-import { type Surface, GlassCompositor, type WallpaperPlacement } from "./compositor";
+import {
+  type Surface,
+  type SurfaceLook,
+  GlassCompositor,
+  type WallpaperPlacement,
+} from "./compositor";
 import { legibleAlpha, luminanceUnder, sliderAlpha } from "./legibility";
 import styles from "./Glass.module.css";
 
@@ -21,6 +26,21 @@ export interface GlassOptions {
   radius: number;
   dimmed?: number;
   lifted?: number;
+  /** This surface's tint as 0–255 RGB (a widget's own scheme or custom color); default: the stage's. */
+  tint?: readonly [number, number, number] | undefined;
+  /** Base tint alpha 0–1 (the widget's transparency); default: from the stage's slider. */
+  alpha?: number | undefined;
+  /** Adaptive legibility (default on): raise the tint until text keeps 4.5 : 1. */
+  legibility?: boolean | undefined;
+  /** Luminance of this widget's text, when its colors differ from the stage's. */
+  textLuminance?: number | undefined;
+  look?: SurfaceLook | undefined;
+}
+
+function relLum(c: readonly [number, number, number]): number {
+  const lin = (v: number) =>
+    v / 255 <= 0.04045 ? v / 255 / 12.92 : ((v / 255 + 0.055) / 1.055) ** 2.4;
+  return 0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2]);
 }
 
 interface Registration {
@@ -101,11 +121,7 @@ export function GlassStage(props: GlassStageProps) {
   useEffect(() => compositor?.setBackdropOpacity(backdrop), [compositor, backdrop]);
 
   const base = sliderAlpha(slider);
-  const tintLum = useMemo(() => {
-    const lin = (c: number) =>
-      c / 255 <= 0.04045 ? c / 255 / 12.92 : ((c / 255 + 0.055) / 1.055) ** 2.4;
-    return 0.2126 * lin(tint[0]) + 0.7152 * lin(tint[1]) + 0.0722 * lin(tint[2]);
-  }, [tint]);
+  const tintLum = useMemo(() => relLum(tint), [tint]);
 
   const sync = useCallback(() => {
     if (!compositor || !canvas.current) return;
@@ -124,18 +140,30 @@ export function GlassStage(props: GlassStageProps) {
             b.height / placement.monitorHeight,
           )
         : 0.05;
+      const o = r.options;
+      const t = o.tint ?? tint;
+      const a = o.alpha ?? base;
       surfaces.push({
         x,
         y,
         w: b.width,
         h: b.height,
-        radius: r.options.radius,
-        tint: [tint[0] / 255, tint[1] / 255, tint[2] / 255],
-        tintAlpha: legibleAlpha(base, bgLum, tintLum, textLuminance),
-        dimmed: r.options.dimmed ?? 0,
+        radius: o.radius,
+        tint: [t[0] / 255, t[1] / 255, t[2] / 255],
+        tintAlpha:
+          o.legibility === false
+            ? a
+            : legibleAlpha(
+                a,
+                bgLum,
+                o.tint ? relLum(o.tint) : tintLum,
+                o.textLuminance ?? textLuminance,
+              ),
+        dimmed: o.dimmed ?? 0,
         hovered: r.hovered,
-        lifted: r.options.lifted ?? 0,
+        lifted: o.lifted ?? 0,
         ...(r.pointer ? { pointer: r.pointer } : {}),
+        ...(o.look ? { look: o.look } : {}),
       });
     }
     compositor.setSurfaces(surfaces);
@@ -200,20 +228,38 @@ export interface GlassProps extends GlassOptions {
 }
 
 /** A glass surface: drawn by the compositor, or by CSS when WebGL2 is missing. */
-export function Glass({ children, className, style, label, radius, dimmed, lifted }: GlassProps) {
+export function Glass(props: GlassProps) {
+  const { children, className, style, label, radius, dimmed, lifted } = props;
+  const { tint, alpha, legibility, textLuminance, look } = props;
   const stage = useContext(Ctx);
   const el = useRef<HTMLDivElement>(null);
   const id = useId();
+  // Style objects are new on every render; register again only when their values change.
+  const key = JSON.stringify([tint, alpha, legibility, textLuminance, look]);
+  const options = useMemo<GlassOptions>(
+    () => ({
+      radius,
+      dimmed: dimmed ?? 0,
+      lifted: lifted ?? 0,
+      tint,
+      alpha,
+      legibility,
+      textLuminance,
+      look,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` stands for the style objects
+    [radius, dimmed, lifted, key],
+  );
 
   useLayoutEffect(() => {
     if (!stage?.compositor || !el.current) return;
     return stage.register(id, {
       el: el.current,
-      options: { radius, dimmed: dimmed ?? 0, lifted: lifted ?? 0 },
+      options,
       hovered: false,
       pointer: null,
     });
-  }, [stage, id, radius, dimmed, lifted]);
+  }, [stage, id, options]);
 
   const onMove = (e: React.PointerEvent) => {
     stage?.update(id, { hovered: true, pointer: [e.clientX, e.clientY] });
@@ -225,8 +271,8 @@ export function Glass({ children, className, style, label, radius, dimmed, lifte
   const fb = stage && !stage.compositor ? stage.fallback : null;
   const fallbackStyle: React.CSSProperties | undefined = fb
     ? {
-        ["--glass-tint" as string]: fb.tintCss,
-        ["--glass-alpha" as string]: fb.opaque ? 1 : fb.alpha,
+        ["--glass-tint" as string]: tint ? `${tint[0]} ${tint[1]} ${tint[2]}` : fb.tintCss,
+        ["--glass-alpha" as string]: fb.opaque || look?.opaque ? 1 : (alpha ?? fb.alpha),
         ...(fb.wallpaperUrl
           ? {
               backgroundImage: `url("${fb.wallpaperUrl}")`,

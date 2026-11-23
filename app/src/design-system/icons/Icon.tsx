@@ -14,13 +14,14 @@ export interface IconProps {
   className?: string | undefined;
 }
 
-export function Icon({ name, fill = 0, weight = 400, size = 24, label, className }: IconProps) {
+// Without explicit fill/weight, icons follow the widget style (`--w-icon-fill`, `--w-icon-weight`).
+export function Icon({ name, fill, weight, size = 24, label, className }: IconProps) {
   return (
     <span
       className={`${styles.icon} ${className ?? ""}`}
       style={{
         fontSize: size,
-        fontVariationSettings: `"FILL" ${fill}, "wght" ${weight}, "GRAD" 0, "opsz" ${Math.min(48, Math.max(20, size))}`,
+        fontVariationSettings: `"FILL" ${fill ?? "var(--w-icon-fill, 0)"}, "wght" ${weight ?? "var(--w-icon-weight, 400)"}, "GRAD" 0, "opsz" ${Math.min(48, Math.max(20, size))}`,
       }}
       role={label ? "img" : undefined}
       aria-label={label}
