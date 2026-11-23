@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Cubic } from "../shapes/cubic";
-import { flatten } from "./compositor";
+import { flatten, sameSurfaces } from "./compositor";
 import { contrast, legibleAlpha, luminance, luminanceUnder, sliderAlpha } from "./legibility";
 
 describe("legibility", () => {
@@ -40,5 +40,14 @@ describe("flatten", () => {
     const pts = flatten([Cubic.straightLine(0, 0, 8, 0), Cubic.straightLine(8, 0, 0, 0)], 4);
     expect(pts).toHaveLength(16);
     expect(pts.slice(0, 4)).toEqual([0, 0, 2, 0]);
+  });
+});
+describe("sameSurfaces", () => {
+  const s = { x: 1, y: 2, w: 3, h: 4, radius: 28, tint: [0.1, 0.2, 0.3] as const, tintAlpha: 0.5 };
+  it("treats equal values as unchanged, so a data update doesn't redraw the glass", () => {
+    expect(sameSurfaces([s], [{ ...s, tint: [0.1, 0.2, 0.3] }])).toBe(true);
+    expect(sameSurfaces([s], [{ ...s, x: 2 }])).toBe(false);
+    expect(sameSurfaces([s], [{ ...s, look: { blur: 0.5 } }])).toBe(false);
+    expect(sameSurfaces([s], [])).toBe(false);
   });
 });

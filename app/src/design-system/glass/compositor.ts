@@ -92,6 +92,18 @@ export function flatten(cubics: readonly Cubic[], steps = CURVE_STEPS): number[]
   return out;
 }
 
+export function sameSurfaces(a: readonly Surface[], b: readonly Surface[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((s, i) => {
+    const t = b[i];
+    return (
+      t !== undefined &&
+      s.shape === t.shape &&
+      JSON.stringify({ ...s, shape: undefined }) === JSON.stringify({ ...t, shape: undefined })
+    );
+  });
+}
+
 export class GlassCompositor {
   private readonly gl: WebGL2RenderingContext;
   private readonly glass: WebGLProgram;
@@ -181,8 +193,9 @@ export class GlassCompositor {
     this.unsubscribe();
   }
 
-  /** Replaces the surfaces and schedules a frame. */
+  /** Replaces the surfaces and schedules a frame, unless nothing about them changed. */
   setSurfaces(surfaces: Surface[]): void {
+    if (sameSurfaces(this.surfaces, surfaces)) return;
     this.surfaces = surfaces;
     this.invalidate();
   }

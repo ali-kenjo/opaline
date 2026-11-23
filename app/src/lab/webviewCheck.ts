@@ -4,6 +4,7 @@
 // stage keeps drawing. `grep 'key="lab-glass"'` in opaline-layer.<date>.log.
 import type { GlassCompositor } from "../design-system/glass/compositor";
 import { report } from "../layer/bridge";
+import { listFonts } from "../widgets/layerHost";
 
 let current: GlassCompositor | null = null;
 
@@ -13,8 +14,25 @@ export function trackCompositor(compositor: GlassCompositor | null): void {
 
 const inTauri = "__TAURI_INTERNALS__" in window;
 
+/** In ?live mode: what the widget cards show with real data, and how many fonts core listed. */
+function reportLiveWidgets(): void {
+  setTimeout(() => {
+    void (async () => {
+      const cards = [
+        ...document.querySelectorAll<HTMLElement>('[data-testid="widgets"] [role="group"]'),
+      ].map(
+        (el) =>
+          `${el.getAttribute("aria-label") ?? "?"}: ${el.textContent.replace(/0123456789/g, "").slice(0, 80)}`,
+      );
+      const fonts = await listFonts();
+      void report("lab-widgets", { cards, fonts: fonts.length, sample: fonts.slice(0, 5) });
+    })();
+  }, 5000);
+}
+
 export function runWebviewCheck(): void {
   if (!inTauri) return;
+  if (new URLSearchParams(location.search).has("live")) reportLiveWidgets();
   setTimeout(() => {
     const canvas = document.querySelector<HTMLCanvasElement>("[data-glass] canvas");
     const card = document.querySelector<HTMLElement>('[role="group"][aria-label="CPU"]');
