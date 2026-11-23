@@ -105,6 +105,7 @@ and, where the hardware allows, live.
 | 4.5 | Native backend in core: helper detection, `ApiVersion` N/N−1, enable via `org.gnome.Shell.Extensions`, `enabled-extensions` fallback |
 | 4.6 | Input regions (both modes), Peek (both modes), appearance states (Automatic/Full/Dimmed) with focus/hover/covered signals |
 | 4.7 | Monitor hot-plug, scale and resolution changes, layer-covered → sampling class |
+| 4.8 | Measure RAM in Native mode against the 280 MB budget (ADR 0009) |
 
 **Acceptance (both modes):** above desktop icons, below apps, on all workspaces, hidden from Alt-Tab/overview/dock,
 survives Show Desktop, clicks outside widgets reach desktop icons; switching to Native after a re-login works
@@ -123,6 +124,7 @@ without restarting Opaline. 🧑 You install the helper (`sudo` copy or a dev `.
 | 5.7 | Widget picker bottom sheet with search, categories, live previews at each size, drag-to-place / click-to-place, hardware reasons |
 | 5.8 | Presets: Essentials, Performance, Creator, Developer, Minimal |
 | 5.9 | Detail views (shared-element morph up to 8×6) and the glass context menu |
+| 5.10 | Layer windows sized to the widgets' bounds outside edit mode (about −29 MB in Instant mode, ADR 0009); full work area while editing |
 
 **Acceptance:** everything in §2.2–2.4 of the brief works with mouse, touchpad and keyboard.
 
