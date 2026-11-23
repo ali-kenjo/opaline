@@ -186,5 +186,38 @@ share of `libLLVM` grew from 15 to 21.7 MB each. The PSS budget therefore moves 
   4.2 GHz, …) and 260 installed fonts.
 - Tests: 48 Vitest, 11 Playwright (new: widgets baseline, settings-sheet end-to-end), Rust style/fonts tests.
 
-**Next:** Memory → GPU → Storage → Network → Battery & Power → Processes → Fans → Now Playing → Visualizer → Weather →
-Calendar → Docker, each on the same framework (so each gets every style and content option automatically).
+- **The other twelve widgets** (2026-11-23/24), all on the same framework, so each has every style and content option:
+  - **Memory** (in use, used, available, total, cache, buffers, shared, swap, zswap, pressure; GB/GiB),
+  - **GPU** (choose the GPU or automatic = discrete; load, temperature, video memory, core and memory clock, power
+    with limit, fan, video engines, top app, power state, model; a sleeping dGPU shows "asleep" and is never woken),
+  - **Storage** (choose the volume; used, free, size, read/write, busy, temperature, health with warnings, written,
+    hours, drive, file system; Eject and Power off for removable drives, asking first),
+  - **Network** (choose the interface or automatic; down, up, Wi-Fi with an option to hide the name, link speed,
+    latency, internet, VPN, public IP, today and this period; Mbit/s or MB/s, line speed as full scale),
+  - **Battery & Power** (charge, state, time left, draw, health, energy, cycles, adapter, power mode with buttons on
+    the card, wireless devices; works on desktops when it shows power mode or devices),
+  - **Fans** (fastest, each fan, GPU fan, CPU temperature),
+  - **Processes** (apps or processes, by CPU or memory, rows, system on/off, End task that asks first),
+  - **Now Playing** (choose the player; cover round or rounded, title, artist, album, app, progress you can click to
+    seek, controls),
+  - **Visualizer** (bars, mirrored, wave, dots or ring; 8/16/32 bands, peaks, sensitivity; core's 60 Hz frames now
+    reach the windows directly),
+  - **Weather** (location search in its settings; now, high/low, feels like, rain chance, precipitation, wind with
+    direction, humidity, pressure, clouds, UV, air quality, sunrise/sunset, next hours, next days; °C/°F, km/h, m/s,
+    mph, knots, mm/in),
+  - **Calendar** (today … two weeks, grouped by day, colors, location, calendar name, all-day on/off, end times),
+  - **Docker** (state, image, project, status, CPU, memory, start/stop/restart asking first, start Docker Desktop).
+- **Checked live** inside the real layer windows (`lab.html?live`): every card showed this laptop's data (73 °C,
+  8.1 GB used, the NVIDIA card, Wi-Fi, the running video, …); the visualizer got 180 frames in 3 s; 260 fonts.
+- Tests: 55 Vitest, 12 Playwright (new: second Lab stage baseline, a live-data choice in the sheet).
+- Fixed on the way: sparklines drew black when their color was a CSS variable; baselines need
+  `--update-snapshots=all` (the default only rewrites screenshots past the tolerance).
+
+**Not done yet / moved**
+- Detail views (a bigger view per widget on click) and widget alerts in the cards come with Phase 5, where clicking a
+  widget on the desktop exists; the alert rules from Phase 1 already notify.
+- Widgets on the real desktop: Phase 5 (layout, placing, edit mode). Until then they live in the Lab.
+
+**Needs you**
+1. Look at the Lab and tell me per widget what you'd change (Phase 3 acceptance: your visual sign-off per widget).
+
