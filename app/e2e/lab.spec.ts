@@ -62,3 +62,52 @@ test("the card states announce their reasons", async ({ page }) => {
     "true",
   );
 });
+
+test("widgets: every size and two custom styles", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("/lab.html?still&wallpaper=dusk");
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForTimeout(500);
+  await expect(page.getByTestId("widgets")).toHaveScreenshot("widgets-dusk-dark.png", SNAPSHOT);
+  expect(errors).toEqual([]);
+});
+
+test("the settings sheet edits content and style of one widget", async ({ page }) => {
+  await page.goto("/lab.html?still&wallpaper=dusk");
+  const card = page.getByRole("group", { name: "Prozessor" });
+  await expect(card).toContainText("Temperatur");
+  await card.hover();
+  await card.getByRole("button", { name: "Prozessor settings" }).click();
+  // The sheet is named after the widget's title, which this test renames.
+  const sheet = page.getByRole("dialog", { name: /^(Prozessor|Chip) settings$/ });
+  await expect(sheet).toBeVisible();
+
+  // Content: hide a field; the card drops the row.
+  await sheet.getByRole("switch", { name: "Show Temperature" }).click();
+  await expect(card).not.toContainText("Temperatur");
+
+  // Content: rename the title.
+  const title = sheet.getByRole("textbox", { name: "Title", exact: true });
+  await title.fill("Chip");
+  await expect(page.getByRole("group", { name: "Chip" })).toBeVisible();
+
+  // Style: this widget's background becomes solid; the row says where the value comes from.
+  await sheet.getByRole("radio", { name: "Style" }).click();
+  await sheet.getByRole("combobox", { name: "Background" }).selectOption({ label: "Solid" });
+  await expect(sheet.getByText("This widget").first()).toBeVisible();
+  await sheet.getByRole("button", { name: "Reset Background" }).click();
+  // Reset means "inherit": the card is back on the default glass.
+  await expect(sheet.getByRole("combobox", { name: "Background" })).toHaveValue("glass");
+
+  // Style for all widgets: uppercase labels everywhere.
+  await sheet.getByRole("radio", { name: "All widgets" }).click();
+  await sheet.getByRole("switch", { name: "Uppercase labels" }).click();
+  await expect(page.getByRole("group", { name: "Clock" }).first().getByText("Clock")).toHaveCSS(
+    "text-transform",
+    "uppercase",
+  );
+
+  await sheet.getByRole("button", { name: "Close settings" }).click();
+  await expect(sheet).toBeHidden();
+});

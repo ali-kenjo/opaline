@@ -1,0 +1,93 @@
+.clock {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--w-gap);
+}
+
+.clock[data-size="M"][data-face="analog"],
+.clock[data-size="L"][data-face="analog"] {
+  flex-direction: row;
+  align-items: center;
+}
+
+.time {
+  line-height: 1;
+}
+
+.digits {
+  font-family: var(--w-num-font);
+  font-variant-numeric: var(--w-nums);
+  font-size: calc(44px * var(--w-scale));
+  font-weight: max(var(--w-weight), 300);
+  white-space: nowrap;
+}
+
+.clock[data-size="1x1"] .digits {
+  font-size: calc(20px * var(--w-scale));
+}
+
+.clock[data-size="2x1"] .digits,
+.clock[data-size="4x1"] .digits,
+.clock[data-size="S"] .digits {
+  font-size: calc(30px * var(--w-scale));
+}
+
+.clock[data-size="L"] .digits {
+  font-size: calc(72px * var(--w-scale));
+}
+
+.lines {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.line {
+  color: rgb(var(--md-on-surface-variant));
+  font-size: calc(14px * var(--w-scale));
+  text-transform: var(--w-label-case);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.analog {
+  flex: none;
+  height: 100%;
+  max-height: 100%;
+  aspect-ratio: 1;
+  max-width: 60%;
+}
+
+.clock[data-size="S"] .analog {
+  max-width: 100%;
+  height: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.face {
+  fill: rgb(var(--md-on-surface) / 0.06);
+  stroke: rgb(var(--md-on-surface) / 0.18);
+  stroke-width: 1;
+}
+
+.tick {
+  fill: rgb(var(--md-on-surface-variant));
+}
+
+.hourHand,
+.minuteHand {
+  stroke: rgb(var(--md-on-surface));
+}
+
+.secondHand {
+  stroke: rgb(var(--md-primary));
+}
+
+.pin {
+  fill: rgb(var(--md-primary));
+}

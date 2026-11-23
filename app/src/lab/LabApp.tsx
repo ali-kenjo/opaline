@@ -8,8 +8,11 @@ import { ComponentsDemo } from "./ComponentsDemo";
 import { GlassDemo } from "./GlassDemo";
 import styles from "./Lab.module.css";
 import { Specimen } from "./Specimen";
+import { WidgetsDemo } from "./WidgetsDemo";
 import type { LabWallpaper } from "./wallpapers";
 import { runWebviewCheck } from "./webviewCheck";
+import { attach, inTauri } from "../layer/bridge";
+import { useLayer } from "../layer/store";
 
 const params = new URLSearchParams(location.search);
 // Screenshot tests read the frame counter to prove that an idle Lab draws nothing.
@@ -17,6 +20,12 @@ const params = new URLSearchParams(location.search);
 const still = params.has("still");
 if (still) setReducedMotion(true);
 runWebviewCheck();
+const live = params.has("live") && inTauri;
+if (live) {
+  attach(useLayer.getState().apply).catch((e: unknown) => {
+    console.error("layer_attach failed", e);
+  });
+}
 
 export function LabApp() {
   const [value, setValue] = useState(42.5);
@@ -121,6 +130,14 @@ export function LabApp() {
         opaque={opaque}
         variant={variant}
         value={value}
+      />
+      <WidgetsDemo
+        wallpaperId={wallpaper}
+        dark={dark}
+        variant={variant}
+        value={value}
+        still={still}
+        live={live}
       />
       <ComponentsDemo dark={dark} value={value} />
       <Specimen value={value} />
