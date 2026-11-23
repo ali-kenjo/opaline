@@ -266,8 +266,8 @@ starts after the next login.
 
 One process, one undecorated transparent webview window per monitor, titled `opaline-layer:<connector>`, sized to
 the monitor (Native) or its work area (Instant). Monitors are added/removed live. Every window after the first is a
-WebKit *related view* of the first, so all of them share one web process (ADR 0009: 209 MB instead of about 290 MB
-in release with two monitors).
+WebKit *related view* of the first, so all of them share one web process (ADR 0009; one process per window would add
+roughly another 80 MB with two monitors).
 
 ### 5.2 Frontend
 
@@ -337,9 +337,9 @@ gives SMART unprivileged (ADR 0004); it comes back only if a machine shows it's 
 | no dropped frames | layout springs outside React, compositor single pass, `will-change` only while animating | WebKit frame timing in the Lab + manual check |
 | widgets ≤ 1.5 s after core start | layer starts in parallel with providers; widgets render loading state immediately; first sample of cheap providers before handshake | timestamped log events |
 
-**Biggest risk: RAM.** Measured in Phase 0 (release, two monitors, shared web process, test widget): core 25 MB,
-layer 60 MB, WebKit network process 15 MB, web process 109 MB, **209 MB total**, and **0.06 % idle CPU**. That leaves
-about 11 MB of headroom before real widgets exist. Next levers, in order: WebKit memory-pressure settings and
+**Biggest risk: RAM.** Measured in Phase 0 (release, two monitors, shared web process, test widget): core 27 MB,
+layer 105 MB, WebKit network process 16 MB, web process 130 MB, **278 MB total** (58 MB over budget), and **0.13 %
+idle CPU**. (An earlier 209 MB figure was measured while the webviews weren't drawing; ADR 0009.) Next levers, in order: WebKit memory-pressure settings and
 disabled caches for layer views, a small code-split bundle, and measuring the web process per widget in the Lab
 (ADR 0009). If it can't fit, I'll bring the numbers to you before relaxing the budget.
 

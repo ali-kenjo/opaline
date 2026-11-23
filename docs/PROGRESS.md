@@ -27,8 +27,15 @@
 - **A, WebGL2 + transparency:** WebGL2 context works in both layer windows (Tauri/WebKitGTK 2.52, X11 backend),
   premultiplied alpha, max texture 16384, first frame 24–30 ms (debug build, includes `gl.finish`). WebKit masks
   the GPU name. *Visual check of the transparent glass card pending (you).*
-- **B, RAM/CPU:** sharing one web process across windows brings release memory to **209 MB** (budget 220) and idle
-  CPU to **0.062 %** (budget 0.5 %). Tight headroom, see ADR 0009.
+- **B, RAM/CPU:** sharing one web process across windows. Release, two monitors, windows drawing: **278 MB**
+  (budget 220, **58 MB over**) and **0.13 %** idle CPU (budget 0.5 %). See ADR 0009. *(The first figure, 209 MB, was
+  measured while the bug below kept the webviews from drawing.)*
+
+**Fixed 2026-11-23: the test card never appeared.** Your visual check found the desktop empty. The layer windows
+were mapped and in the right place, but they were shown with GTK `show()` after being created hidden, which maps the
+toplevel and leaves Tauri's box and the webview unmapped. The page still ran (logs and WebGL reports looked healthy),
+but nothing was ever painted. Now `show_all()`; the glass card shows on eDP-1 (checked with a Mutter screencast
+frame).
 - **C, Instant mode:** Xwayland runs at 2×; keep-below/sticky/skip-taskbar/skip-pager set; DING is in the DESKTOP
   layer so we're above it by construction; Mutter misplaced new windows until we set `USPosition` (ADR 0008). Both
   windows are now exactly on their monitors' work areas (verified with `xwininfo`). *Alt-Tab/overview/dock, Show
