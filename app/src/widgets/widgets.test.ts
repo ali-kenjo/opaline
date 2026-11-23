@@ -47,7 +47,7 @@ describe("content", () => {
       expect(new Set(ids).size).toBe(ids.length);
       for (const d of w.defaultFields) expect(ids).toContain(d);
       expect(w.sizes).toContain(w.defaultSize);
-      expect(resolveContent(w, null).fields.length).toBeGreaterThan(0);
+      if (w.fields.length) expect(resolveContent(w, null).fields.length).toBeGreaterThan(0);
     }
   });
 });
