@@ -1,0 +1,77 @@
+{
+ "data": [
+  {
+   "Connection": {
+    "data": "/org/freedesktop/NetworkManager/Settings/5",
+    "type": "o"
+   },
+   "Controller": {
+    "data": "/",
+    "type": "o"
+   },
+   "Default": {
+    "data": true,
+    "type": "b"
+   },
+   "Default6": {
+    "data": true,
+    "type": "b"
+   },
+   "Devices": {
+    "data": [
+     "/org/freedesktop/NetworkManager/Devices/3"
+    ],
+    "type": "ao"
+   },
+   "Dhcp4Config": {
+    "data": "/org/freedesktop/NetworkManager/DHCP4Config/2",
+    "type": "o"
+   },
+   "Dhcp6Config": {
+    "data": "/org/freedesktop/NetworkManager/DHCP6Config/2",
+    "type": "o"
+   },
+   "Id": {
+    "data": "redacted",
+    "type": "s"
+   },
+   "Ip4Config": {
+    "data": "/org/freedesktop/NetworkManager/IP4Config/3",
+    "type": "o"
+   },
+   "Ip6Config": {
+    "data": "/org/freedesktop/NetworkManager/IP6Config/3",
+    "type": "o"
+   },
+   "Master": {
+    "data": "/",
+    "type": "o"
+   },
+   "SpecificObject": {
+    "data": "/org/freedesktop/NetworkManager/AccessPoint/2213",
+    "type": "o"
+   },
+   "State": {
+    "data": 2,
+    "type": "u"
+   },
+   "StateFlags": {
+    "data": 92,
+    "type": "u"
+   },
+   "Type": {
+    "data": "802-11-wireless",
+    "type": "s"
+   },
+   "Uuid": {
+    "data": "redacted",
+    "type": "s"
+   },
+   "Vpn": {
+    "data": false,
+    "type": "b"
+   }
+  }
+ ],
+ "type": "a{sv}"
+}

@@ -1,0 +1,9 @@
+{
+ "data": [
+  [
+   "/org/freedesktop/UPower/devices/battery_BAT1",
+   "/org/freedesktop/UPower/devices/line_power_ACAD"
+  ]
+ ],
+ "type": "ao"
+}

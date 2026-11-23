@@ -1,0 +1,139 @@
+{
+ "data": [
+  {
+   "Actions": {
+    "data": [
+     "redacted2"
+    ],
+    "type": "as"
+   },
+   "ActionsInfo": {
+    "data": [
+     {
+      "Description": {
+       "data": "Configure power supply to trickle charge",
+       "type": "s"
+      },
+      "Enabled": {
+       "data": true,
+       "type": "b"
+      },
+      "Name": {
+       "data": "redacted",
+       "type": "s"
+      }
+     },
+     {
+      "Description": {
+       "data": "Panel Power Savings (may affect color quality)",
+       "type": "s"
+      },
+      "Enabled": {
+       "data": false,
+       "type": "b"
+      },
+      "Name": {
+       "data": "redacted",
+       "type": "s"
+      }
+     },
+     {
+      "Description": {
+       "data": "Adjust GPU dynamic power management",
+       "type": "s"
+      },
+      "Enabled": {
+       "data": false,
+       "type": "b"
+      },
+      "Name": {
+       "data": "redacted",
+       "type": "s"
+      }
+     }
+    ],
+    "type": "aa{sv}"
+   },
+   "ActiveProfile": {
+    "data": "performance",
+    "type": "s"
+   },
+   "ActiveProfileHolds": {
+    "data": [],
+    "type": "aa{sv}"
+   },
+   "BatteryAware": {
+    "data": true,
+    "type": "b"
+   },
+   "PerformanceDegraded": {
+    "data": "",
+    "type": "s"
+   },
+   "PerformanceInhibited": {
+    "data": "",
+    "type": "s"
+   },
+   "Profiles": {
+    "data": [
+     {
+      "CpuDriver": {
+       "data": "intel_pstate",
+       "type": "s"
+      },
+      "Driver": {
+       "data": "multiple",
+       "type": "s"
+      },
+      "PlatformDriver": {
+       "data": "placeholder",
+       "type": "s"
+      },
+      "Profile": {
+       "data": "power-saver",
+       "type": "s"
+      }
+     },
+     {
+      "CpuDriver": {
+       "data": "intel_pstate",
+       "type": "s"
+      },
+      "Driver": {
+       "data": "multiple",
+       "type": "s"
+      },
+      "PlatformDriver": {
+       "data": "placeholder",
+       "type": "s"
+      },
+      "Profile": {
+       "data": "balanced",
+       "type": "s"
+      }
+     },
+     {
+      "CpuDriver": {
+       "data": "intel_pstate",
+       "type": "s"
+      },
+      "Driver": {
+       "data": "intel_pstate",
+       "type": "s"
+      },
+      "Profile": {
+       "data": "performance",
+       "type": "s"
+      }
+     }
+    ],
+    "type": "aa{sv}"
+   },
+   "Version": {
+    "data": "0.30",
+    "type": "s"
+   }
+  }
+ ],
+ "type": "a{sv}"
+}

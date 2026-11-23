@@ -1,0 +1,77 @@
+{
+ "data": [
+  {
+   "AccessPoints": {
+    "data": [
+     "/org/freedesktop/NetworkManager/AccessPoint/2213",
+     "/org/freedesktop/NetworkManager/AccessPoint/12106",
+     "/org/freedesktop/NetworkManager/AccessPoint/12107",
+     "/org/freedesktop/NetworkManager/AccessPoint/12108",
+     "/org/freedesktop/NetworkManager/AccessPoint/12109",
+     "/org/freedesktop/NetworkManager/AccessPoint/12110",
+     "/org/freedesktop/NetworkManager/AccessPoint/12111",
+     "/org/freedesktop/NetworkManager/AccessPoint/12112",
+     "/org/freedesktop/NetworkManager/AccessPoint/12113",
+     "/org/freedesktop/NetworkManager/AccessPoint/12114",
+     "/org/freedesktop/NetworkManager/AccessPoint/12115",
+     "/org/freedesktop/NetworkManager/AccessPoint/12116",
+     "/org/freedesktop/NetworkManager/AccessPoint/12117",
+     "/org/freedesktop/NetworkManager/AccessPoint/12118",
+     "/org/freedesktop/NetworkManager/AccessPoint/12119",
+     "/org/freedesktop/NetworkManager/AccessPoint/12120",
+     "/org/freedesktop/NetworkManager/AccessPoint/12121",
+     "/org/freedesktop/NetworkManager/AccessPoint/12122",
+     "/org/freedesktop/NetworkManager/AccessPoint/12123",
+     "/org/freedesktop/NetworkManager/AccessPoint/12124",
+     "/org/freedesktop/NetworkManager/AccessPoint/12125",
+     "/org/freedesktop/NetworkManager/AccessPoint/12126",
+     "/org/freedesktop/NetworkManager/AccessPoint/12127",
+     "/org/freedesktop/NetworkManager/AccessPoint/12128",
+     "/org/freedesktop/NetworkManager/AccessPoint/12129",
+     "/org/freedesktop/NetworkManager/AccessPoint/12130",
+     "/org/freedesktop/NetworkManager/AccessPoint/12131",
+     "/org/freedesktop/NetworkManager/AccessPoint/12132",
+     "/org/freedesktop/NetworkManager/AccessPoint/12133",
+     "/org/freedesktop/NetworkManager/AccessPoint/12134",
+     "/org/freedesktop/NetworkManager/AccessPoint/12135",
+     "/org/freedesktop/NetworkManager/AccessPoint/12136",
+     "/org/freedesktop/NetworkManager/AccessPoint/12137",
+     "/org/freedesktop/NetworkManager/AccessPoint/12138",
+     "/org/freedesktop/NetworkManager/AccessPoint/12139",
+     "/org/freedesktop/NetworkManager/AccessPoint/12140",
+     "/org/freedesktop/NetworkManager/AccessPoint/12141"
+    ],
+    "type": "ao"
+   },
+   "ActiveAccessPoint": {
+    "data": "/org/freedesktop/NetworkManager/AccessPoint/2213",
+    "type": "o"
+   },
+   "Bitrate": {
+    "data": 866700,
+    "type": "u"
+   },
+   "HwAddress": {
+    "data": "redacted",
+    "type": "s"
+   },
+   "LastScan": {
+    "data": 147658941,
+    "type": "x"
+   },
+   "Mode": {
+    "data": 2,
+    "type": "u"
+   },
+   "PermHwAddress": {
+    "data": "redacted",
+    "type": "s"
+   },
+   "WirelessCapabilities": {
+    "data": 2047,
+    "type": "u"
+   }
+  }
+ ],
+ "type": "a{sv}"
+}

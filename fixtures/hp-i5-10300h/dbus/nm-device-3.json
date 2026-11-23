@@ -1,0 +1,142 @@
+{
+ "data": [
+  {
+   "ActiveConnection": {
+    "data": "/org/freedesktop/NetworkManager/ActiveConnection/3",
+    "type": "o"
+   },
+   "Autoconnect": {
+    "data": true,
+    "type": "b"
+   },
+   "AvailableConnections": {
+    "data": [
+     "/org/freedesktop/NetworkManager/Settings/2",
+     "/org/freedesktop/NetworkManager/Settings/3",
+     "/org/freedesktop/NetworkManager/Settings/5"
+    ],
+    "type": "ao"
+   },
+   "Capabilities": {
+    "data": 1,
+    "type": "u"
+   },
+   "DeviceType": {
+    "data": 2,
+    "type": "u"
+   },
+   "Dhcp4Config": {
+    "data": "/org/freedesktop/NetworkManager/DHCP4Config/2",
+    "type": "o"
+   },
+   "Dhcp6Config": {
+    "data": "/org/freedesktop/NetworkManager/DHCP6Config/2",
+    "type": "o"
+   },
+   "Driver": {
+    "data": "rtw88_8822ce",
+    "type": "s"
+   },
+   "DriverVersion": {
+    "data": "7.0.0-44-generic",
+    "type": "s"
+   },
+   "FirmwareMissing": {
+    "data": false,
+    "type": "b"
+   },
+   "FirmwareVersion": {
+    "data": "N/A",
+    "type": "s"
+   },
+   "HwAddress": {
+    "data": "redacted",
+    "type": "s"
+   },
+   "Interface": {
+    "data": "wlo1",
+    "type": "s"
+   },
+   "InterfaceFlags": {
+    "data": 65539,
+    "type": "u"
+   },
+   "Ip4Address": {
+    "data": 0,
+    "type": "u"
+   },
+   "Ip4Config": {
+    "data": "/org/freedesktop/NetworkManager/IP4Config/3",
+    "type": "o"
+   },
+   "Ip4Connectivity": {
+    "data": 4,
+    "type": "u"
+   },
+   "Ip6Config": {
+    "data": "/org/freedesktop/NetworkManager/IP6Config/3",
+    "type": "o"
+   },
+   "Ip6Connectivity": {
+    "data": 4,
+    "type": "u"
+   },
+   "IpInterface": {
+    "data": "wlo1",
+    "type": "s"
+   },
+   "LldpNeighbors": {
+    "data": [],
+    "type": "aa{sv}"
+   },
+   "Managed": {
+    "data": true,
+    "type": "b"
+   },
+   "Metered": {
+    "data": 4,
+    "type": "u"
+   },
+   "Mtu": {
+    "data": 1500,
+    "type": "u"
+   },
+   "NmPluginMissing": {
+    "data": false,
+    "type": "b"
+   },
+   "Path": {
+    "data": "pci-0000:09:00.0",
+    "type": "s"
+   },
+   "PhysicalPortId": {
+    "data": "",
+    "type": "s"
+   },
+   "Ports": {
+    "data": [],
+    "type": "ao"
+   },
+   "Real": {
+    "data": true,
+    "type": "b"
+   },
+   "State": {
+    "data": 100,
+    "type": "u"
+   },
+   "StateReason": {
+    "data": [
+     100,
+     0
+    ],
+    "type": "(uu)"
+   },
+   "Udi": {
+    "data": "/sys/devices/pci0000:00/0000:00:1d.7/0000:09:00.0/net/wlo1",
+    "type": "s"
+   }
+  }
+ ],
+ "type": "a{sv}"
+}

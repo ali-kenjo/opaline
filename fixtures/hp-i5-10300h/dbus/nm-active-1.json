@@ -1,0 +1,77 @@
+{
+ "data": [
+  {
+   "Connection": {
+    "data": "/org/freedesktop/NetworkManager/Settings/8",
+    "type": "o"
+   },
+   "Controller": {
+    "data": "/",
+    "type": "o"
+   },
+   "Default": {
+    "data": false,
+    "type": "b"
+   },
+   "Default6": {
+    "data": false,
+    "type": "b"
+   },
+   "Devices": {
+    "data": [
+     "/org/freedesktop/NetworkManager/Devices/1"
+    ],
+    "type": "ao"
+   },
+   "Dhcp4Config": {
+    "data": "/",
+    "type": "o"
+   },
+   "Dhcp6Config": {
+    "data": "/",
+    "type": "o"
+   },
+   "Id": {
+    "data": "redacted",
+    "type": "s"
+   },
+   "Ip4Config": {
+    "data": "/org/freedesktop/NetworkManager/IP4Config/1",
+    "type": "o"
+   },
+   "Ip6Config": {
+    "data": "/org/freedesktop/NetworkManager/IP6Config/1",
+    "type": "o"
+   },
+   "Master": {
+    "data": "/",
+    "type": "o"
+   },
+   "SpecificObject": {
+    "data": "/",
+    "type": "o"
+   },
+   "State": {
+    "data": 2,
+    "type": "u"
+   },
+   "StateFlags": {
+    "data": 220,
+    "type": "u"
+   },
+   "Type": {
+    "data": "loopback",
+    "type": "s"
+   },
+   "Uuid": {
+    "data": "redacted",
+    "type": "s"
+   },
+   "Vpn": {
+    "data": false,
+    "type": "b"
+   }
+  }
+ ],
+ "type": "a{sv}"
+}

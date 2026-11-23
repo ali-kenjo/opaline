@@ -11,3 +11,4 @@ pub mod ipc_server;
 pub mod logging;
 pub mod paths;
 pub mod providers;
+pub mod sysfs;

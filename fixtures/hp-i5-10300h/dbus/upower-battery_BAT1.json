@@ -1,0 +1,159 @@
+{
+ "data": [
+  {
+   "BatteryLevel": {
+    "data": 1,
+    "type": "u"
+   },
+   "Capacity": {
+    "data": 75.00952380952381,
+    "type": "d"
+   },
+   "CapacityLevel": {
+    "data": "Full",
+    "type": "s"
+   },
+   "ChargeCycles": {
+    "data": -1,
+    "type": "i"
+   },
+   "ChargeEndThreshold": {
+    "data": 0,
+    "type": "u"
+   },
+   "ChargeStartThreshold": {
+    "data": 0,
+    "type": "u"
+   },
+   "ChargeThresholdEnabled": {
+    "data": false,
+    "type": "b"
+   },
+   "ChargeThresholdSettingsSupported": {
+    "data": 0,
+    "type": "u"
+   },
+   "ChargeThresholdSupported": {
+    "data": false,
+    "type": "b"
+   },
+   "Energy": {
+    "data": 39.38,
+    "type": "d"
+   },
+   "EnergyEmpty": {
+    "data": 0.0,
+    "type": "d"
+   },
+   "EnergyFull": {
+    "data": 39.38,
+    "type": "d"
+   },
+   "EnergyFullDesign": {
+    "data": 52.5,
+    "type": "d"
+   },
+   "EnergyRate": {
+    "data": 0.0,
+    "type": "d"
+   },
+   "HasHistory": {
+    "data": true,
+    "type": "b"
+   },
+   "HasStatistics": {
+    "data": true,
+    "type": "b"
+   },
+   "IconName": {
+    "data": "battery-full-charged-symbolic",
+    "type": "s"
+   },
+   "IsPresent": {
+    "data": true,
+    "type": "b"
+   },
+   "IsRechargeable": {
+    "data": true,
+    "type": "b"
+   },
+   "Luminosity": {
+    "data": 0.0,
+    "type": "d"
+   },
+   "Model": {
+    "data": "PABAS0241231",
+    "type": "s"
+   },
+   "NativePath": {
+    "data": "redacted",
+    "type": "s"
+   },
+   "Online": {
+    "data": false,
+    "type": "b"
+   },
+   "Percentage": {
+    "data": 100.0,
+    "type": "d"
+   },
+   "PowerSupply": {
+    "data": true,
+    "type": "b"
+   },
+   "Serial": {
+    "data": "redacted",
+    "type": "s"
+   },
+   "State": {
+    "data": 4,
+    "type": "u"
+   },
+   "Technology": {
+    "data": 1,
+    "type": "u"
+   },
+   "Temperature": {
+    "data": 0.0,
+    "type": "d"
+   },
+   "TimeToEmpty": {
+    "data": 0,
+    "type": "x"
+   },
+   "TimeToFull": {
+    "data": 0,
+    "type": "x"
+   },
+   "Type": {
+    "data": 2,
+    "type": "u"
+   },
+   "UpdateTime": {
+    "data": 1795440235,
+    "type": "t"
+   },
+   "Vendor": {
+    "data": "Hewlett-Packard",
+    "type": "s"
+   },
+   "Voltage": {
+    "data": 12.735,
+    "type": "d"
+   },
+   "VoltageMaxDesign": {
+    "data": 0.0,
+    "type": "d"
+   },
+   "VoltageMinDesign": {
+    "data": 11.55,
+    "type": "d"
+   },
+   "WarningLevel": {
+    "data": 1,
+    "type": "u"
+   }
+  }
+ ],
+ "type": "a{sv}"
+}

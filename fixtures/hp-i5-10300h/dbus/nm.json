@@ -1,0 +1,129 @@
+{
+ "data": [
+  {
+   "ActivatingConnection": {
+    "data": "/",
+    "type": "o"
+   },
+   "ActiveConnections": {
+    "data": [
+     "/org/freedesktop/NetworkManager/ActiveConnection/3",
+     "/org/freedesktop/NetworkManager/ActiveConnection/1"
+    ],
+    "type": "ao"
+   },
+   "AllDevices": {
+    "data": [
+     "/org/freedesktop/NetworkManager/Devices/1",
+     "/org/freedesktop/NetworkManager/Devices/2",
+     "/org/freedesktop/NetworkManager/Devices/3",
+     "/org/freedesktop/NetworkManager/Devices/5"
+    ],
+    "type": "ao"
+   },
+   "Capabilities": {
+    "data": [
+     1
+    ],
+    "type": "au"
+   },
+   "Checkpoints": {
+    "data": [],
+    "type": "ao"
+   },
+   "Connectivity": {
+    "data": 4,
+    "type": "u"
+   },
+   "ConnectivityCheckAvailable": {
+    "data": true,
+    "type": "b"
+   },
+   "ConnectivityCheckEnabled": {
+    "data": true,
+    "type": "b"
+   },
+   "ConnectivityCheckUri": {
+    "data": "http://connectivity-check.ubuntu.com/",
+    "type": "s"
+   },
+   "Devices": {
+    "data": [
+     "/org/freedesktop/NetworkManager/Devices/1",
+     "/org/freedesktop/NetworkManager/Devices/2",
+     "/org/freedesktop/NetworkManager/Devices/3",
+     "/org/freedesktop/NetworkManager/Devices/5"
+    ],
+    "type": "ao"
+   },
+   "GlobalDnsConfiguration": {
+    "data": {},
+    "type": "a{sv}"
+   },
+   "Metered": {
+    "data": 4,
+    "type": "u"
+   },
+   "NetworkingEnabled": {
+    "data": true,
+    "type": "b"
+   },
+   "PrimaryConnection": {
+    "data": "/org/freedesktop/NetworkManager/ActiveConnection/3",
+    "type": "o"
+   },
+   "PrimaryConnectionType": {
+    "data": "802-11-wireless",
+    "type": "s"
+   },
+   "RadioFlags": {
+    "data": 1,
+    "type": "u"
+   },
+   "Startup": {
+    "data": false,
+    "type": "b"
+   },
+   "State": {
+    "data": 70,
+    "type": "u"
+   },
+   "Version": {
+    "data": "1.54.3",
+    "type": "s"
+   },
+   "VersionInfo": {
+    "data": [
+     79363,
+     7
+    ],
+    "type": "au"
+   },
+   "WimaxEnabled": {
+    "data": false,
+    "type": "b"
+   },
+   "WimaxHardwareEnabled": {
+    "data": false,
+    "type": "b"
+   },
+   "WirelessEnabled": {
+    "data": true,
+    "type": "b"
+   },
+   "WirelessHardwareEnabled": {
+    "data": true,
+    "type": "b"
+   },
+   "WwanEnabled": {
+    "data": true,
+    "type": "b"
+   },
+   "WwanHardwareEnabled": {
+    "data": true,
+    "type": "b"
+   }
+  }
+ ],
+ "type": "a{sv}"
+}

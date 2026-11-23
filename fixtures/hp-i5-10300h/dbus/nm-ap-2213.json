@@ -1,0 +1,60 @@
+{
+ "data": [
+  {
+   "Bandwidth": {
+    "data": 80,
+    "type": "u"
+   },
+   "Flags": {
+    "data": 3,
+    "type": "u"
+   },
+   "Frequency": {
+    "data": 5260,
+    "type": "u"
+   },
+   "HwAddress": {
+    "data": "redacted",
+    "type": "s"
+   },
+   "LastSeen": {
+    "data": 147658,
+    "type": "i"
+   },
+   "MaxBitrate": {
+    "data": 1170000,
+    "type": "u"
+   },
+   "Mode": {
+    "data": 2,
+    "type": "u"
+   },
+   "RsnFlags": {
+    "data": 392,
+    "type": "u"
+   },
+   "Ssid": {
+    "data": [
+     114,
+     101,
+     100,
+     97,
+     99,
+     116,
+     101,
+     100
+    ],
+    "type": "ay"
+   },
+   "Strength": {
+    "data": 66,
+    "type": "y"
+   },
+   "WpaFlags": {
+    "data": 0,
+    "type": "u"
+   }
+  }
+ ],
+ "type": "a{sv}"
+}

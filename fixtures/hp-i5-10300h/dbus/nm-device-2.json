@@ -1,0 +1,138 @@
+{
+ "data": [
+  {
+   "ActiveConnection": {
+    "data": "/",
+    "type": "o"
+   },
+   "Autoconnect": {
+    "data": true,
+    "type": "b"
+   },
+   "AvailableConnections": {
+    "data": [],
+    "type": "ao"
+   },
+   "Capabilities": {
+    "data": 3,
+    "type": "u"
+   },
+   "DeviceType": {
+    "data": 1,
+    "type": "u"
+   },
+   "Dhcp4Config": {
+    "data": "/",
+    "type": "o"
+   },
+   "Dhcp6Config": {
+    "data": "/",
+    "type": "o"
+   },
+   "Driver": {
+    "data": "r8169",
+    "type": "s"
+   },
+   "DriverVersion": {
+    "data": "7.0.0-44-generic",
+    "type": "s"
+   },
+   "FirmwareMissing": {
+    "data": false,
+    "type": "b"
+   },
+   "FirmwareVersion": {
+    "data": "",
+    "type": "s"
+   },
+   "HwAddress": {
+    "data": "redacted",
+    "type": "s"
+   },
+   "Interface": {
+    "data": "eno1",
+    "type": "s"
+   },
+   "InterfaceFlags": {
+    "data": 1,
+    "type": "u"
+   },
+   "Ip4Address": {
+    "data": 0,
+    "type": "u"
+   },
+   "Ip4Config": {
+    "data": "/org/freedesktop/NetworkManager/IP4Config/2",
+    "type": "o"
+   },
+   "Ip4Connectivity": {
+    "data": 1,
+    "type": "u"
+   },
+   "Ip6Config": {
+    "data": "/org/freedesktop/NetworkManager/IP6Config/2",
+    "type": "o"
+   },
+   "Ip6Connectivity": {
+    "data": 1,
+    "type": "u"
+   },
+   "IpInterface": {
+    "data": "",
+    "type": "s"
+   },
+   "LldpNeighbors": {
+    "data": [],
+    "type": "aa{sv}"
+   },
+   "Managed": {
+    "data": true,
+    "type": "b"
+   },
+   "Metered": {
+    "data": 0,
+    "type": "u"
+   },
+   "Mtu": {
+    "data": 1500,
+    "type": "u"
+   },
+   "NmPluginMissing": {
+    "data": false,
+    "type": "b"
+   },
+   "Path": {
+    "data": "pci-0000:07:00.0",
+    "type": "s"
+   },
+   "PhysicalPortId": {
+    "data": "",
+    "type": "s"
+   },
+   "Ports": {
+    "data": [],
+    "type": "ao"
+   },
+   "Real": {
+    "data": true,
+    "type": "b"
+   },
+   "State": {
+    "data": 20,
+    "type": "u"
+   },
+   "StateReason": {
+    "data": [
+     20,
+     2
+    ],
+    "type": "(uu)"
+   },
+   "Udi": {
+    "data": "/sys/devices/pci0000:00/0000:00:1d.5/0000:07:00.0/net/eno1",
+    "type": "s"
+   }
+  }
+ ],
+ "type": "a{sv}"
+}

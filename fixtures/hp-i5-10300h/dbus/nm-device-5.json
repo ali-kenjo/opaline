@@ -1,0 +1,140 @@
+{
+ "data": [
+  {
+   "ActiveConnection": {
+    "data": "/",
+    "type": "o"
+   },
+   "Autoconnect": {
+    "data": true,
+    "type": "b"
+   },
+   "AvailableConnections": {
+    "data": [
+     "/org/freedesktop/NetworkManager/Settings/10"
+    ],
+    "type": "ao"
+   },
+   "Capabilities": {
+    "data": 1,
+    "type": "u"
+   },
+   "DeviceType": {
+    "data": 5,
+    "type": "u"
+   },
+   "Dhcp4Config": {
+    "data": "/",
+    "type": "o"
+   },
+   "Dhcp6Config": {
+    "data": "/",
+    "type": "o"
+   },
+   "Driver": {
+    "data": "bluez",
+    "type": "s"
+   },
+   "DriverVersion": {
+    "data": "",
+    "type": "s"
+   },
+   "FirmwareMissing": {
+    "data": false,
+    "type": "b"
+   },
+   "FirmwareVersion": {
+    "data": "",
+    "type": "s"
+   },
+   "HwAddress": {
+    "data": "redacted",
+    "type": "s"
+   },
+   "Interface": {
+    "data": "00:00:00:00:00:00",
+    "type": "s"
+   },
+   "InterfaceFlags": {
+    "data": 0,
+    "type": "u"
+   },
+   "Ip4Address": {
+    "data": 0,
+    "type": "u"
+   },
+   "Ip4Config": {
+    "data": "/",
+    "type": "o"
+   },
+   "Ip4Connectivity": {
+    "data": 1,
+    "type": "u"
+   },
+   "Ip6Config": {
+    "data": "/",
+    "type": "o"
+   },
+   "Ip6Connectivity": {
+    "data": 1,
+    "type": "u"
+   },
+   "IpInterface": {
+    "data": "",
+    "type": "s"
+   },
+   "LldpNeighbors": {
+    "data": [],
+    "type": "aa{sv}"
+   },
+   "Managed": {
+    "data": true,
+    "type": "b"
+   },
+   "Metered": {
+    "data": 0,
+    "type": "u"
+   },
+   "Mtu": {
+    "data": 0,
+    "type": "u"
+   },
+   "NmPluginMissing": {
+    "data": false,
+    "type": "b"
+   },
+   "Path": {
+    "data": "",
+    "type": "s"
+   },
+   "PhysicalPortId": {
+    "data": "",
+    "type": "s"
+   },
+   "Ports": {
+    "data": [],
+    "type": "ao"
+   },
+   "Real": {
+    "data": true,
+    "type": "b"
+   },
+   "State": {
+    "data": 30,
+    "type": "u"
+   },
+   "StateReason": {
+    "data": [
+     30,
+     0
+    ],
+    "type": "(uu)"
+   },
+   "Udi": {
+    "data": "/org/bluez/hci0/dev_redacted1",
+    "type": "s"
+   }
+  }
+ ],
+ "type": "a{sv}"
+}

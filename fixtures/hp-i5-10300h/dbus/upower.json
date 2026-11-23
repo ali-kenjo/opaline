@@ -1,0 +1,23 @@
+{
+ "data": [
+  {
+   "DaemonVersion": {
+    "data": "1.91.1",
+    "type": "s"
+   },
+   "LidIsClosed": {
+    "data": false,
+    "type": "b"
+   },
+   "LidIsPresent": {
+    "data": true,
+    "type": "b"
+   },
+   "OnBattery": {
+    "data": false,
+    "type": "b"
+   }
+  }
+ ],
+ "type": "a{sv}"
+}

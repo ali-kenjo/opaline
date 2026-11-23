@@ -1,0 +1,159 @@
+{
+ "data": [
+  {
+   "BatteryLevel": {
+    "data": 1,
+    "type": "u"
+   },
+   "Capacity": {
+    "data": 0.0,
+    "type": "d"
+   },
+   "CapacityLevel": {
+    "data": "",
+    "type": "s"
+   },
+   "ChargeCycles": {
+    "data": -1,
+    "type": "i"
+   },
+   "ChargeEndThreshold": {
+    "data": 100,
+    "type": "u"
+   },
+   "ChargeStartThreshold": {
+    "data": 0,
+    "type": "u"
+   },
+   "ChargeThresholdEnabled": {
+    "data": false,
+    "type": "b"
+   },
+   "ChargeThresholdSettingsSupported": {
+    "data": 0,
+    "type": "u"
+   },
+   "ChargeThresholdSupported": {
+    "data": false,
+    "type": "b"
+   },
+   "Energy": {
+    "data": 0.0,
+    "type": "d"
+   },
+   "EnergyEmpty": {
+    "data": 0.0,
+    "type": "d"
+   },
+   "EnergyFull": {
+    "data": 0.0,
+    "type": "d"
+   },
+   "EnergyFullDesign": {
+    "data": 0.0,
+    "type": "d"
+   },
+   "EnergyRate": {
+    "data": 0.0,
+    "type": "d"
+   },
+   "HasHistory": {
+    "data": false,
+    "type": "b"
+   },
+   "HasStatistics": {
+    "data": false,
+    "type": "b"
+   },
+   "IconName": {
+    "data": "ac-adapter-symbolic",
+    "type": "s"
+   },
+   "IsPresent": {
+    "data": false,
+    "type": "b"
+   },
+   "IsRechargeable": {
+    "data": false,
+    "type": "b"
+   },
+   "Luminosity": {
+    "data": 0.0,
+    "type": "d"
+   },
+   "Model": {
+    "data": "",
+    "type": "s"
+   },
+   "NativePath": {
+    "data": "redacted",
+    "type": "s"
+   },
+   "Online": {
+    "data": true,
+    "type": "b"
+   },
+   "Percentage": {
+    "data": 0.0,
+    "type": "d"
+   },
+   "PowerSupply": {
+    "data": true,
+    "type": "b"
+   },
+   "Serial": {
+    "data": "redacted",
+    "type": "s"
+   },
+   "State": {
+    "data": 0,
+    "type": "u"
+   },
+   "Technology": {
+    "data": 0,
+    "type": "u"
+   },
+   "Temperature": {
+    "data": 0.0,
+    "type": "d"
+   },
+   "TimeToEmpty": {
+    "data": 0,
+    "type": "x"
+   },
+   "TimeToFull": {
+    "data": 0,
+    "type": "x"
+   },
+   "Type": {
+    "data": 1,
+    "type": "u"
+   },
+   "UpdateTime": {
+    "data": 1795374960,
+    "type": "t"
+   },
+   "Vendor": {
+    "data": "",
+    "type": "s"
+   },
+   "Voltage": {
+    "data": 0.0,
+    "type": "d"
+   },
+   "VoltageMaxDesign": {
+    "data": 0.0,
+    "type": "d"
+   },
+   "VoltageMinDesign": {
+    "data": 0.0,
+    "type": "d"
+   },
+   "WarningLevel": {
+    "data": 1,
+    "type": "u"
+   }
+  }
+ ],
+ "type": "a{sv}"
+}
