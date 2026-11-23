@@ -133,6 +133,7 @@ impl Subscriptions {
     /// (brief §5.4).
     fn pushes(&self, topic: &Topic) -> bool {
         !self.hub.locked()
+            && !self.hub.all_covered()
             && self
                 .topics
                 .get(topic)

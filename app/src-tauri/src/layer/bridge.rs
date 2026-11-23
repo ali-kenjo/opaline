@@ -267,6 +267,24 @@ pub async fn layer_command(
     Ok(bridge.command(command).await)
 }
 
+/// Peek/Edit: raise the layer above all windows, or lower it again. Instant mode does it here;
+/// Native mode tells core, which asks the shell helper.
+#[tauri::command]
+pub async fn layer_set_raised(
+    app: AppHandle,
+    raised: bool,
+    backend: State<'_, BackendKind>,
+    bridge: State<'_, std::sync::Arc<Bridge>>,
+) -> Result<CommandResult, ()> {
+    match *backend {
+        BackendKind::Instant => {
+            super::windows::set_raised_instant(&app, raised);
+            Ok(CommandResult::Ok)
+        }
+        BackendKind::Native => Ok(bridge.command(Command::SetRaised { raised }).await),
+    }
+}
+
 /// A widget rectangle in window (logical) pixels.
 #[derive(Debug, Clone, Copy, Deserialize)]
 pub struct Rect {

@@ -25,6 +25,9 @@ pub async fn execute(hub: &Arc<Hub>, command: Command) -> CommandResult {
                 .map(Some)
         }
         Command::ListFonts => crate::fonts::list().await.map(Some),
+        Command::SetRaised { raised } => {
+            crate::desktop::set_raised(hub, raised).await.map(|()| None)
+        }
         other => run(other).await.map(|()| None),
     };
     match result {
@@ -74,6 +77,7 @@ async fn run(command: Command) -> Result<(), String> {
         Command::UpdateSettings { .. }
         | Command::GeocodeSearch { .. }
         | Command::History { .. }
-        | Command::ListFonts => Err("handled-above".into()),
+        | Command::ListFonts
+        | Command::SetRaised { .. } => Err("handled-above".into()),
     }
 }

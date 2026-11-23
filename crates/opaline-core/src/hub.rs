@@ -1,6 +1,6 @@
 //! The topic bus between providers, the sampler, the IPC server and the rest of core.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -59,6 +59,9 @@ pub struct Hub {
     settings: watch::Sender<Arc<Settings>>,
     /// Screen locked: every subscription counts as Idle and nothing is pushed.
     locked: std::sync::atomic::AtomicBool,
+    /// Connectors whose layer window is covered by a maximized or fullscreen window (Native
+    /// mode reports this). When every monitor is covered, subscriptions count as Covered.
+    covered: Mutex<HashSet<String>>,
     history: crate::history::Shared,
     /// False when settings.json comes from a newer Opaline (or is broken): never overwrite it.
     settings_writable: std::sync::atomic::AtomicBool,
@@ -81,6 +84,7 @@ impl Hub {
             media_playing: watch::channel(None).0,
             settings: watch::channel(Arc::new(Settings::default())).0,
             locked: std::sync::atomic::AtomicBool::new(false),
+            covered: Mutex::new(HashSet::new()),
             history: crate::history::Shared::default(),
             settings_writable: std::sync::atomic::AtomicBool::new(true),
         })
@@ -158,6 +162,64 @@ impl Hub {
         *self.backend.borrow()
     }
 
+    /// Records which backend places the layer now and tells the layer.
+    pub fn set_backend(&self, backend: BackendKind) {
+        if self.backend.send_replace(backend) != backend {
+            self.emit(CoreEvent::BackendChanged { backend });
+        }
+    }
+
+    pub fn watch_backend(&self) -> watch::Receiver<BackendKind> {
+        self.backend.subscribe()
+    }
+
+    /// One monitor's layer became covered or uncovered (helper's `LayerCovered`).
+    pub fn set_covered(&self, connector: &str, covered: bool) {
+        let changed = {
+            let mut set = lock(&self.covered);
+            if covered {
+                set.insert(connector.to_owned())
+            } else {
+                set.remove(connector)
+            }
+        };
+        if changed {
+            self.bump();
+        }
+    }
+
+    /// Forget coverage (the helper went away; Instant mode can't tell).
+    pub fn clear_covered(&self) {
+        let changed = {
+            let mut set = lock(&self.covered);
+            let had = !set.is_empty();
+            set.clear();
+            had
+        };
+        if changed {
+            self.bump();
+        }
+    }
+
+    /// Every monitor's layer is covered, so nothing is visible.
+    pub fn all_covered(&self) -> bool {
+        let monitors = self.monitors.borrow();
+        let set = lock(&self.covered);
+        !monitors.is_empty() && monitors.iter().all(|m| set.contains(&m.connector))
+    }
+
+    /// The class a subscription effectively has: Idle while locked, at most Covered while
+    /// every layer window is covered.
+    fn effective(&self, class: ActivityClass) -> ActivityClass {
+        if self.locked() {
+            ActivityClass::Idle
+        } else if self.all_covered() {
+            class.min(ActivityClass::Covered)
+        } else {
+            class
+        }
+    }
+
     /// Registers interest in a topic at an activity class. Every call must be paired with
     /// [`Hub::unsubscribe`] with the same class.
     pub fn subscribe(&self, topic: &Topic, class: ActivityClass) {
@@ -193,11 +255,7 @@ impl Hub {
             .rev()
             .find(|class| counts[class_index(**class)] > 0)
             .copied();
-        if self.locked() {
-            class.map(|_| ActivityClass::Idle)
-        } else {
-            class
-        }
+        class.map(|c| self.effective(c))
     }
 
     pub fn history(&self) -> crate::history::Shared {
@@ -225,7 +283,6 @@ impl Hub {
 
     /// Every subscribed topic with its most demanding class (Idle for all while locked).
     pub fn interests(&self) -> Vec<(Topic, ActivityClass)> {
-        let locked = self.locked();
         let subs = lock(&self.subscriptions);
         subs.iter()
             .filter_map(|(topic, counts)| {
@@ -233,12 +290,7 @@ impl Hub {
                     .iter()
                     .rev()
                     .find(|class| counts[class_index(**class)] > 0)
-                    .map(|class| {
-                        (
-                            topic.clone(),
-                            if locked { ActivityClass::Idle } else { *class },
-                        )
-                    })
+                    .map(|class| (topic.clone(), self.effective(*class)))
             })
             .collect()
     }

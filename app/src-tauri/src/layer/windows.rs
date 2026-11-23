@@ -83,7 +83,10 @@ pub fn place(
     if let Err(error) = window.set_size(size) {
         tracing::warn!(%error, label = window.label(), "could not size layer window");
     }
-    pin(app, window, (to_int(position.x), to_int(position.y)));
+    // In Native mode the helper positions the window; Wayland clients can't anyway.
+    if backend == BackendKind::Instant {
+        pin(app, window, (to_int(position.x), to_int(position.y)));
+    }
     tracing::info!(
         label = window.label(),
         x = position.x,
@@ -301,8 +304,13 @@ fn create(
         Ok(window) => {
             tracing::info!(label, connector = %monitor.connector, x = position.x, y = position.y,
                 width = size.width, height = size.height, scale = monitor.scale, shared_process = related_used, "layer window created");
-            show_at(&window, position, size);
-            pin(app, &window, (to_int(position.x), to_int(position.y)));
+            match backend {
+                BackendKind::Instant => {
+                    show_at(&window, position, size);
+                    pin(app, &window, (to_int(position.x), to_int(position.y)));
+                }
+                BackendKind::Native => show_plain(&window),
+            }
             // Click-through until the frontend reports where its widgets are.
             set_input_region(&window, &[]);
         }
@@ -352,6 +360,46 @@ fn show_at(window: &tauri::WebviewWindow, position: LogicalPosition<f64>, size: 
     });
     if let Err(error) = result {
         tracing::warn!(%error, "could not schedule showing the layer window");
+    }
+}
+
+/// Native mode: map the window; the helper sizes, places and stacks it.
+fn show_plain(window: &tauri::WebviewWindow) {
+    let target = window.clone();
+    let result = window.run_on_main_thread(move || {
+        if let Ok(gtk_window) = target.gtk_window() {
+            gtk_window.show_all();
+        }
+    });
+    if let Err(error) = result {
+        tracing::warn!(%error, "could not schedule showing the layer window");
+    }
+}
+
+/// Peek/Edit in Instant mode: lift every layer window above all windows (and focus one, so
+/// Esc reaches it), or put them back below. Native mode asks core, which asks the helper.
+pub fn set_raised_instant(app: &AppHandle, raised: bool) {
+    let mut first = true;
+    for (label, window) in app.webview_windows() {
+        if !label.starts_with("layer-") {
+            continue;
+        }
+        let result = if raised {
+            window
+                .set_always_on_bottom(false)
+                .and_then(|()| window.set_always_on_top(true))
+        } else {
+            window
+                .set_always_on_top(false)
+                .and_then(|()| window.set_always_on_bottom(true))
+        };
+        if let Err(error) = result {
+            tracing::warn!(%error, label, "could not change the layer's stacking");
+        }
+        if raised && first {
+            first = false;
+            let _ = window.set_focus();
+        }
     }
 }
 

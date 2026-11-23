@@ -219,6 +219,15 @@ pub enum CoreEvent {
     AlertOpened {
         rule: String,
     },
+    /// Native mode: the desktop (or the layer) has focus, not an app window. Drives the
+    /// Automatic appearance.
+    DesktopFocusChanged {
+        focused: bool,
+    },
+    /// Core switched between Instant and Native placement.
+    BackendChanged {
+        backend: BackendKind,
+    },
 }
 
 /// An action the layer asks core to perform. Core validates every one against its own current
@@ -252,6 +261,9 @@ pub enum Command {
     History { series: String, seconds: u64 },
     /// Installed font families (fontconfig) for the font picker; answers with a list of names.
     ListFonts,
+    /// Peek or Edit started (`true`) or ended: in Native mode core asks the helper to raise or
+    /// lower the layer; in Instant mode the layer does it itself and this is a no-op.
+    SetRaised { raised: bool },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

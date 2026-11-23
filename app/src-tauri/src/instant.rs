@@ -1,10 +1,11 @@
-//! Instant backend, Phase 0 part: core spawns and supervises the layer process through
-//! Xwayland. Placement checks, Show Desktop recovery and Peek follow in Phase 4.
+//! Instant backend: core spawns and supervises the layer process through Xwayland, but only
+//! while Native mode (the shell helper starts the layer itself) isn't active.
 
 use std::path::Path;
 use std::process::Stdio;
 use std::time::{Duration, Instant};
 
+use opaline_ipc::BackendKind;
 use tokio::process::Command;
 use tokio::sync::watch;
 
@@ -12,6 +13,73 @@ const MIN_BACKOFF: Duration = Duration::from_millis(500);
 const MAX_BACKOFF: Duration = Duration::from_secs(30);
 /// A layer that ran this long is considered healthy; the backoff starts over.
 const HEALTHY_RUN: Duration = Duration::from_secs(60);
+
+/// Runs the Instant layer whenever the backend is Instant, and stops it when Native takes
+/// over (the helper then starts its own layer), until `stop` turns true.
+pub async fn control_layer(mut backend: watch::Receiver<BackendKind>, stop: watch::Receiver<bool>) {
+    loop {
+        if *stop.borrow() {
+            return;
+        }
+        let current = *backend.borrow_and_update();
+        if current == BackendKind::Instant {
+            let (layer_stop_tx, layer_stop_rx) = watch::channel(false);
+            let mut stop_for_select = stop.clone();
+            let supervise = supervise_layer(layer_stop_rx);
+            tokio::pin!(supervise);
+            tokio::select! {
+                () = &mut supervise => return,
+                changed = backend.changed() => {
+                    let _ = layer_stop_tx.send(true);
+                    supervise.await;
+                    if changed.is_err() {
+                        return;
+                    }
+                    tracing::info!("leaving Instant mode; the shell helper starts the layer");
+                }
+                () = stopped(&mut stop_for_select) => {
+                    let _ = layer_stop_tx.send(true);
+                    supervise.await;
+                    return;
+                }
+            }
+        } else {
+            let mut stop_for_select = stop.clone();
+            tokio::select! {
+                changed = backend.changed() => {
+                    if changed.is_err() {
+                        return;
+                    }
+                    tracing::info!("back to Instant mode");
+                }
+                () = stopped(&mut stop_for_select) => return,
+            }
+        }
+    }
+}
+
+/// What the shell helper needs to start the layer the same way (Native mode).
+pub fn layer_launch() -> opaline_core::app_service::LayerLaunch {
+    let mut environment = std::collections::HashMap::new();
+    if let Some(file) = mesa_egl_vendor_file() {
+        environment.insert(EGL_VENDOR_ENV.to_owned(), file.to_owned());
+    }
+    for key in ["OPALINE_LOG", "RUST_BACKTRACE"] {
+        if let Ok(v) = std::env::var(key) {
+            environment.insert(key.to_owned(), v);
+        }
+    }
+    #[cfg(debug_assertions)]
+    if let Ok(v) = std::env::var("OPALINE_LAYER_PAGE") {
+        environment.insert("OPALINE_LAYER_PAGE".to_owned(), v);
+    }
+    opaline_core::app_service::LayerLaunch {
+        executable: std::env::current_exe()
+            .map(|p| p.display().to_string())
+            .unwrap_or_default(),
+        environment,
+    }
+}
 
 /// Keeps one `opaline --layer --backend instant` alive until `stop` turns true.
 pub async fn supervise_layer(mut stop: watch::Receiver<bool>) {

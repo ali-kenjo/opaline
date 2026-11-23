@@ -23,7 +23,7 @@ pub fn run(request: Option<AppRequest>) -> ExitCode {
 
     let (requests_tx, requests_rx) = mpsc::unbounded_channel();
     let started = rt.block_on(async {
-        match app_service::claim(requests_tx.clone(), "instant").await {
+        match app_service::claim(requests_tx.clone(), "instant", instant::layer_launch()).await {
             Ok(Claim::Primary(conn)) => Ok(Some(conn)),
             Ok(Claim::AlreadyRunning) => {
                 // A second launch (app grid, desktop action, CLI) talks to the running core.
@@ -57,7 +57,10 @@ pub fn run(request: Option<AppRequest>) -> ExitCode {
             Vec::new()
         });
     tracing::info!(count = monitors.len(), "monitors");
-    let hub = Hub::new(BackendKind::Instant, monitors);
+    // Start in the right mode at once, so no Instant layer flashes up before the helper's.
+    let backend = rt.block_on(opaline_core::desktop::initial_backend(&bus));
+    tracing::info!(?backend, "desktop integration");
+    let hub = Hub::new(backend, monitors);
     let (settings, writable) = opaline_core::store::load();
     hub.init_settings(settings, writable);
 
@@ -98,10 +101,21 @@ pub fn run(request: Option<AppRequest>) -> ExitCode {
         });
     }
 
+    {
+        let bus = bus.clone();
+        rt.spawn(async move { opaline_core::desktop::ensure_enabled(&bus).await });
+    }
+    rt.spawn(opaline_core::desktop::run(
+        bus.clone(),
+        hub.clone(),
+        requests_tx.clone(),
+    ));
+
     let (stop_tx, stop_rx) = watch::channel(false);
     let (layer_done_tx, layer_done_rx) = std::sync::mpsc::channel::<()>();
+    let backend_rx = hub_backend(&hub);
     rt.spawn(async move {
-        instant::supervise_layer(stop_rx).await;
+        instant::control_layer(backend_rx, stop_rx).await;
         let _ = layer_done_tx.send(());
     });
 
@@ -145,6 +159,10 @@ pub fn run(request: Option<AppRequest>) -> ExitCode {
     });
     drop(bus);
     ExitCode::SUCCESS
+}
+
+fn hub_backend(hub: &Arc<Hub>) -> watch::Receiver<BackendKind> {
+    hub.watch_backend()
 }
 
 const PAUSE_ID: &str = "pause";

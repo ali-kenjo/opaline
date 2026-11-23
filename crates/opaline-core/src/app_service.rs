@@ -22,6 +22,15 @@ pub enum AppRequest {
 struct AppService {
     requests: mpsc::UnboundedSender<AppRequest>,
     backend: String,
+    layer: LayerLaunch,
+}
+
+/// How the shell helper should start the layer in Native mode: this very binary (so dev
+/// builds work) and a few environment variables (the helper accepts only an allow-list).
+#[derive(Debug, Clone, Default)]
+pub struct LayerLaunch {
+    pub executable: String,
+    pub environment: std::collections::HashMap<String, String>,
 }
 
 impl AppService {
@@ -54,6 +63,16 @@ impl AppService {
     fn backend_mode(&self) -> String {
         self.backend.clone()
     }
+
+    #[zbus(property)]
+    fn layer_executable(&self) -> String {
+        self.layer.executable.clone()
+    }
+
+    #[zbus(property)]
+    fn layer_environment(&self) -> std::collections::HashMap<String, String> {
+        self.layer.environment.clone()
+    }
 }
 
 #[proxy(
@@ -81,10 +100,12 @@ pub enum Claim {
 pub async fn claim(
     requests: mpsc::UnboundedSender<AppRequest>,
     backend: &str,
+    layer: LayerLaunch,
 ) -> zbus::Result<Claim> {
     let service = AppService {
         requests,
         backend: backend.to_owned(),
+        layer,
     };
     let conn = connection::Builder::session()
         .serve_at(OBJECT_PATH, service)

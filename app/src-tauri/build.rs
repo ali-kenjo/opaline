@@ -5,6 +5,7 @@ fn main() {
         "layer_attach",
         "layer_subscribe",
         "layer_command",
+        "layer_set_raised",
         "layer_set_input_region",
         "layer_report",
     ]);
