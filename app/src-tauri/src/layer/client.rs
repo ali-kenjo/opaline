@@ -180,6 +180,8 @@ fn handle(app: &AppHandle, bridge: &Bridge, msg: ServerMsg, backend: opaline_ipc
             }
             bridge.broadcast(&LayerEvent::CoreEvent { event });
         }
+        // Widgets send commands from Phase 3 on; until then a result is only logged.
+        ServerMsg::CommandResult { id, result } => tracing::debug!(id, ?result, "command result"),
         ServerMsg::Pong { .. } | ServerMsg::Welcome(_) | ServerMsg::Rejected { .. } => {}
     }
 }

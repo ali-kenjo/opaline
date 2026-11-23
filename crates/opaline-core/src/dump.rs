@@ -19,14 +19,17 @@ pub async fn dump(prefix: Option<&str>) -> BTreeMap<String, serde_json::Value> {
     let topics: Vec<Topic> = polled
         .iter()
         .flat_map(|p| p.topics().iter().map(|t| Topic::new(t.name)))
+        .chain(providers::ASYNC_TOPICS.iter().map(|t| Topic::new(*t)))
         .filter(|t| prefix.is_none_or(|p| t.as_str().starts_with(p)))
         .collect();
     for topic in &topics {
         hub.subscribe(topic, ActivityClass::Interactive);
     }
     let sampler = tokio::spawn(Sampler::new(hub.clone(), polled).run());
+    let event_driven = tokio::spawn(providers::run_async(hub.clone()));
     tokio::time::sleep(RUN_FOR).await;
     sampler.abort();
+    event_driven.abort();
     let mut out: BTreeMap<String, serde_json::Value> = topics
         .iter()
         .map(|t| {

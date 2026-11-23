@@ -214,6 +214,8 @@ async fn handle_client(hub: Arc<Hub>, stream: UnixStream) -> Result<(), ClientEr
         hub: hub.clone(),
         topics: HashMap::new(),
     };
+    // Commands run on their own tasks; their results come back through this channel.
+    let (results_tx, mut results) = mpsc::channel::<(u32, opaline_ipc::CommandResult)>(16);
     let result = loop {
         tokio::select! {
             msg = incoming.recv() => match msg {
@@ -235,6 +237,13 @@ async fn handle_client(hub: Arc<Hub>, stream: UnixStream) -> Result<(), ClientEr
                     }
                 }
                 Some(Ok(ClientMsg::Unsubscribe { topic })) => subs.remove(&topic),
+                Some(Ok(ClientMsg::Command { id, command })) => {
+                    let tx = results_tx.clone();
+                    tokio::spawn(async move {
+                        let result = crate::commands::execute(command).await;
+                        let _ = tx.send((id, result)).await;
+                    });
+                }
                 Some(Ok(ClientMsg::Ping { nonce })) => {
                     send(&mut writer, &ServerMsg::Pong { nonce }, &mut scratch).await?;
                 }
@@ -264,6 +273,9 @@ async fn handle_client(hub: Arc<Hub>, stream: UnixStream) -> Result<(), ClientEr
                 }
                 Err(broadcast::error::RecvError::Closed) => break Ok(()),
             },
+            Some((id, result)) = results.recv() => {
+                send(&mut writer, &ServerMsg::CommandResult { id, result }, &mut scratch).await?;
+            }
             event = events.recv() => match event {
                 Ok(event) => send(&mut writer, &ServerMsg::Event(event), &mut scratch).await?,
                 Err(broadcast::error::RecvError::Lagged(_)) => {}

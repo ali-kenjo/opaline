@@ -68,6 +68,9 @@ FILES = [
     "/sys/block/*/size", "/sys/block/*/removable", "/sys/block/*/ro",
     "/sys/block/*/queue/rotational", "/sys/block/*/device/model", "/sys/block/*/device/vendor",
     "/sys/block/*/*/partition", "/sys/block/*/*/size",
+    "/sys/block/*/device/hwmon*/name", "/sys/block/*/device/hwmon*/temp*_input",
+    "/sys/block/*/device/hwmon*/temp*_label", "/sys/block/*/device/hwmon*/temp*_max",
+    "/sys/block/*/device/hwmon*/temp*_crit", "/sys/block/*/slaves/*/partition",
     # Network
     "/proc/net/dev", "/proc/net/route",
     "/sys/class/net/*/statistics/rx_bytes", "/sys/class/net/*/statistics/tx_bytes",

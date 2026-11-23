@@ -43,6 +43,11 @@ export type CoreEvent =
   | { event: "edit-requested" }
   | { event: "updates-paused"; paused: boolean };
 
+export type Command =
+  { cmd: "drive-eject"; drive: string } | { cmd: "drive-power-off"; drive: string };
+
+export type CommandResult = { result: "ok" } | { result: "err"; reason: string };
+
 export type ActivityClass = "idle" | "covered" | "ambient" | "interactive";
 
 export type LayerEvent =

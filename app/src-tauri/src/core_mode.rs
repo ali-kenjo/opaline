@@ -68,6 +68,7 @@ pub fn run(request: Option<AppRequest>) -> ExitCode {
     };
     rt.spawn(ipc_server::serve(hub.clone(), listener));
     rt.spawn(Sampler::new(hub.clone(), providers::polled()).run());
+    rt.spawn(providers::run_async(hub.clone()));
     {
         let hub = hub.clone();
         let bus = bus.clone();

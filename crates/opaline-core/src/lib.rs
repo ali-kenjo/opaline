@@ -3,6 +3,7 @@
 //! See `docs/ARCHITECTURE.md` §3.
 
 pub mod app_service;
+pub mod commands;
 pub mod diagnose;
 pub mod displays;
 pub mod dump;

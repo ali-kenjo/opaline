@@ -213,6 +213,25 @@ pub enum CoreEvent {
     UpdatesPaused { paused: bool },
 }
 
+/// An action the layer asks core to perform. Core validates every one against its own current
+/// listing before acting (ARCHITECTURE §3.7).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "cmd", rename_all = "kebab-case")]
+pub enum Command {
+    /// Eject removable media from a drive in `storage.drives` (block name, e.g. `sdb`).
+    DriveEject { drive: String },
+    /// Power off a drive (USB disks) so it can be unplugged safely.
+    DrivePowerOff { drive: String },
+}
+
+/// How a command ended. `reason` is a stable code the UI translates.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "result", rename_all = "kebab-case")]
+pub enum CommandResult {
+    Ok,
+    Err { reason: String },
+}
+
 /// Messages from a client (the layer) to core.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "t", rename_all = "kebab-case")]
@@ -220,6 +239,7 @@ pub enum ClientMsg {
     Hello(Hello),
     Subscribe { topic: Topic, class: ActivityClass },
     Unsubscribe { topic: Topic },
+    Command { id: u32, command: Command },
     Ping { nonce: u32 },
 }
 
@@ -234,6 +254,10 @@ pub enum ServerMsg {
     },
     Update(UpdateBatch),
     Event(CoreEvent),
+    CommandResult {
+        id: u32,
+        result: CommandResult,
+    },
     Pong {
         nonce: u32,
     },
@@ -328,6 +352,12 @@ mod tests {
                 monitors: vec![monitor()],
             }),
             ServerMsg::Event(CoreEvent::UpdatesPaused { paused: true }),
+            ServerMsg::CommandResult {
+                id: 7,
+                result: CommandResult::Err {
+                    reason: "not-supported".into(),
+                },
+            },
             ServerMsg::Pong { nonce: 3 },
         ];
         for msg in msgs {
@@ -350,6 +380,12 @@ mod tests {
             },
             ClientMsg::Unsubscribe {
                 topic: Topic::new("cpu.load"),
+            },
+            ClientMsg::Command {
+                id: 7,
+                command: Command::DriveEject {
+                    drive: "sdb".into(),
+                },
             },
             ClientMsg::Ping { nonce: 1 },
         ];
