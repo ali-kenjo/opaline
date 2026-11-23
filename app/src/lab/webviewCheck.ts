@@ -5,6 +5,7 @@
 import type { GlassCompositor } from "../design-system/glass/compositor";
 import { report } from "../layer/bridge";
 import { listFonts } from "../widgets/layerHost";
+import { onSpectrum } from "../widgets/spectrum";
 
 let current: GlassCompositor | null = null;
 
@@ -18,14 +19,19 @@ const inTauri = "__TAURI_INTERNALS__" in window;
 function reportLiveWidgets(): void {
   setTimeout(() => {
     void (async () => {
-      const cards = [
-        ...document.querySelectorAll<HTMLElement>('[data-testid="widgets"] [role="group"]'),
-      ].map(
+      const cards = [...document.querySelectorAll<HTMLElement>('[data-testid] [role="group"]')].map(
         (el) =>
           `${el.getAttribute("aria-label") ?? "?"}: ${el.textContent.replace(/0123456789/g, "").slice(0, 80)}`,
       );
       const fonts = await listFonts();
-      void report("lab-widgets", { cards, fonts: fonts.length, sample: fonts.slice(0, 5) });
+      // Spectrum frames that reached this window in 3 s (about 180 while something plays).
+      let frames = 0;
+      const off = onSpectrum(() => {
+        frames++;
+      });
+      await new Promise((r) => setTimeout(r, 3000));
+      off();
+      void report("lab-widgets", { cards, fonts: fonts.length, spectrumFramesIn3s: frames });
     })();
   }, 5000);
 }
