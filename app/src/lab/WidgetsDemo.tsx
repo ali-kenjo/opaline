@@ -10,16 +10,38 @@ import type { CommandResult, Value } from "../layer/protocol";
 import { type StoredSettings, HostContext, type WidgetHost } from "../widgets/host";
 import { type Json, mergePatch } from "../widgets/json";
 import { listFonts, subscribeTopics, useCoreColors, useLayerValues } from "../widgets/layerHost";
+import { onSpectrum } from "../widgets/spectrum";
 import { widgetByKind } from "../widgets/registry";
 import { WidgetSettings } from "../widgets/settings/WidgetSettings";
 import { WidgetFrame } from "../widgets/WidgetFrame";
 import { labTint } from "./labTint";
-import { LAB_FONTS, LAB_LAYOUT, LAB_NOW, LAB_SETTINGS, mockValues, useLabValues } from "./labHost";
+import {
+  mockSpectrum,
+  LAB_FONTS,
+  LAB_LAYOUT,
+  LAB_NOW,
+  LAB_SETTINGS,
+  mockValues,
+  useLabValues,
+} from "./labHost";
 import styles from "./Lab.module.css";
 import { type LabWallpaper, makeWallpaper } from "./wallpapers";
 
 const STAGE_W = 1100;
 const STAGE_H = 1250;
+
+/** Mock frames at 30 Hz, or one still frame for screenshots. */
+function labSpectrum(listener: (levels: readonly number[]) => void, still: boolean): () => void {
+  listener(mockSpectrum(1.2));
+  if (still) return () => undefined;
+  const start = performance.now();
+  const id = setInterval(() => {
+    listener(mockSpectrum((performance.now() - start) / 1000));
+  }, 33);
+  return () => {
+    clearInterval(id);
+  };
+}
 
 function useMockValues<T>(sel: (v: Readonly<Record<string, Value>>) => T): T {
   return useLabValues((st) => sel(st.values));
@@ -62,6 +84,11 @@ export function WidgetsDemo({ wallpaperId, dark, variant, value, still, live }: 
       settings: { style: settings.style, styles: settings.styles, widgets: settings.widgets },
       updateSettings,
       listFonts: live ? listFonts : () => Promise.resolve(LAB_FONTS),
+      // The Lab never acts on the real system, not even in ?live mode.
+      command: () => Promise.resolve({ result: "ok" as const }),
+      onSpectrum: live
+        ? onSpectrum
+        : (listener: (levels: readonly number[]) => void) => labSpectrum(listener, still),
       colors: live
         ? { ...coreColors, wallpaper: source, systemDark: dark }
         : { wallpaper: source, accent: GNOME_ACCENTS.blue ?? source, systemDark: dark },

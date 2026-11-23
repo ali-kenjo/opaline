@@ -42,6 +42,9 @@ function validOption(o: ContentOption, v: unknown): boolean {
       return typeof v === "number" && Number.isFinite(v) && v >= o.min && v <= o.max;
     case "text":
       return typeof v === "string" && v.length <= o.maxLength;
+    case "source":
+    case "location":
+      return typeof v === "string" && v.length <= 128;
     case "thresholds":
       return (
         Array.isArray(v) &&

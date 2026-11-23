@@ -11,8 +11,8 @@ import { Specimen } from "./Specimen";
 import { WidgetsDemo } from "./WidgetsDemo";
 import type { LabWallpaper } from "./wallpapers";
 import { runWebviewCheck } from "./webviewCheck";
-import { attach, inTauri } from "../layer/bridge";
-import { useLayer } from "../layer/store";
+import { inTauri } from "../layer/bridge";
+import { attachLayer } from "../widgets/layerHost";
 
 const params = new URLSearchParams(location.search);
 // Screenshot tests read the frame counter to prove that an idle Lab draws nothing.
@@ -22,7 +22,7 @@ if (still) setReducedMotion(true);
 runWebviewCheck();
 const live = params.has("live") && inTauri;
 if (live) {
-  attach(useLayer.getState().apply).catch((e: unknown) => {
+  attachLayer().catch((e: unknown) => {
     console.error("layer_attach failed", e);
   });
 }

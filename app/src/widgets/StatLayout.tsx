@@ -6,7 +6,9 @@ import { Icon } from "../design-system/icons";
 import { Odometer } from "../design-system/motion";
 import { springFor } from "../design-system/style";
 import type { SizeClass } from "../design-system/tokens/tokens";
-import type { RenderCtx } from "./types";
+import { useState } from "react";
+import type { Command, CommandResult } from "../layer/protocol";
+import type { RenderCtx, WidgetAction } from "./types";
 import styles from "./WidgetFrame.module.css";
 
 export interface StatLayoutProps {
@@ -14,6 +16,8 @@ export interface StatLayoutProps {
   heroColor: string;
   history: readonly number[];
   historyMinutes: number;
+  actions?: readonly WidgetAction[];
+  onAction?: (cmd: Command) => Promise<CommandResult>;
 }
 
 /** How many rows fit beside / under the hero per size class. */
@@ -38,7 +42,14 @@ function Value({ text, animate }: { text: string; animate: boolean }) {
   );
 }
 
-export function StatLayout({ ctx, heroColor, history, historyMinutes }: StatLayoutProps) {
+export function StatLayout({
+  ctx,
+  heroColor,
+  history,
+  historyMinutes,
+  actions = [],
+  onAction,
+}: StatLayoutProps) {
   const { size, style, readings, content } = ctx;
   const animate = style.animations && style.odometer;
   const hero = readings.find((r) => r.field.id === content.hero);
@@ -122,6 +133,60 @@ export function StatLayout({ ctx, heroColor, history, historyMinutes }: StatLayo
             </div>
           ))}
         </dl>
+      ) : null}
+      {actions.length && onAction && ACTION_SIZES.has(size) ? (
+        <ActionBar actions={actions} onAction={onAction} />
+      ) : null}
+    </div>
+  );
+}
+
+const ACTION_SIZES = new Set<SizeClass>(["M", "L", "XL"]);
+
+/** Card buttons; ones with `confirm` ask on the first click and act on the second. */
+export function ActionBar({
+  actions,
+  onAction,
+}: {
+  actions: readonly WidgetAction[];
+  onAction: (cmd: Command) => Promise<CommandResult>;
+}) {
+  const [asking, setAsking] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <div className={styles.actions}>
+      {actions.map((a) => (
+        <button
+          key={a.id}
+          type="button"
+          className={`${styles.action} ${a.active ? styles.actionOn : ""} ${asking === a.id ? styles.actionAsk : ""}`}
+          aria-pressed={a.active}
+          onClick={() => {
+            if (a.confirm && asking !== a.id) {
+              setAsking(a.id);
+              return;
+            }
+            setAsking(null);
+            onAction(a.command)
+              .then((r) => {
+                setError(r.result === "err" ? r.reason : null);
+              })
+              .catch(() => {
+                setError("failed");
+              });
+          }}
+          onBlur={() => {
+            if (asking === a.id) setAsking(null);
+          }}
+        >
+          <Icon name={a.icon} size={16} />
+          {asking === a.id ? (a.confirm ?? a.label) : a.label}
+        </button>
+      ))}
+      {error ? (
+        <span className={styles.actionError} role="status">
+          {error}
+        </span>
       ) : null}
     </div>
   );

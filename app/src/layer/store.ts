@@ -36,6 +36,9 @@ export function reduce(state: LayerState, event: LayerEvent): Partial<LayerState
       for (const u of event.updates) values[u.topic] = u.value;
       return { values };
     }
+    case "spectrum":
+      // Routed to the visualizer directly (widgets/spectrum.ts), never through the store.
+      return {};
     case "core-event":
       switch (event.event.event) {
         case "updates-paused":

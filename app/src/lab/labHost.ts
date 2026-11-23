@@ -142,3 +142,14 @@ export const LAB_FONTS = [
   "Ubuntu",
   "Ubuntu Mono",
 ];
+
+/** A plausible spectrum for the Lab: 32 levels then 32 peaks, moving with `t` (seconds). */
+export function mockSpectrum(t: number): number[] {
+  const levels = Array.from({ length: 32 }, (_, i) => {
+    const bass = Math.max(0, 1 - i / 10) * (0.6 + 0.4 * Math.sin(t * 7.1));
+    const mid = 0.45 + 0.35 * Math.sin(t * 3.3 + i * 0.7);
+    const air = 0.25 * (1 + Math.sin(t * 11 + i * 1.9)) * (i / 32);
+    return Math.round(Math.min(1, bass * 0.8 + mid * 0.5 + air) * 230);
+  });
+  return [...levels, ...levels.map((l) => Math.min(255, l + 18))];
+}

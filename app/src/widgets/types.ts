@@ -7,7 +7,7 @@ import type { RampName } from "../design-system/color/ramps";
 import type { IconName } from "../design-system/icons";
 import type { ResolvedStyle } from "../design-system/style";
 import type { SizeClass } from "../design-system/tokens/tokens";
-import type { ActivityClass, Value } from "../layer/protocol";
+import type { ActivityClass, Command, Value } from "../layer/protocol";
 import type { ResolvedContent } from "./content";
 
 export type Choice = readonly { value: string; label: string }[];
@@ -47,6 +47,24 @@ export type ContentOption =
       step: number;
       unit: string;
       default: readonly [number, number];
+    }
+  | {
+      /** A choice whose options come from live data (which GPU, drive, interface, player). */
+      kind: "source";
+      key: string;
+      label: string;
+      help?: string;
+      topic: string;
+      choices: (v: Value | undefined) => Choice;
+      default: string;
+    }
+  | {
+      /** The weather location (a global setting, searched with core's geocoding). */
+      kind: "location";
+      key: string;
+      label: string;
+      help?: string;
+      default: string;
     };
 
 export interface ReadCtx {
@@ -71,14 +89,27 @@ export interface FieldDef {
   id: string;
   label: string;
   icon?: IconName;
-  /** Topics this field reads (subscribed only while the field is shown). */
-  topics: readonly string[];
+  /** Topics this field reads (subscribed only while the field is shown); may depend on the
+   * widget's base topics and content (which GPU, which drive). */
+  topics: readonly string[] | ((ctx: ReadCtx) => readonly string[]);
   /** `null` = no data for this field right now (shown as "—"). */
   read(ctx: ReadCtx): Reading | null;
   /** Can be the hero (default true). */
   hero?: boolean;
   /** Core's history series of this field, to backfill the sparkline. */
   series?: string;
+}
+
+/** A button on the card (M and larger): eject, power mode, start Docker Desktop. */
+export interface WidgetAction {
+  id: string;
+  label: string;
+  icon: IconName;
+  command: Command;
+  /** Ask first ("Power off the drive?"). */
+  confirm?: string;
+  /** Shown as selected (the active power profile). */
+  active?: boolean;
 }
 
 export type HeroStyle = "ring" | "bar" | "sparkline" | "number";
@@ -116,6 +147,8 @@ export interface WidgetDef {
   options?: readonly ContentOption[];
   /** Whether the widget can show anything (else the reason). */
   status(ctx: ReadCtx): CardStatus;
+  /** Buttons under the standard layout. */
+  actions?: (ctx: ReadCtx) => readonly WidgetAction[];
   /** Custom layout; omit to use the standard hero + rows layout. */
   render?: (ctx: RenderCtx) => ReactNode;
   /** The activity class its topics are subscribed at while visible. */

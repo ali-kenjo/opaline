@@ -5,11 +5,12 @@ import { useEffect, useMemo, useState } from "react";
 import { DEFAULT_SOURCE } from "../design-system/color/scheme";
 import { sourceFromWallpaper } from "../design-system/color/source";
 import type { ColorContext } from "../design-system/style";
-import { command, subscribe } from "../layer/bridge";
+import { attach, command, subscribe } from "../layer/bridge";
 import type { ActivityClass, Value } from "../layer/protocol";
 import { useLayer } from "../layer/store";
 import type { StoredSettings, StoredWidget } from "./host";
 import { type Json, fromJson, toJson } from "./json";
+import { emitSpectrum } from "./spectrum";
 
 export const SETTINGS_TOPIC = "settings";
 export const APPEARANCE_TOPIC = "appearance.settings";
@@ -101,4 +102,13 @@ export function useCoreColors(monitorKey: string | null): ColorContext {
     () => ({ wallpaper: wallSource, accent, systemDark: dark }),
     [wallSource, accent, dark],
   );
+}
+
+/** Connects this window to the layer: spectrum frames go to the visualizer, the rest to the store. */
+export async function attachLayer(): Promise<void> {
+  const apply = useLayer.getState().apply;
+  await attach((event) => {
+    if (event.kind === "spectrum") emitSpectrum(event.levels);
+    else apply(event);
+  });
 }

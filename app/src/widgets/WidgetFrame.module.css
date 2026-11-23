@@ -237,6 +237,54 @@
   white-space: nowrap;
 }
 
+/* Card buttons */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgb(var(--md-outline) / 0.6);
+  border-radius: 14px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: calc(12px * var(--w-scale));
+  cursor: pointer;
+}
+
+.action:hover {
+  background: rgb(var(--md-on-surface) / 0.08);
+}
+
+.action:focus-visible {
+  outline: 2px solid rgb(var(--md-primary));
+}
+
+.actionOn {
+  background: rgb(var(--md-secondary-container));
+  color: rgb(var(--md-on-secondary-container));
+  border-color: transparent;
+}
+
+.actionAsk {
+  background: rgb(var(--md-error-container));
+  color: rgb(var(--md-on-error-container));
+  border-color: transparent;
+}
+
+.actionError {
+  color: rgb(var(--md-error));
+  font-size: 12px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .barFill,
   .settings {

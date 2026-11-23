@@ -156,8 +156,13 @@ async fn session(
                         Err(error) => break Err(error.into()),
                     }
                 }
-                // Spectrum frames are routed to the visualizer in Phase 3.
-                Some(Ok(Some(_))) => {}
+                Some(Ok(Some(frame))) => match frame.decode_spectrum() {
+                    Ok(spectrum) => bridge.broadcast(&LayerEvent::Spectrum {
+                        seq: spectrum.seq,
+                        levels: spectrum.levels,
+                    }),
+                    Err(error) => tracing::debug!(%error, "malformed spectrum frame"),
+                },
             },
             msg = outgoing.recv() => match msg {
                 Some(msg) => write_message(&mut writer, &msg, &mut scratch).await?,

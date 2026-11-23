@@ -24,7 +24,15 @@ import type { ActivityClass, Value } from "../layer/protocol";
 import { type ResolvedContent, resolveContent } from "./content";
 import { useHost } from "./host";
 import { StatLayout } from "./StatLayout";
-import type { CardStatus, FieldDef, ReadCtx, Reading, RenderCtx, WidgetDef } from "./types";
+import type {
+  CardStatus,
+  FieldDef,
+  ReadCtx,
+  Reading,
+  RenderCtx,
+  WidgetAction,
+  WidgetDef,
+} from "./types";
 import styles from "./WidgetFrame.module.css";
 
 export interface WidgetFrameProps {
@@ -64,6 +72,15 @@ function useRelaxed<T>(value: T, relaxed: boolean): T {
   return relaxed ? held : value;
 }
 
+function pick(
+  all: Readonly<Record<string, Value>>,
+  topics: readonly string[],
+): Record<string, Value | undefined> {
+  const out: Record<string, Value | undefined> = {};
+  for (const t of topics) out[t] = all[t];
+  return out;
+}
+
 class HeroHistory {
   private hero = "";
   private values: number[] = [];
@@ -79,6 +96,14 @@ class HeroHistory {
 
   of(hero: string): readonly number[] {
     return hero === this.hero ? this.values : [];
+  }
+}
+
+function safeActions(def: WidgetDef, ctx: ReadCtx): readonly WidgetAction[] {
+  try {
+    return def.actions?.(ctx) ?? [];
+  } catch {
+    return [];
   }
 }
 
@@ -133,21 +158,30 @@ export function WidgetFrame({
         .filter((f): f is FieldDef => f !== undefined),
     [content.fields, def.fields],
   );
-  const topics = useMemo(
-    () => [...new Set([...(def.topics ?? []), ...shown.flatMap((f) => f.topics)])].sort(),
-    [def.topics, shown],
+  // Base topics first (lists like gpu.list), then the shown fields' topics, which may depend on
+  // them (which GPU, which drive).
+  const baseTopics = useMemo(() => [...(def.topics ?? [])].sort(), [def.topics]);
+  const base = host.useValues(
+    useShallow((all: Readonly<Record<string, Value>>) => pick(all, baseTopics)),
   );
+  const topics = useMemo(() => {
+    const baseCtx: ReadCtx = { get: (t: string) => base[t], content };
+    const fieldTopics = shown.flatMap((f) => {
+      try {
+        return typeof f.topics === "function" ? f.topics(baseCtx) : f.topics;
+      } catch {
+        return [];
+      }
+    });
+    return [...new Set([...baseTopics, ...fieldTopics])].sort();
+  }, [baseTopics, base, shown, content]);
   const activity = activityFor(content, def);
   useEffect(() => {
     host.subscribe(topics, activity);
   }, [host, topics, activity]);
 
   const live = host.useValues(
-    useShallow((all: Readonly<Record<string, Value>>) => {
-      const out: Record<string, Value | undefined> = {};
-      for (const t of topics) out[t] = all[t];
-      return out;
-    }),
+    useShallow((all: Readonly<Record<string, Value>>) => pick(all, topics)),
   );
   const values = useRelaxed(live, content.updateRate === "relaxed");
 
@@ -222,6 +256,8 @@ export function WidgetFrame({
         heroColor={color}
         history={history.of(content.hero)}
         historyMinutes={content.historyMinutes}
+        actions={def.actions ? safeActions(def, ctx) : []}
+        onAction={(cmd) => host.command(cmd)}
       />
     );
 

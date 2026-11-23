@@ -44,6 +44,11 @@ pub enum LayerEvent {
     CoreEvent {
         event: CoreEvent,
     },
+    /// Visualizer levels then peaks (`2 × bands`, 0–255), about 60 per second while capturing.
+    Spectrum {
+        seq: u32,
+        levels: Vec<u8>,
+    },
 }
 
 #[derive(Debug, Clone)]

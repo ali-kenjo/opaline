@@ -2,7 +2,7 @@
 // change them, and the color context. The layer and the Lab provide different implementations.
 import { createContext, useContext } from "react";
 import type { ColorContext, Style } from "../design-system/style";
-import type { ActivityClass, CommandResult, Value } from "../layer/protocol";
+import type { ActivityClass, Command, CommandResult, Value } from "../layer/protocol";
 import type { Json } from "./json";
 
 export interface StoredWidget {
@@ -24,6 +24,10 @@ export interface WidgetHost {
   settings: StoredSettings;
   /** A JSON merge patch on settings.json (`null` resets a field). */
   updateSettings(patch: Record<string, Json>): Promise<CommandResult>;
+  /** Asks core to act (eject, media, End task, containers); the Lab only pretends. */
+  command(cmd: Command): Promise<CommandResult>;
+  /** Visualizer frames; returns the unsubscribe function. */
+  onSpectrum(listener: (levels: readonly number[]) => void): () => void;
   /** Installed font families (fontconfig), or none outside Opaline. */
   listFonts(): Promise<string[]>;
   colors: ColorContext;

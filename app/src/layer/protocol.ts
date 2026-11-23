@@ -70,4 +70,5 @@ export type LayerEvent =
   | { kind: "connected"; coreVersion: string; backend: BackendKind; monitor: Monitor | null }
   | { kind: "rejected"; reason: string }
   | { kind: "update"; seq: number; atMs: number; updates: TopicUpdate[] }
+  | { kind: "spectrum"; seq: number; levels: number[] }
   | { kind: "core-event"; event: CoreEvent };

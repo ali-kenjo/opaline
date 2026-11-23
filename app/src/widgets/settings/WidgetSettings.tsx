@@ -17,7 +17,7 @@ import {
 } from "../../design-system/style";
 import { HERO_STYLE_LABELS, HISTORY_MINUTES, UPDATE_RATES, resolveContent } from "../content";
 import { useHost } from "../host";
-import type { Json } from "../json";
+import { type Json, toJson } from "../json";
 import type { ContentOption, WidgetDef } from "../types";
 import {
   ColorField,
@@ -702,10 +702,163 @@ function OptionRow({
         />
       );
       break;
+    case "source":
+      control = <SourceSelect option={option} value={String(value)} onChange={onChange} />;
+      break;
+    case "location":
+      control = <LocationSearch />;
+      break;
   }
   return (
     <Row label={option.label} help={option.help}>
       {control}
     </Row>
+  );
+}
+
+function SourceSelect({
+  option,
+  value,
+  onChange,
+}: {
+  option: Extract<ContentOption, { kind: "source" }>;
+  value: string;
+  onChange: (v: Json) => void;
+}) {
+  const host = useHost();
+  useEffect(() => {
+    host.subscribe([option.topic], "interactive");
+  }, [host, option.topic]);
+  const data = host.useValues((all) => all[option.topic]);
+  const choices = option.choices(data);
+  const known = choices.some((c) => c.value === value);
+  return (
+    <Select
+      label={option.label}
+      value={value}
+      options={known ? choices : [...choices, { value, label: `${value} (not found)` }]}
+      onChange={onChange}
+    />
+  );
+}
+
+interface Place {
+  name: string;
+  latitude: number;
+  longitude: number;
+  country?: string;
+  admin1?: string;
+}
+
+/** Weather location: search places through core (Open-Meteo geocoding), save globally. */
+function LocationSearch() {
+  const host = useHost();
+  const current = host.useValues((all) => {
+    const c = all["weather.current"];
+    const name = c?.kind === "map" ? c.v.location : undefined;
+    return name?.kind === "text" ? name.v : null;
+  });
+  const [query, setQuery] = useState("");
+  const [places, setPlaces] = useState<Place[]>([]);
+  const [status, setStatus] = useState<string | null>(null);
+  const search = () => {
+    const q = query.trim();
+    if (q.length < 2) return;
+    setStatus("Searching…");
+    host
+      .command({ cmd: "geocode-search", query: q, language: navigator.language.slice(0, 2) })
+      .then((r) => {
+        if (r.result !== "data" || r.value.kind !== "list") {
+          setStatus(r.result === "err" ? `Search failed (${r.reason})` : "No places found");
+          setPlaces([]);
+          return;
+        }
+        const found = r.value.v.flatMap((v): Place[] => {
+          const j = toJson(v);
+          if (typeof j !== "object" || j === null || Array.isArray(j)) return [];
+          const { name, latitude, longitude, country, admin1 } = j;
+          return typeof name === "string" &&
+            typeof latitude === "number" &&
+            typeof longitude === "number"
+            ? [
+                {
+                  name,
+                  latitude,
+                  longitude,
+                  ...(typeof country === "string" ? { country } : {}),
+                  ...(typeof admin1 === "string" ? { admin1 } : {}),
+                },
+              ]
+            : [];
+        });
+        setPlaces(found);
+        setStatus(found.length ? null : "No places found");
+      })
+      .catch(() => {
+        setStatus("Search failed");
+      });
+  };
+  return (
+    <div className={styles.location}>
+      <div className={styles.help}>{current ? `Now: ${current}` : "No location yet"}</div>
+      <form
+        className={styles.named}
+        onSubmit={(e) => {
+          e.preventDefault();
+          search();
+        }}
+      >
+        <input
+          className={styles.text}
+          type="search"
+          value={query}
+          placeholder="City"
+          aria-label="Search a city"
+          onChange={(e) => {
+            setQuery(e.target.value);
+          }}
+        />
+        <Button variant="outlined" icon="search" onClick={search}>
+          Search
+        </Button>
+      </form>
+      {status ? <div className={styles.help}>{status}</div> : null}
+      {places.length ? (
+        <ul className={styles.places}>
+          {places.slice(0, 6).map((p) => (
+            <li key={`${String(p.latitude)},${String(p.longitude)}`}>
+              <button
+                type="button"
+                onClick={() => {
+                  host
+                    .updateSettings({
+                      weather: {
+                        location: {
+                          name: p.name,
+                          latitude: p.latitude,
+                          longitude: p.longitude,
+                          country: p.country ?? null,
+                        },
+                      },
+                    })
+                    .then(() => {
+                      setStatus(`Saved: ${p.name}`);
+                      setPlaces([]);
+                    })
+                    .catch(() => {
+                      setStatus("Couldn't save");
+                    });
+                }}
+              >
+                <Icon name="location_on" size={16} /> {p.name}
+                <span className={styles.help}>
+                  {[p.admin1, p.country].filter(Boolean).join(", ")}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
   );
 }
