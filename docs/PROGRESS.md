@@ -28,9 +28,15 @@
   premultiplied alpha, max texture 16384, first frame 24–30 ms (debug build, includes `gl.finish`). WebKit masks
   the GPU name. The transparent glass card is visible on the desktop (you confirmed it, 2026-11-23, after the fix
   below).
-- **B, RAM/CPU:** sharing one web process across windows. Release, two monitors, windows drawing: **278 MB**
-  (budget 220, **58 MB over**) and **0.13 %** idle CPU (budget 0.5 %). See ADR 0009. *(The first figure, 209 MB, was
-  measured while the bug below kept the webviews from drawing.)*
+- **B, RAM/CPU:** sharing one web process across windows. Release, two monitors, windows drawing: 278 MB, then
+  **259 MB** after loading only Mesa's EGL on this hybrid laptop (budget 220, **39 MB over**), and **0.13 %** idle CPU
+  (budget 0.5 %). All levers tried, with numbers, are in ADR 0009. *(The first figure, 209 MB, was measured while the
+  bug below kept the webviews from drawing.)*
+
+**Fixed 2026-11-23: a layer could outlive core.** Tauri ends the process right after its exit event, sometimes
+before the supervisor had stopped the layer; the orphan then reconnected to the next core (two layers). Core now waits
+up to 2 s for the layer to stop, and a layer exits when the process that started it is gone. Checked: five quits and
+one `kill -9` of core left no layer behind.
 
 **Fixed 2026-11-23: the test card never appeared.** Your visual check found the desktop empty. The layer windows
 were mapped and in the right place, but they were shown with GTK `show()` after being created hidden, which maps the
@@ -51,4 +57,4 @@ frame).
 | Test layer window connects to core | ✅ Both windows connect, subscribe and receive `system.loadavg` every second. |
 
 **Open**
-- Memory: 278 MB against a 220 MB budget (spike B, ADR 0009).
+- Memory: 259 MB against a 220 MB budget (spike B, ADR 0009). The next levers need your decision.

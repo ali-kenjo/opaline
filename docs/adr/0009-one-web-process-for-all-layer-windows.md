@@ -22,13 +22,35 @@ once the windows actually draw (20 s).
 were shown with `show()` instead of `show_all()`), so WebKit never painted anything. With the windows really drawing,
 the same setup uses **278 MB**, 58 MB over budget. Sharing the web process is still right; it isn't enough on its own.
 
+### Memory levers, measured 2026-11-23
+Release build, two monitors, test card, PSS after 20 s settle, three runs each (spread under 1.5 MB):
+
+| Setup | total | notes |
+| - | - | - |
+| windows drawing, default drivers | 278 MB | 32 MB of X11 shared-memory window buffers in the layer (Xwayland draws at 2×) |
+| only Mesa's EGL (`__EGL_VENDOR_LIBRARY_FILENAMES`) | 258 MB | glvnd otherwise loads NVIDIA's *and* Mesa's EGL into the layer and the web process |
+| + glass canvas sized to the card, not the window | 259 MB | saves GPU memory, which PSS doesn't count |
+| + windows 480×320 instead of the work area (experiment) | 230 MB | the window buffers are most of the rest |
+| + `DocumentViewer` cache model, page cache off | 230 MB | no effect; not kept |
+| + JavaScriptCore without the optimizing JIT (`JSC_useDFGJIT=0`) | 226 MB | |
+| + JavaScriptCore without any JIT (`JSC_useJIT=0`) | 220 MB | costs CPU for any real JavaScript work |
+| only NVIDIA's EGL | n/a | the layer doesn't start |
+
+**Kept:** Mesa-only EGL for the layer when an Intel or AMD GPU is present and the user hasn't set the variable (an
+NVIDIA-only machine keeps its driver), and the card-sized canvas (the real compositor in P2 must not draw into a
+full-window canvas either). Result: **259 MB**.
+
+**Left open (needs a decision):** sizing the windows to the widgets instead of the whole work area (about −29 MB, but
+the windows then have to move and resize with the widgets, and edit mode needs the full area), turning off the JIT,
+or a higher budget. Native mode (no Xwayland 2× buffers) isn't measured yet.
+
 ## Decision
 The first layer window is created normally. Every further window is created with
 `WebviewWindowBuilder::with_related_view(<first window's WebKit view>)` (built on the main thread inside
 `with_webview`, because the WebKit view isn't `Send`), so all of them share one web process.
 
 ## Consequences
-- At 278 MB we're **over the 220 MB budget** before any real widget exists. Memory is the tightest budget.
+- At 259 MB (after the levers above) we're still **over the 220 MB budget** before any real widget exists. Memory is the tightest budget.
   Planned work:
   - P2/P3: watch the web-process size as widgets land (Lab measurement in CI);
   - try WebKit's memory-pressure settings (`WebKitMemoryPressureSettings`: lower limit, earlier conservative and

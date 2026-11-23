@@ -338,10 +338,10 @@ gives SMART unprivileged (ADR 0004); it comes back only if a machine shows it's 
 | widgets ≤ 1.5 s after core start | layer starts in parallel with providers; widgets render loading state immediately; first sample of cheap providers before handshake | timestamped log events |
 
 **Biggest risk: RAM.** Measured in Phase 0 (release, two monitors, shared web process, test widget): core 27 MB,
-layer 105 MB, WebKit network process 16 MB, web process 130 MB, **278 MB total** (58 MB over budget), and **0.13 %
-idle CPU**. (An earlier 209 MB figure was measured while the webviews weren't drawing; ADR 0009.) Next levers, in order: WebKit memory-pressure settings and
-disabled caches for layer views, a small code-split bundle, and measuring the web process per widget in the Lab
-(ADR 0009). If it can't fit, I'll bring the numbers to you before relaxing the budget.
+layer 94 MB, WebKit network process 16 MB, web process 121 MB, **259 MB total** (39 MB over budget) after loading only
+Mesa's EGL, and **0.13 % idle CPU**. The remaining levers and their measured effect are in ADR 0009: windows sized to
+the widgets (about −29 MB), JavaScriptCore without JIT (−10 MB, costs CPU), or a higher budget. Caches and the cache
+model made no difference. Also keep the bundle small and measure the web process per widget in the Lab.
 
 ## 9. Packaging and updates
 
