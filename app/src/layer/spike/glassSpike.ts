@@ -44,6 +44,9 @@ void main() {
 }
 `;
 
+/** CSS px around the card for the drop shadow (offset 6 px, blur up to 22 px). */
+const SHADOW_MARGIN = 32;
+
 export interface SpikeResult {
   webgl2: boolean;
   renderer: string | null;
@@ -129,8 +132,18 @@ export function startGlassSpike(
   const draw = (target: DOMRect) => {
     const t0 = performance.now();
     const dpr = window.devicePixelRatio || 1;
-    const w = Math.round(window.innerWidth * dpr);
-    const h = Math.round(window.innerHeight * dpr);
+    // The canvas covers only the card plus room for the shadow, not the whole window: a
+    // full-window canvas at 2x costs tens of MB of GPU and shared memory per monitor.
+    const left = Math.floor(target.x - SHADOW_MARGIN);
+    const top = Math.floor(target.y - SHADOW_MARGIN);
+    const cssW = Math.ceil(target.width + 2 * SHADOW_MARGIN);
+    const cssH = Math.ceil(target.height + 2 * SHADOW_MARGIN);
+    canvas.style.left = `${String(left)}px`;
+    canvas.style.top = `${String(top)}px`;
+    canvas.style.width = `${String(cssW)}px`;
+    canvas.style.height = `${String(cssH)}px`;
+    const w = Math.round(cssW * dpr);
+    const h = Math.round(cssH * dpr);
     if (canvas.width !== w || canvas.height !== h) {
       canvas.width = w;
       canvas.height = h;
@@ -140,7 +153,13 @@ export function startGlassSpike(
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.useProgram(program);
     gl.uniform2f(uRes, w, h);
-    gl.uniform4f(uRect, target.x * dpr, target.y * dpr, target.width * dpr, target.height * dpr);
+    gl.uniform4f(
+      uRect,
+      (target.x - left) * dpr,
+      (target.y - top) * dpr,
+      target.width * dpr,
+      target.height * dpr,
+    );
     gl.uniform1f(uRadius, 28 * dpr);
     gl.uniform3f(uTint, tint[0], tint[1], tint[2]);
     gl.drawArrays(gl.TRIANGLES, 0, 3);

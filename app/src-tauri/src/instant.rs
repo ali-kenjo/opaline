@@ -1,6 +1,7 @@
 //! Instant backend, Phase 0 part: core spawns and supervises the layer process through
 //! Xwayland. Placement checks, Show Desktop recovery and Peek follow in Phase 4.
 
+use std::path::Path;
 use std::process::Stdio;
 use std::time::{Duration, Instant};
 
@@ -27,14 +28,18 @@ pub async fn supervise_layer(mut stop: watch::Receiver<bool>) {
             return;
         }
         let started = Instant::now();
-        let child = Command::new(&exe)
+        let mut command = Command::new(&exe);
+        command
             .args(["--layer", "--backend", "instant"])
             // Instant mode needs X11 window hints (keep-below, skip-taskbar, sticky) that GNOME
             // only honours for Xwayland clients.
             .env("GDK_BACKEND", "x11")
             .stdin(Stdio::null())
-            .kill_on_drop(true)
-            .spawn();
+            .kill_on_drop(true);
+        if let Some(vendor_file) = mesa_egl_vendor_file() {
+            command.env(EGL_VENDOR_ENV, vendor_file);
+        }
+        let child = command.spawn();
         let mut child = match child {
             Ok(child) => child,
             Err(error) => {
@@ -71,7 +76,73 @@ pub async fn supervise_layer(mut stop: watch::Receiver<bool>) {
     }
 }
 
+const EGL_VENDOR_ENV: &str = "__EGL_VENDOR_LIBRARY_FILENAMES";
+const MESA_EGL_VENDOR_FILE: &str = "/usr/share/glvnd/egl_vendor.d/50_mesa.json";
+/// PCI vendor IDs of GPUs driven by Mesa: Intel, AMD.
+const MESA_GPU_VENDORS: [&str; 2] = ["0x8086", "0x1002"];
+
+/// On hybrid laptops glvnd loads both NVIDIA's and Mesa's EGL into the layer and its WebKit web
+/// process; restricting it to Mesa saves about 20 MB (ADR 0009). Only done when an Intel or AMD
+/// GPU is present (so an NVIDIA-only machine keeps hardware rendering) and the user hasn't chosen
+/// a vendor themselves.
+fn mesa_egl_vendor_file() -> Option<&'static str> {
+    let user_choice = std::env::var_os(EGL_VENDOR_ENV).is_some();
+    let mesa_installed = Path::new(MESA_EGL_VENDOR_FILE).exists();
+    let vendors = drm_gpu_vendors();
+    use_mesa_only(user_choice, mesa_installed, &vendors).then_some(MESA_EGL_VENDOR_FILE)
+}
+
+fn use_mesa_only(user_choice: bool, mesa_installed: bool, gpu_vendors: &[String]) -> bool {
+    !user_choice
+        && mesa_installed
+        && gpu_vendors
+            .iter()
+            .any(|v| MESA_GPU_VENDORS.contains(&v.trim()))
+}
+
+/// PCI vendor IDs of the DRM cards (`/sys/class/drm/cardN/device/vendor`).
+fn drm_gpu_vendors() -> Vec<String> {
+    let Ok(entries) = std::fs::read_dir("/sys/class/drm") else {
+        return Vec::new();
+    };
+    entries
+        .flatten()
+        .filter(|e| {
+            let name = e.file_name();
+            let name = name.to_string_lossy();
+            name.strip_prefix("card")
+                .is_some_and(|n| !n.is_empty() && n.chars().all(|c| c.is_ascii_digit()))
+        })
+        .filter_map(|e| std::fs::read_to_string(e.path().join("device/vendor")).ok())
+        .collect()
+}
+
 /// Resolves once `stop` is true (or its sender is gone).
 async fn stopped(stop: &mut watch::Receiver<bool>) {
     let _ = stop.wait_for(|stop| *stop).await;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::use_mesa_only;
+
+    fn v(ids: &[&str]) -> Vec<String> {
+        ids.iter().map(|s| format!("{s}\n")).collect()
+    }
+
+    #[test]
+    fn hybrid_intel_nvidia_uses_mesa() {
+        assert!(use_mesa_only(false, true, &v(&["0x8086", "0x10de"])));
+    }
+
+    #[test]
+    fn nvidia_only_keeps_the_default() {
+        assert!(!use_mesa_only(false, true, &v(&["0x10de"])));
+    }
+
+    #[test]
+    fn user_choice_and_missing_mesa_win() {
+        assert!(!use_mesa_only(true, true, &v(&["0x8086"])));
+        assert!(!use_mesa_only(false, false, &v(&["0x1002"])));
+    }
 }

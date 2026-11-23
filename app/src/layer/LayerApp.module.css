@@ -1,8 +1,6 @@
 .glass {
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
+  /* Position and size are set by the spike to cover the card plus its shadow. */
+  position: absolute;
   pointer-events: none;
 }
 
