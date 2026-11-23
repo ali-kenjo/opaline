@@ -248,6 +248,20 @@ fn create_sharing_process(
     }
 }
 
+/// The page the layer windows load. Debug builds take `OPALINE_LAYER_PAGE` (e.g. `lab.html?still`
+/// from a `LAB=1` build) so the Widget Lab can be checked inside the real WebKitGTK webview.
+fn layer_page() -> String {
+    #[cfg(debug_assertions)]
+    if let Ok(page) = std::env::var("OPALINE_LAYER_PAGE")
+        && !page.is_empty()
+        && !page.contains("://")
+        && !page.starts_with('/')
+    {
+        return page;
+    }
+    "layer.html".to_owned()
+}
+
 fn create(
     app: &AppHandle,
     label: &str,
@@ -259,7 +273,7 @@ fn create(
 ) {
     // The helper (Native) finds our windows by this title.
     let title = format!("opaline-layer:{}", monitor.connector);
-    let builder = WebviewWindowBuilder::new(app, label, WebviewUrl::App("layer.html".into()))
+    let builder = WebviewWindowBuilder::new(app, label, WebviewUrl::App(layer_page().into()))
         .title(title)
         .transparent(true)
         .decorations(false)

@@ -4,6 +4,7 @@ import { sourceColorFromImageBytes } from "@material/material-color-utilities";
 import { useEffect, useMemo } from "react";
 import { buildRoles, cssVariables, type Variant } from "../design-system/color/scheme";
 import { Glass, GlassStage } from "../design-system/glass";
+import { trackCompositor } from "./webviewCheck";
 import { luminance } from "../design-system/glass/legibility";
 import { Icon } from "../design-system/icons";
 import { Odometer, applyPalette } from "../design-system/motion";
@@ -64,6 +65,7 @@ export function GlassDemo({ wallpaperId, dark, slider, opaque, variant, value }:
           luminance={wallpaper.luminance}
           slider={slider}
           opaque={opaque}
+          onCompositor={trackCompositor}
         >
           <div className={styles.cards} style={{ width: STAGE_W, height: STAGE_H }}>
             <Glass radius={28} label="CPU" className={styles.cardS}>

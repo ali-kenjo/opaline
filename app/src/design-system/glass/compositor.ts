@@ -210,6 +210,27 @@ export class GlassCompositor {
     scheduler.invalidate();
   }
 
+  /**
+   * Draws a frame now and reads back the premultiplied RGBA at (x, y) in CSS pixels of the
+   * canvas. For diagnostics (the Lab's in-webview check); it costs a GPU sync.
+   */
+  probe(x: number, y: number): [number, number, number, number] {
+    this.draw(performance.now());
+    const dpr = window.devicePixelRatio || 1;
+    const px = new Uint8Array(4);
+    const gl = this.gl;
+    gl.readPixels(
+      Math.round(x * dpr),
+      this.canvas.height - 1 - Math.round(y * dpr),
+      1,
+      1,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      px,
+    );
+    return [px[0] ?? 0, px[1] ?? 0, px[2] ?? 0, px[3] ?? 0];
+  }
+
   private resize(): [number, number] {
     const dpr = window.devicePixelRatio || 1;
     const w = this.canvas.clientWidth;

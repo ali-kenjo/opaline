@@ -63,6 +63,8 @@ export interface GlassStageProps {
   slider: number;
   opaque?: boolean;
   backdrop?: number;
+  /** Called with the compositor once it exists (`null`: CSS fallback). Diagnostics only. */
+  onCompositor?: (compositor: GlassCompositor | null) => void;
 }
 
 export function GlassStage(props: GlassStageProps) {
@@ -77,6 +79,7 @@ export function GlassStage(props: GlassStageProps) {
     slider,
     opaque = false,
     backdrop = 0,
+    onCompositor,
   } = props;
   const canvas = useRef<HTMLCanvasElement>(null);
   const [compositor, setCompositor] = useState<GlassCompositor | null>(null);
@@ -88,6 +91,8 @@ export function GlassStage(props: GlassStageProps) {
     setCompositor(c);
     return () => c?.dispose();
   }, []);
+
+  useEffect(() => onCompositor?.(compositor), [onCompositor, compositor]);
 
   useEffect(() => compositor?.setWallpaper(wallpaper), [compositor, wallpaper]);
   useEffect(() => compositor?.setWallpaper(wallpaper, "backdrop"), [compositor, wallpaper]);
@@ -178,7 +183,7 @@ export function GlassStage(props: GlassStageProps) {
 
   return (
     <Ctx.Provider value={ctx}>
-      <div className={styles.stage}>
+      <div className={styles.stage} data-glass={compositor ? "webgl2" : "css"}>
         <canvas ref={canvas} className={styles.canvas} aria-hidden="true" />
         {children}
       </div>

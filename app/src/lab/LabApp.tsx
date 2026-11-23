@@ -9,12 +9,14 @@ import { GlassDemo } from "./GlassDemo";
 import styles from "./Lab.module.css";
 import { Specimen } from "./Specimen";
 import type { LabWallpaper } from "./wallpapers";
+import { runWebviewCheck } from "./webviewCheck";
 
 const params = new URLSearchParams(location.search);
 // Screenshot tests read the frame counter to prove that an idle Lab draws nothing.
 (window as unknown as { __labScheduler?: typeof scheduler }).__labScheduler = scheduler;
 const still = params.has("still");
 if (still) setReducedMotion(true);
+runWebviewCheck();
 
 export function LabApp() {
   const [value, setValue] = useState(42.5);
