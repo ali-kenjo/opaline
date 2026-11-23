@@ -163,3 +163,28 @@ share of `libLLVM` grew from 15 to 21.7 MB each. The PSS budget therefore moves 
 - The Lab's widget × size matrix fills in with Phase 3; for now it shows the card states, glass and components.
 - Positions come from measuring the DOM after layout; Phase 5 feeds the layout springs into the compositor directly.
 
+
+## Phase 3: Widgets (started 2026-11-23)
+
+**Done so far**
+- **3.0 Customization (ADR 0011):** 43 style settings in six groups (color, surface, text, icons, motion, behavior)
+  for every widget, resolved built-in default → all widgets → this widget, with origin labels and resets; named
+  styles, "copy to other widgets of this kind", "use for all widgets". Content per widget: title, which information
+  is shown, its order and names, the main value and how it's drawn (ring, number, bar, graph), graph range, decimals,
+  update rate, plus the widget's own options (units, levels, time zones, …). One generic settings sheet builds all of
+  it from the widget's declarations. Core stores `style`, `styles` and `widgets` in `settings.json` (strict patches,
+  lenient loading: one bad value is dropped, nothing else is reset) and lists installed fonts (fontconfig). The glass
+  takes per-widget transparency, extra blur, refraction, rim, grain, shadow, solid and border in the same single pass.
+- **Widget framework:** fields, states (loading / unavailable / asleep / needs permission), threshold colors and the
+  alert outline, topics subscribed only for shown fields, the standard hero + rows layout per size class.
+  Layer → core commands with results (`layer_command`).
+- **Clock** (digital/analog, 12/24 h, seconds, date style, weekday, week, own and second time zone) and **CPU** (11
+  fields: load, temperature, frequency, busiest thread, power, pressure, throttling, load average, cores, model,
+  governor; °C/°F, GHz/MHz, warning levels).
+- **Lab:** the widgets at every size with mock data, two strong custom styles, the sheet behind each tune button;
+  `?live` inside Opaline uses real data and fonts. Checked inside the real layer windows: real readings (67 °C,
+  4.2 GHz, …) and 260 installed fonts.
+- Tests: 48 Vitest, 11 Playwright (new: widgets baseline, settings-sheet end-to-end), Rust style/fonts tests.
+
+**Next:** Memory → GPU → Storage → Network → Battery & Power → Processes → Fans → Now Playing → Visualizer → Weather →
+Calendar → Docker, each on the same framework (so each gets every style and content option automatically).

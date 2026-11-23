@@ -23,6 +23,7 @@ cd app && pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e
 cd app && LAB=1 pnpm exec vite build && pnpm exec vite preview  # Widget Lab at http://localhost:4173/lab.html
 cd app && LAB=1 pnpm tauri build --debug --no-bundle && OPALINE_LAYER_PAGE='lab.html?still' ../target/debug/opaline
                                                # the Lab in the real layer windows; reports key="lab-glass" to the layer log
+                                               # 'lab.html?live': widgets with real data/fonts, reports key="lab-widgets"
 cd app && pnpm exec playwright test --update-snapshots  # re-record the Lab baselines (look at the diff first)
 cd app && pnpm icons                           # re-subset Material Symbols after adding to icons/codepoints.ts
 ```
@@ -45,8 +46,9 @@ A plain `cargo build -p opaline` produces a binary that loads the frontend from 
 - `app/src-tauri`: the `opaline` binary. `core_mode.rs` (tray, D-Bus, IPC server, layer supervisor), `layer/`
   (windows per monitor, IPC client, bridge to the webviews), `instant.rs`.
 - `app/src`: React frontend. `layer/` is the widget layer page (`layer.html`); `design-system/` (tokens, color,
-  shapes, motion, icons, glass compositor, components; see `docs/DESIGN.md`); `lab/` is the Widget Lab (`lab.html`,
-  only built with `LAB=1`).
+  shapes, motion, icons, glass compositor, components, `style/` = widget style model, ADR 0011); `widgets/` (the
+  framework: `types.ts` contract, `content.ts`, `WidgetFrame`, `StatLayout`, `settings/` sheet, `host.tsx` +
+  `layerHost.ts`, one file per widget, `registry.ts`); `lab/` is the Widget Lab (`lab.html`, only built with `LAB=1`).
 
 ## Conventions
 
@@ -89,3 +91,8 @@ A plain `cargo build -p opaline` produces a binary that loads the frontend from 
 - **Canvas 2D can't resolve `var(--…)` colors**: resolve them through `getComputedStyle` first (Sparkline).
 - The Lab sets `window.__labScheduler`; the e2e test reads its frame counter to prove an idle page draws nothing.
   Animations must go through `design-system/motion` `scheduler`, never their own `requestAnimationFrame` loop.
+- **Adding a widget:** declare fields (topics + `read`), options and `status` in `widgets/<kind>.ts(x)`, add it to
+  `registry.ts` and the Lab layout (`lab/labHost.ts`); style and content settings come for free. Style keys live in
+  three places that must agree: `design-system/style/{types,fields}.ts` and `crates/opaline-core/src/style.rs`.
+- The React compiler lint forbids reading refs or mutating state objects during render; keep mutable buffers in a
+  class instance from `useState(() => new X())` and mutate them in effects (see `HeroHistory`).
