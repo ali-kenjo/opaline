@@ -58,4 +58,4 @@ for pid in "${pids_end[@]}"; do
   printf '%-8s %-18s %10.1f\n' "$pid" "$(cat "/proc/$pid/comm")" "$(awk -v k="$pss" 'BEGIN { print k / 1024 }')"
 done
 printf '\nCPU over %ss: %s %% of the machine (%s logical CPUs)   budget idle: 0.5 %%\n' "$window" "$cpu" "$cpus"
-printf 'Memory (PSS): %.1f MB   budget: 220 MB\n' "$(awk -v k="$pss_total" 'BEGIN { print k / 1024 }')"
+printf 'Memory (PSS): %.1f MB   budget: 280 MB\n' "$(awk -v k="$pss_total" 'BEGIN { print k / 1024 }')"

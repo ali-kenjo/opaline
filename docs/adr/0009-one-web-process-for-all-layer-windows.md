@@ -1,6 +1,6 @@
 # ADR 0009: One WebKit web process for all layer windows
 
-Status: accepted (Phase 0 spike B) · 2026-11-22
+Status: accepted (Phase 0 spike B) · 2026-11-22 · budget raised to 280 MB on 2026-11-23
 
 ## Context
 The RAM budget is 220 MB for core plus layer (brief §7). This laptop has two monitors, so the layer has two windows.
@@ -50,12 +50,17 @@ The first layer window is created normally. Every further window is created with
 `with_webview`, because the WebKit view isn't `Send`), so all of them share one web process.
 
 ## Consequences
-- At 259 MB (after the levers above) we're still **over the 220 MB budget** before any real widget exists. Memory is the tightest budget.
+- **Budget raised to 280 MB (your decision, 2026-11-23).** The brief's 220 MB can't be met with two WebKit windows
+  through Xwayland without trading away JIT performance, and real widgets will add to the test card. 259 MB leaves
+  21 MB of headroom. The windows-sized-to-widgets lever is built with the grid engine in Phase 5 (it needs widget
+  bounds and a full-area edit mode), Native mode is measured in Phase 4, and then we see whether the budget can come
+  back down. Memory is still the tightest budget.
   Planned work:
   - P2/P3: watch the web-process size as widgets land (Lab measurement in CI);
-  - try WebKit's memory-pressure settings (`WebKitMemoryPressureSettings`: lower limit, earlier conservative and
-    strict thresholds) and turning off the page cache and back/forward cache for layer views;
+  - P4: measure Native mode; P5: windows sized to the widgets;
   - keep the frontend bundle small (no UI kit, code-split detail views and the picker).
-  If the budget can't be met with the real widget set, I'll bring you numbers and options before relaxing it.
+  (Cache model and page cache were tried and made no difference. WebKit's memory-pressure settings for the web
+  process can only be set when its web context is created, which Tauri does for us.)
+  If even 280 MB can't be met with the real widget set, I'll bring you numbers and options first.
 - A crash of the shared web process blanks every layer window at once; the layer has to reload them (added in P4
   with the other robustness work).
