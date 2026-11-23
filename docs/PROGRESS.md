@@ -167,7 +167,7 @@ share of `libLLVM` grew from 15 to 21.7 MB each. The PSS budget therefore moves 
 ## Phase 3: Widgets (started 2026-11-23)
 
 **Done so far**
-- **3.0 Customization (ADR 0011):** 43 style settings in six groups (color, surface, text, icons, motion, behavior)
+- **3.0 Customization (ADR 0011):** 42 style settings in six groups (color, surface, text, icons, motion, behavior)
   for every widget, resolved built-in default → all widgets → this widget, with origin labels and resets; named
   styles, "copy to other widgets of this kind", "use for all widgets". Content per widget: title, which information
   is shown, its order and names, the main value and how it's drawn (ring, number, bar, graph), graph range, decimals,
