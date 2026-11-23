@@ -39,17 +39,16 @@ but nothing was ever painted. Now `show_all()`; the glass card shows on eDP-1 (c
 frame).
 - **C, Instant mode:** Xwayland runs at 2×; keep-below/sticky/skip-taskbar/skip-pager set; DING is in the DESKTOP
   layer so we're above it by construction; Mutter misplaced new windows until we set `USPosition` (ADR 0008). Both
-  windows are now exactly on their monitors' work areas (verified with `xwininfo`). *Alt-Tab/overview/dock, Show
-  Desktop and click-through: visual check pending (you).*
+  windows are now exactly on their monitors' work areas (verified with `xwininfo`). Your visual check (2026-11-23):
+  the card isn't in Alt-Tab or the overview, has no dock icon, and normal windows cover it. Show Desktop and
+  click-through weren't checked separately.
 
 **Acceptance (brief §10, P0)**
 | Check | Result |
 | - | - |
 | CI green | ✅ First run on [github.com/ali-kenjo/opaline](https://github.com/ali-kenjo/opaline) (2026-11-22): lint, types, unit tests, fmt, clippy, Rust tests, Playwright WebKit (2/2) and the `.deb` job all passed. |
-| Core shows its tray | ✅ Tray icon registered through AppIndicator (StatusNotifierWatcher present). Visual confirmation pending. |
+| Core shows its tray | ✅ Tray icon registered through AppIndicator (StatusNotifierWatcher present). You saw it and its menu (Peek · Edit widgets · Pause updates · Settings · Quit). |
 | Test layer window connects to core | ✅ Both windows connect, subscribe and receive `system.loadavg` every second. |
 
-**Needs you**
-1. `sudo apt install libpipewire-0.3-dev libevent-2.1-7t64 libmanette-0.2-0` (PipeWire headers for P1; the other
-   two let Playwright's WebKit run locally).
-2. A quick visual check of the running test build (see the session message for what to look at).
+**Open**
+- Memory: 278 MB against a 220 MB budget (spike B, ADR 0009).
