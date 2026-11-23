@@ -3,7 +3,7 @@
 // state, so screenshot tests can pin it: ?wallpaper=snow&theme=light&slider=45&opaque&still
 import { useEffect, useState } from "react";
 import type { Variant } from "../design-system/color/scheme";
-import { setReducedMotion } from "../design-system/motion";
+import { scheduler, setReducedMotion } from "../design-system/motion";
 import { ComponentsDemo } from "./ComponentsDemo";
 import { GlassDemo } from "./GlassDemo";
 import styles from "./Lab.module.css";
@@ -11,6 +11,8 @@ import { Specimen } from "./Specimen";
 import type { LabWallpaper } from "./wallpapers";
 
 const params = new URLSearchParams(location.search);
+// Screenshot tests read the frame counter to prove that an idle Lab draws nothing.
+(window as unknown as { __labScheduler?: typeof scheduler }).__labScheduler = scheduler;
 const still = params.has("still");
 if (still) setReducedMotion(true);
 
