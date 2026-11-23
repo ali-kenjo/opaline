@@ -1,0 +1,36 @@
+.lab {
+  padding: var(--space-7);
+  display: grid;
+  gap: var(--space-7);
+}
+
+.section {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.heading {
+  font: var(--type-title);
+  margin: 0;
+}
+
+.display {
+  font: var(--type-display);
+  margin: 0;
+}
+
+.title {
+  font: var(--type-title);
+  margin: 0;
+}
+
+.body {
+  font: var(--type-body);
+  margin: 0;
+}
+
+.icons {
+  display: flex;
+  gap: var(--space-4);
+  color: rgb(var(--md-primary));
+}

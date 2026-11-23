@@ -1,0 +1,10 @@
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: rgb(var(--md-surface));
+  color: rgb(var(--md-on-surface));
+  font: var(--type-body);
+}

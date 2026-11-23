@@ -1,0 +1,33 @@
+/* Bundled fonts (docs/DESIGN.md §7). Nothing is loaded from the network: Vite copies these
+   files into the app, and @font-face unicode ranges mean only the scripts in use are read. */
+@import "@fontsource-variable/roboto-flex/full.css";
+@import "@fontsource-variable/inter/wght.css";
+@import "@fontsource-variable/noto-sans-arabic/wght.css";
+
+@font-face {
+  font-family: "Material Symbols Rounded";
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url("../icons/material-symbols-rounded-subset.woff2") format("woff2");
+}
+
+:root {
+  --font-display: "Roboto Flex Variable", system-ui, sans-serif;
+  --font-ui: "Inter Variable", system-ui, sans-serif;
+  --font-arabic: "Noto Sans Arabic Variable", system-ui, sans-serif;
+}
+
+:lang(ar) {
+  --font-ui: "Noto Sans Arabic Variable", "Inter Variable", system-ui, sans-serif;
+  --font-display: "Noto Sans Arabic Variable", "Roboto Flex Variable", system-ui, sans-serif;
+}
+
+/* Numerals: tabular, with a width axis the display numbers can lean on. */
+.numeric {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  font-variation-settings:
+    "wdth" var(--num-wdth, 100),
+    "GRAD" var(--num-grad, 0);
+}

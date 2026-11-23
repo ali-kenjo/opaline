@@ -17,6 +17,8 @@ export default defineConfig({
     rolldownOptions: {
       input: {
         layer: resolve(import.meta.dirname, "layer.html"),
+        // The Widget Lab is for design review and screenshot tests only, never shipped.
+        ...(process.env.LAB ? { lab: resolve(import.meta.dirname, "lab.html") } : {}),
       },
     },
   },

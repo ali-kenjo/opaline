@@ -13,7 +13,7 @@ export default defineConfig({
   },
   projects: [{ name: "webkit", use: { ...devices["Desktop Safari"] } }],
   webServer: {
-    command: "pnpm exec vite build && pnpm exec vite preview --port 4173 --strictPort",
+    command: "LAB=1 pnpm exec vite build && pnpm exec vite preview --port 4173 --strictPort",
     url: "http://localhost:4173/layer.html",
     reuseExistingServer: !process.env.CI,
   },
