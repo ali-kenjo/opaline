@@ -1,6 +1,7 @@
 //! Every sensor provider (brief §6, docs/SENSORS.md).
 
 pub mod audio;
+pub mod calendar;
 pub mod cpu;
 pub mod desktop_settings;
 pub mod docker;
@@ -71,6 +72,7 @@ pub const ASYNC_TOPICS: &[&str] = &[
     weather::DAILY,
     weather::AIR,
     public_ip::PUBLIC_IP,
+    calendar::EVENTS,
 ];
 
 type Task = Pin<Box<dyn Future<Output = ()> + Send>>;
@@ -96,6 +98,7 @@ pub async fn run_async(hub: Arc<Hub>) {
         task!("docker", docker::run),
         task!("weather", weather::run),
         task!("public-ip", public_ip::run),
+        task!("calendar", calendar::run),
     ];
     futures_util::future::join_all(tasks).await;
 }

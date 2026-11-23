@@ -28,6 +28,8 @@ reqwest = { version = "0.13", default-features = false, features = ["rustls", "h
 pipewire = "0.10"
 rustfft = "6"
 bollard = "0.21"
+rrule = "0.14"
+chrono-tz = "0.10"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "sync", "time", "macros", "fs", "test-util"] }
