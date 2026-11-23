@@ -1,0 +1,54 @@
+/* Design tokens (docs/DESIGN.md); tokens.ts holds the same values for code. Color roles
+   (--md-*) are written at runtime by the color pipeline. */
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+
+  --cell: 84px;
+  --gap: 12px;
+  --margin-safe: 24px;
+
+  --pad-s: 16px;
+  --pad-m: 20px;
+  --radius-s: 28px;
+  --radius-m: 32px;
+  --radius-inner: 12px;
+  --radius-xs: 8px;
+  --radius-pill: 999px;
+
+  --font-display: "Roboto Flex", system-ui, sans-serif;
+  --font-ui: "Inter", system-ui, sans-serif;
+  --font-arabic: "Noto Sans Arabic", system-ui, sans-serif;
+
+  --type-display: 44px / 48px var(--font-display);
+  --type-headline: 30px / 36px var(--font-display);
+  --type-title: 600 18px / 24px var(--font-ui);
+  --type-body: 14px / 20px var(--font-ui);
+  --type-label: 500 12px / 16px var(--font-ui);
+  --type-micro: 500 11px / 14px var(--font-ui);
+
+  --shadow-rest: 0 8px 24px rgb(0 0 0 / 0.28);
+  --shadow-lifted: 0 16px 40px rgb(0 0 0 / 0.36);
+  --outline-opaque: 1.5px;
+
+  /* Defaults until the color pipeline runs (a neutral dark scheme). */
+  --md-primary: 208 188 255;
+  --md-on-primary: 56 30 114;
+  --md-surface: 20 18 24;
+  --md-surface-container: 33 31 38;
+  --md-on-surface: 230 224 233;
+  --md-on-surface-variant: 202 196 208;
+  --md-outline: 147 143 153;
+  --md-error: 242 184 181;
+}
+
+:lang(ar) {
+  --font-ui: "Noto Sans Arabic", "Inter", system-ui, sans-serif;
+  --font-display: "Noto Sans Arabic", "Roboto Flex", system-ui, sans-serif;
+}
