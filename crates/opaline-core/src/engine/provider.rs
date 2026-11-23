@@ -99,6 +99,9 @@ pub trait Provider: Send + 'static {
     fn cost_hint(&self) -> Cost {
         Cost::Cheap
     }
+    /// Called once after none of the provider's topics had a subscriber for
+    /// [`RELEASE_AFTER`](super::RELEASE_AFTER): drop handles that keep hardware awake (NVML).
+    fn release(&mut self) {}
 }
 
 /// Shorthand for building an update.

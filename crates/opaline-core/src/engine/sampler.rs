@@ -19,6 +19,8 @@ const TICK: Duration = Duration::from_secs(1);
 const GATHER_DEADLINE: Duration = Duration::from_millis(750);
 /// A sample running longer than this is reported as stuck.
 const STUCK_AFTER: Duration = Duration::from_secs(5);
+/// How long a provider goes without subscribers before [`Provider::release`] is called.
+pub const RELEASE_AFTER: Duration = Duration::from_secs(10);
 const MIN_BACKOFF: Duration = Duration::from_secs(5);
 const MAX_BACKOFF: Duration = Duration::from_secs(300);
 
@@ -72,6 +74,9 @@ struct Slot {
     retry_at: Option<Instant>,
     /// Tick of the last sample per topic; cleared when a topic loses its subscribers.
     last: HashMap<&'static str, u64>,
+    /// Since when none of the provider's topics has a subscriber.
+    idle_since: Option<Instant>,
+    released: bool,
 }
 
 pub struct Sampler {
@@ -105,6 +110,8 @@ impl Sampler {
                     failures: 0,
                     retry_at: None,
                     last: HashMap::new(),
+                    idle_since: Some(Instant::now()),
+                    released: true,
                 }
             })
             .collect();
@@ -123,7 +130,16 @@ impl Sampler {
                 for slot in &mut self.slots {
                     slot.last.clear();
                 }
-                if changes.changed().await.is_err() {
+                // Nobody is subscribed: release idle providers once, then sleep until someone
+                // subscribes again.
+                let changed = match tokio::time::timeout(RELEASE_AFTER, changes.changed()).await {
+                    Ok(changed) => changed,
+                    Err(_) => {
+                        self.release_idle(Instant::now() + RELEASE_AFTER).await;
+                        changes.changed().await
+                    }
+                };
+                if changed.is_err() {
                     return;
                 }
                 interval.reset_immediately();
@@ -146,11 +162,61 @@ impl Sampler {
             .any(|s| matches!(s.state, State::Running { .. }))
     }
 
+    /// Calls [`Provider::release`] on every provider that has been without subscribers for
+    /// [`RELEASE_AFTER`] at `now`.
+    async fn release_idle(&mut self, now: Instant) {
+        for slot in &mut self.slots {
+            let due = !slot.released
+                && slot
+                    .idle_since
+                    .is_some_and(|since| now.duration_since(since) >= RELEASE_AFTER);
+            if !due {
+                continue;
+            }
+            let State::Ready(mut provider) = std::mem::replace(&mut slot.state, State::Gone) else {
+                continue;
+            };
+            let id = slot.id;
+            let joined = tokio::task::spawn_blocking(move || {
+                let result = catch_unwind(AssertUnwindSafe(|| provider.release()));
+                (provider, result)
+            })
+            .await;
+            match joined {
+                Ok((provider, result)) => {
+                    if let Err(panic) = result {
+                        tracing::warn!(provider = id, panic = %panic_text(panic), "release panicked");
+                    }
+                    slot.state = State::Ready(provider);
+                    slot.released = true;
+                    tracing::debug!(provider = id, "released idle provider");
+                }
+                Err(error) => {
+                    tracing::error!(provider = id, %error, "lost a provider while releasing it")
+                }
+            }
+        }
+    }
+
     async fn tick(&mut self, tick: u64) {
         let now = Instant::now();
         let interests: HashMap<Topic, ActivityClass> = self.hub.interests().into_iter().collect();
         let eco = self.hub.eco();
         let mut published = Vec::new();
+
+        for slot in &mut self.slots {
+            let wanted = slot
+                .topics
+                .iter()
+                .any(|desc| interests.contains_key(&Topic::new(desc.name)));
+            if wanted {
+                slot.idle_since = None;
+                slot.released = false;
+            } else if slot.idle_since.is_none() {
+                slot.idle_since = Some(now);
+            }
+        }
+        self.release_idle(now).await;
 
         // Start every provider that has a due topic.
         for slot in &mut self.slots {
@@ -361,6 +427,54 @@ mod tests {
                 _ => Ok(vec![update("fake.value", 42.0)]),
             }
         }
+    }
+
+    struct Releasing(Arc<std::sync::atomic::AtomicU32>);
+
+    impl Provider for Releasing {
+        fn id(&self) -> &'static str {
+            "releasing"
+        }
+        fn topics(&self) -> &[TopicDesc] {
+            FAKE_TOPICS
+        }
+        fn probe(&mut self) -> Probe {
+            Probe::default()
+        }
+        fn sample(&mut self, _cx: &SampleCx<'_>) -> Result<Vec<TopicUpdate>, ProviderError> {
+            Ok(vec![update("fake.value", 1.0)])
+        }
+        fn release(&mut self) {
+            self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        }
+    }
+
+    #[tokio::test]
+    async fn idle_providers_are_released_once() {
+        use std::sync::atomic::Ordering;
+        let hub = Hub::new(BackendKind::Instant, Vec::new());
+        let releases = Arc::new(std::sync::atomic::AtomicU32::new(0));
+        let mut sampler = Sampler::new(hub.clone(), vec![Box::new(Releasing(releases.clone()))]);
+        let topic = Topic::new("fake.value");
+        hub.subscribe(&topic, ActivityClass::Interactive);
+        sampler.tick(1).await;
+        hub.unsubscribe(&topic, ActivityClass::Interactive);
+        sampler.tick(2).await;
+        assert_eq!(
+            releases.load(Ordering::SeqCst),
+            0,
+            "not before RELEASE_AFTER"
+        );
+        sampler.release_idle(Instant::now() + RELEASE_AFTER).await;
+        assert_eq!(releases.load(Ordering::SeqCst), 1);
+        sampler
+            .release_idle(Instant::now() + RELEASE_AFTER * 2)
+            .await;
+        assert_eq!(
+            releases.load(Ordering::SeqCst),
+            1,
+            "only once per idle period"
+        );
     }
 
     #[test]

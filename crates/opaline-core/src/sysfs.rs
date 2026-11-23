@@ -5,10 +5,16 @@ use std::fs::File;
 use std::io;
 use std::os::unix::fs::FileExt;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex, PoisonError};
 
 /// Where `/proc` and `/sys` live: `/` normally, `fixtures/<machine>/` in tests.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Root(PathBuf);
+#[derive(Debug, Clone)]
+pub struct Root {
+    dir: PathBuf,
+    /// Tests can record every absolute path a provider touches (ADR 0003: a sleeping GPU's
+    /// files must not be read).
+    log: Option<Arc<Mutex<Vec<String>>>>,
+}
 
 impl Default for Root {
     fn default() -> Self {
@@ -18,17 +24,38 @@ impl Default for Root {
 
 impl Root {
     pub fn system() -> Self {
-        Self(PathBuf::from("/"))
+        Self::at("/")
     }
 
     pub fn at(dir: impl Into<PathBuf>) -> Self {
-        Self(dir.into())
+        Self {
+            dir: dir.into(),
+            log: None,
+        }
+    }
+
+    /// The same root, recording every path accessed through it from now on.
+    pub fn recording(mut self) -> Self {
+        self.log = Some(Arc::new(Mutex::new(Vec::new())));
+        self
+    }
+
+    /// The absolute paths accessed since recording started (or since the last call).
+    pub fn take_accessed(&self) -> Vec<String> {
+        self.log.as_ref().map_or_else(Vec::new, |log| {
+            std::mem::take(&mut *log.lock().unwrap_or_else(PoisonError::into_inner))
+        })
     }
 
     /// Maps an absolute path like `/proc/stat` into this root.
     pub fn path(&self, abs: impl AsRef<Path>) -> PathBuf {
         let abs = abs.as_ref();
-        self.0.join(abs.strip_prefix("/").unwrap_or(abs))
+        if let Some(log) = &self.log {
+            log.lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .push(abs.to_string_lossy().into_owned());
+        }
+        self.dir.join(abs.strip_prefix("/").unwrap_or(abs))
     }
 
     pub fn read(&self, abs: impl AsRef<Path>) -> io::Result<String> {
