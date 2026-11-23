@@ -59,3 +59,69 @@ frame).
 **Open**
 - Memory: 259 MB against the raised 280 MB budget (ADR 0009). Windows sized to the widgets come with the grid engine
   (Phase 5); Native mode gets measured in Phase 4. Then we see whether the budget can come back down.
+
+## Phase 1: Sensor engine (2026-11-23)
+
+**Done** (one commit per task; 133 Rust tests: 114 core, 11 IPC, 5 binary, 3 privileged helper)
+- **Engine (1.1, 1.2):** `Provider` trait with probe/sample/cost; one shared 1 s tick that samples only subscribed
+  topics at the rate of the most demanding subscriber (1/2/5/10 s by class, ×2 in Eco, per-topic floors); each sample
+  on the blocking pool inside `catch_unwind`, failures publish `provider-failed` and back off 5 s → 5 min, hung samples
+  are reported as stuck; event-driven providers run under a restarting supervisor; NVML-style handles are released
+  10 s after the last subscriber. Values are published only when they change; new subscribers get the latest value
+  at once; covered/idle subscribers and a locked screen get no pushes.
+- **Fixtures (1.3):** `scripts/capture-fixtures.sh` (redacts MACs, serials (also inside UDisks2 object paths), UUIDs,
+  SSIDs, connection names, user and host names) → `fixtures/hp-i5-10300h/`; synthetic fixtures: AMD desktop (Ryzen +
+  Radeon, no battery), Intel Arc on xe, hybrid laptop with a sleeping NVIDIA dGPU, VM without GPU/sensors/swap/PSI.
+- **Providers:** CPU (1.4), memory (1.5), GPU with the runtime-PM rule (1.6), storage + UDisks2 health (1.7),
+  network + NetworkManager + latency + data usage (1.8), UPower + power profiles (1.9), audio spectrum (1.10), MPRIS
+  (1.11), processes with app grouping (1.12), Docker/Podman (1.13), fans, clock settings, EDS calendar + ICS
+  (ADR 0010), Open-Meteo weather + geocoding (1.14), wallpaper renders + appearance + screen lock (1.15), CPU power
+  through the privileged helper (1.16), history rings + SQLite rollups, alerts with notifications (1.17).
+- **Core infrastructure that came with it:** the settings store (`settings.json`, versioned, validated merge
+  patches; Phase 6 adds the UI), IPC `Command`/`CommandResult` (eject, power off, power profile, media, seek, End
+  task, containers, Docker Desktop, settings, geocoding, history), the shared HTTP client (rustls, https only, size
+  limits), the `opaline-asset://` scheme in the layer.
+- **`opaline --dump [prefix]`** and the full **`--diagnose`** (1.18).
+
+**Findings on this laptop**
+- The internal SATA SSD reports **4 bad sectors** (UDisks2 `SmartNumBadSectors`); `storage.health` shows it as a
+  warning. Worth keeping an eye on; the NVMe is fine (16 % used, 100 % spare).
+- GNOME shows **no microphone indicator** while Opaline captures the default sink's monitor (SENSORS.md).
+- SCSI model names are 16 bytes in sysfs ("Samsung SSD 870"); UDisks2 has the full name.
+
+**Acceptance (brief §10, P1)** — `scripts/acceptance-p1.sh`, values sampled seconds apart
+
+| Reference | Opaline | Reference tool | Result |
+| - | - | - | - |
+| `top` | CPU 1.6 % | 2.8 % (idle 97.2) | ✅ live value, sampled a moment apart |
+| `free -b` | used 4 242 MB, available 11 750 MB | used 4 223 MB, available 11 769 MB | ✅ same formula (total − available) |
+| `sensors` (hwmon; lm-sensors isn't installed) | CPU 45 °C, NVMe 25.85 °C | coretemp 50 °C, nvme 24.85 °C | ✅ live temperatures |
+| `nvidia-smi` | 3 %, 46 °C, 33 MiB, 5.1 W, P8 | 3 %, 45 °C, 33 MiB, 5.15 W, P8 | ✅ |
+| `df -B1` | `/` used 205 290 618 880, avail 270 953 213 952 | identical | ✅ |
+| `ip -s link` | eno1 down, wlo1 up | eno1 DOWN, wlo1 UP | ✅ |
+| `upower -d` | 100 %, full, capacity 75.0 % | 100 %, fully-charged, 75.0095 % | ✅ |
+| `docker ps` | "Docker Desktop is stopped" | daemon not running | ⏳ needs Docker Desktop running once (you) |
+| Parser tests on all fixtures | | | ✅ |
+| dGPU (ADR 0003) | sleeping-card fixture: no NVML, no device reads; on this laptop NVML holds no `/dev/nvidia*` after release (`cargo test -p opaline-core -- --ignored nvml`) | | ✅ (the RTD3 check needs a machine that supports RTD3) |
+
+Wi-Fi: Opaline's bitrate is the link's current rate (NetworkManager `Bitrate`); `nmcli dev wifi` shows the access
+point's maximum rate, so those differ by design.
+
+**Budget** (release, idle, layer showing the test card): CPU **0.08 %**; memory **283 MB** against 280. Core itself is
+29 MB. The rise from 259 MB is in shared libraries, not in Opaline's own memory: PSS splits a shared library's pages
+between all processes that map it, and with fewer other Mesa users running right now, the layer's and web process's
+share of `libLLVM` grew from 15 to 21.7 MB each. The PSS budget therefore moves with whatever else runs; Phase 7
+(budgets) needs to take that into account.
+
+**Not done yet / moved**
+- Automatic weather location (Location portal) moves to onboarding (P6), where the user is asked first.
+- Data usage is kept in `~/.local/share/opaline/data-usage.json` (atomic writes every 10 min) instead of the history
+  database; it is small and keeps working if SQLite is unavailable.
+- Core-side notification text is English until the Phase 7 translations.
+- `RDATE` and `RANGE=THISANDFUTURE` in recurring events (ADR 0010).
+
+**Needs you**
+1. Start Docker Desktop once (or tell me to), so I can compare with `docker ps`.
+2. Optional: install the privileged helper to try CPU power (`sudo` copy of three files and the binary; I'll give you
+   the exact commands, or it waits for the `.deb` in Phase 8).
+3. Optional: play some music for a minute, so I can check the visualizer levels and the media widget's data live.

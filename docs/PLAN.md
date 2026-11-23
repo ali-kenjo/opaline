@@ -64,6 +64,8 @@ results recorded (any blocker brought to you before P1).
 | 1.17 | History rings + SQLite rollups; alerts engine (hysteresis, duration, cooldown, notifications with actions, snooze) |
 | 1.18 | Full `--diagnose`; a `opaline --dump <topic>` dev command to compare against reference tools |
 
+Done 2026-11-23 (see PROGRESS.md). Moved: automatic weather location → P6 onboarding.
+
 **Acceptance:** values match `top`, `free`, `nvidia-smi`, `sensors`, `df`, `ip -s link`, `upower -d`, `docker ps`
 on this laptop (script output recorded in PROGRESS.md); parser tests pass on all fixtures; the ADR 0003 dGPU
 checks pass. 🧑 You start Docker Desktop once (or allow me to) for the Docker comparison.

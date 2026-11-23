@@ -12,7 +12,11 @@ cd app && pnpm tauri build --no-bundle         # release binary → target/relea
 cd app && pnpm tauri build --bundles deb       # .deb → target/release/bundle/deb/
 ./target/debug/opaline                         # start core (spawns the layer in Instant mode)
 ./target/debug/opaline --quit                  # stop it (also --edit, --peek, --settings)
-./target/debug/opaline --diagnose              # redacted JSON inventory
+./target/debug/opaline --diagnose              # redacted JSON inventory (providers, topic availability)
+./target/debug/opaline --dump cpu.             # sample the engine ~3 s, print topics as JSON (prefix optional)
+scripts/acceptance-p1.sh                       # Opaline next to top/free/nvidia-smi/df/ip/upower/docker
+scripts/capture-fixtures.sh [name]             # redacted sysfs/procfs/D-Bus snapshot → fixtures/<name>/
+cargo test -p opaline-core -- --ignored nvml   # on NVIDIA machines: NVML holds no /dev/nvidia* after release
 scripts/measure-budget.sh 60                   # CPU/RAM of all Opaline processes vs. the budgets
 cargo test --workspace && cargo clippy --workspace --all-targets -- -D warnings && cargo fmt --all --check
 cd app && pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e
@@ -28,8 +32,11 @@ A plain `cargo build -p opaline` produces a binary that loads the frontend from 
 ## Layout
 
 - `crates/opaline-ipc`: wire protocol (frames, messages). Shared by core and layer.
-- `crates/opaline-core`: hub (topic bus), IPC server, D-Bus app service (single instance), displays (Mutter),
-  samplers, logging, diagnose.
+- `crates/opaline-core`: hub (topic bus), `engine/` (Provider trait, sampler, supervisor, `while_subscribed`),
+  `providers/` (one module per source; parsers are pure and tested against `fixtures/`), `store.rs` (settings),
+  `history.rs`, `alerts.rs`, `commands.rs` (IPC commands), `http.rs`, IPC server, D-Bus app service, displays,
+  logging, diagnose/dump.
+- `crates/opaline-privileged`: the root helper (RAPL only); its D-Bus/polkit files are in `packaging/`.
 - `app/src-tauri`: the `opaline` binary. `core_mode.rs` (tray, D-Bus, IPC server, layer supervisor), `layer/`
   (windows per monitor, IPC client, bridge to the webviews), `instant.rs`.
 - `app/src`: React frontend. `layer/` is the widget layer page (`layer.html`).
@@ -60,4 +67,14 @@ A plain `cargo build -p opaline` produces a binary that loads the frontend from 
 - **DING's window is in Mutter's DESKTOP layer**, so keep-below (BOTTOM layer) is always above it (ADR 0006).
 - **WebKit hides the GPU name** from WebGL (`UNMASKED_RENDERER_WEBGL` says "Apple GPU"); it isn't a fault.
 - Playwright WebKit needs `libevent-2.1-7t64` and `libmanette-0.2-0` on the host (`sudo` once; CI installs them).
+- **zbus 6 builders**: `MatchRule::builder()` and proxy builders chain plain setters; only `build()` returns a
+  `Result`. D-Bus errors arrive as different `zbus::Error` variants; match on the error *name* (`ServiceUnknown`).
+- Providers read files through `sysfs::Root` (`/` or a fixture dir); `Root::recording()` logs accessed paths.
+  Per-tick files use `HotFile` (open once, `pread`). Topic names are static strings (GPU ones are leaked once).
+- **Never `pkill -f 'opaline --layer'` from a shell command**: the pattern matches the shell running it.
+- Run reference tools with `LC_ALL=C`; this machine is `de_DE` (decimal commas, German labels in `top`/`free`).
+- **PSS of shared libraries depends on other processes** (libLLVM, libwebkit): the memory budget moves with what
+  else runs. Compare runs with the same apps open.
+- Mutter's ScreenCast D-Bus API + `pipewiresrc` gives silent screenshots for visual checks (X11 `import` of the layer
+  windows returns black).
 - The NVIDIA dGPU on this laptop never runtime-suspends (RTD3 not supported, and it drives the HDMI monitor): ADR 0003.

@@ -136,7 +136,10 @@ which matters more for the 0.5 % budget than the reads themselves).
 - In memory: per numeric series a ring buffer of `f32` at 1 s × 900 (15 min) and 10 s × 8640 (24 h).
   ≈ 40 KB per series; about 60 series in a default layout → < 3 MB.
 - SQLite (`rusqlite`, `bundled`, WAL) at `~/.local/share/opaline/history.sqlite`: 1-minute rollups (min/avg/max)
-  for 30 days and the network data-usage counters. Written in one transaction per minute from the blocking pool.
+  for 30 days, written in one transaction per minute from the blocking pool. Averages are time-weighted (values are
+  published only when they change, so a held value counts for every second).
+- Network data usage lives in `~/.local/share/opaline/data-usage.json` (per day, reboot- and reset-safe, atomic
+  write every 10 minutes): small, and independent of SQLite.
 - History is only kept for series that are subscribed or have an alert rule, plus network usage (always, it is
   cheap and the 30-day chart needs it).
 
