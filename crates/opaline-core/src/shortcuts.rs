@@ -90,6 +90,21 @@ async fn session(
     requests: &mpsc::UnboundedSender<AppRequest>,
     stop: impl std::future::Future<Output = ()>,
 ) -> Result<(), String> {
+    // Tell the portal who we are (a host app has no sandbox app ID), so GNOME can remember the
+    // user's answer and list the shortcuts under Opaline in Settings.
+    let none: HashMap<&str, Variant<'_>> = HashMap::new();
+    if let Err(error) = conn
+        .call_method(
+            Some(PORTAL),
+            PORTAL_PATH,
+            Some("org.freedesktop.host.portal.Registry"),
+            "Register",
+            &(crate::app_service::BUS_NAME, none),
+        )
+        .await
+    {
+        tracing::debug!(%error, "portal registry not available");
+    }
     let create_token = token("create");
     let session_token = token("session");
     let opts: HashMap<&str, Variant<'_>> = HashMap::from([

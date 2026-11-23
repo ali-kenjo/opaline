@@ -26,6 +26,9 @@ cd app && LAB=1 pnpm tauri build --debug --no-bundle && OPALINE_LAYER_PAGE='lab.
                                                # 'lab.html?live': widgets with real data/fonts, reports key="lab-widgets"
 cd app && pnpm exec playwright test --update-snapshots=all  # re-record the Lab baselines (look at the diff first)
 cd app && pnpm icons                           # re-subset Material Symbols after adding to icons/codepoints.ts
+cd app && pnpm lint:helper                     # ESLint + schema check for the GNOME Shell helper
+scripts/install-helper-dev.sh [--remove]       # helper into ~/.local for this user (no sudo); needs a re-login
+./target/debug/opaline --peek                  # toggle Peek (raises the layer, so screenshots can see it)
 ```
 
 Logs: `~/.local/state/opaline/logs/opaline-{core,layer}.<date>.log` and journald (`journalctl --user -t opaline-core`).
@@ -42,6 +45,9 @@ A plain `cargo build -p opaline` produces a binary that loads the frontend from 
   `providers/` (one module per source; parsers are pure and tested against `fixtures/`), `store.rs` (settings),
   `history.rs`, `alerts.rs`, `commands.rs` (IPC commands), `http.rs`, IPC server, D-Bus app service, displays,
   logging, diagnose/dump.
+- `desktop-integration/`: the GNOME Shell helper (GJS, ESM): `layer.js` (starts the layer as a trusted Wayland client
+  while core runs), `stacking.js` (ADR 0006), `dbus.js` (`io.github.ali_kenjo.Opaline.Shell1`, ApiVersion 1), `keys.js`.
+  Core side: `desktop.rs` (Native/Instant selection, live switching), `shortcuts.rs` (portal shortcuts in Instant).
 - `crates/opaline-privileged`: the root helper (RAPL only); its D-Bus/polkit files are in `packaging/`.
 - `app/src-tauri`: the `opaline` binary. `core_mode.rs` (tray, D-Bus, IPC server, layer supervisor), `layer/`
   (windows per monitor, IPC client, bridge to the webviews), `instant.rs`.
@@ -96,3 +102,13 @@ A plain `cargo build -p opaline` produces a binary that loads the frontend from 
   three places that must agree: `design-system/style/{types,fields}.ts` and `crates/opaline-core/src/style.rs`.
 - The React compiler lint forbids reading refs or mutating state objects during render; keep mutable buffers in a
   class instance from `useState(() => new X())` and mutate them in effects (see `HeroHistory`).
+- **WebKitGTK GPU mode in the transparent layer window**: a child with its own composited layer can get stretched
+  over the whole window as a solid colour (the Peek hint did: a grey veil). Keep stage content in one layer
+  (`.content { transform: translateZ(0) }`), avoid `position: fixed` + `translate`. Compare pixel values of a
+  ScreenCast capture during `--peek` to catch it; DOM inspection (`elementsFromPoint`) doesn't show it.
+- **`opaline-asset://` can't be read cross-origin** (fetch fails, images taint WebGL): use the `layer_asset` command
+  and a blob URL for anything WebGL uploads.
+- A layer window attaching late used to miss topic values; the layer process replays the latest values on attach.
+- WebKit pauses timers in a fully covered layer window; diagnostics with `setTimeout` need the window visible (Peek).
+- Logs are named by **UTC** date (`opaline-layer.<UTC date>.log`).
+- GlobalShortcuts triggers use the XDG format (`LOGO+ALT+w`, not `SUPER`); GNOME shows "Disabled" otherwise.
