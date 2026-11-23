@@ -32,6 +32,16 @@ pub async fn execute(command: Command) -> CommandResult {
         Command::EndTask { pid, start, force } => {
             crate::providers::processes::signal(pid, start, force)
         }
+        Command::Container { id, action } => {
+            use crate::providers::docker::{self, ContainerAction as A};
+            let action = match action {
+                opaline_ipc::ContainerAction::Start => A::Start,
+                opaline_ipc::ContainerAction::Stop => A::Stop,
+                opaline_ipc::ContainerAction::Restart => A::Restart,
+            };
+            docker::container_action(&id, action).await
+        }
+        Command::StartDockerDesktop => crate::providers::docker::start_desktop().await,
     };
     match result {
         Ok(()) => CommandResult::Ok,

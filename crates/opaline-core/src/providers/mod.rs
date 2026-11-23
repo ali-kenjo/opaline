@@ -3,6 +3,7 @@
 pub mod audio;
 pub mod cpu;
 pub mod desktop_settings;
+pub mod docker;
 pub mod fans;
 pub mod gpu;
 pub mod hwmon;
@@ -59,6 +60,8 @@ pub const ASYNC_TOPICS: &[&str] = &[
     audio::STATE,
     media::PLAYER,
     media::PLAYERS,
+    docker::STATE,
+    docker::CONTAINERS,
 ];
 
 type Task = Pin<Box<dyn Future<Output = ()> + Send>>;
@@ -80,6 +83,7 @@ pub async fn run_async(hub: Arc<Hub>) {
         task!("desktop-settings", desktop_settings::run),
         task!("audio", audio::run),
         task!("mpris", media::run),
+        task!("docker", docker::run),
     ];
     futures_util::future::join_all(tasks).await;
 }

@@ -231,6 +231,18 @@ pub enum Command {
     /// SIGTERM (or SIGKILL with `force`) to one of the user's processes; `start` (from
     /// `processes.list`) guards against PID reuse.
     EndTask { pid: u32, start: u64, force: bool },
+    /// Start, stop or restart a container from `docker.containers`.
+    Container { id: String, action: ContainerAction },
+    /// Start Docker Desktop (its systemd user unit).
+    StartDockerDesktop,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ContainerAction {
+    Start,
+    Stop,
+    Restart,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

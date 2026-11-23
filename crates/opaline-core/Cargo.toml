@@ -27,6 +27,7 @@ chrono = { version = "0.4", default-features = false, features = ["clock", "std"
 reqwest = { version = "0.13", default-features = false, features = ["rustls", "http2"] }
 pipewire = "0.10"
 rustfft = "6"
+bollard = "0.21"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "sync", "time", "macros", "fs", "test-util"] }
