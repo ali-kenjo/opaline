@@ -1,0 +1,23 @@
+.odometer {
+  display: inline-flex;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: pre;
+}
+
+.window {
+  display: inline-block;
+  height: 1em;
+  overflow: hidden;
+}
+
+.strip {
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
+}
+
+.strip > span {
+  height: 1em;
+  line-height: 1em;
+}
