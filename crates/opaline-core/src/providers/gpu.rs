@@ -948,7 +948,12 @@ impl Provider for Gpu {
 
 #[cfg(test)]
 mod tests {
-    #![allow(clippy::unwrap_used, clippy::panic, clippy::float_cmp)]
+    #![allow(
+        clippy::unwrap_used,
+        clippy::panic,
+        clippy::float_cmp,
+        clippy::expect_used
+    )]
 
     use std::sync::Arc;
     use std::sync::atomic::{AtomicU32, Ordering};
@@ -1151,5 +1156,44 @@ mod tests {
         let v = sample_all(&mut gpu);
         assert_eq!(v[LIST], Value::List(Vec::new()));
         assert_eq!(gpu.topics().len(), 1);
+    }
+
+    fn nvidia_fds() -> usize {
+        std::fs::read_dir("/proc/self/fd")
+            .map(|d| {
+                d.flatten()
+                    .filter_map(|e| std::fs::read_link(e.path()).ok())
+                    .filter(|t| t.to_string_lossy().starts_with("/dev/nvidia"))
+                    .count()
+            })
+            .unwrap_or(0)
+    }
+
+    /// ADR 0003 on the reference laptop: NVML holds `/dev/nvidia*` only between a sample and
+    /// `release()`. Run with `cargo test -p opaline-core -- --ignored nvml`.
+    #[test]
+    #[ignore = "needs an NVIDIA GPU with its driver loaded"]
+    fn nvml_holds_no_device_after_release() {
+        let mut gpu = Gpu::new(crate::sysfs::Root::system());
+        let topic = gpu
+            .cards
+            .iter()
+            .find(|c| c.vendor == Vendor::Nvidia)
+            .map(|c| c.topics.load)
+            .expect("an NVIDIA card");
+        assert_eq!(nvidia_fds(), 0, "nothing open before the first sample");
+        let cx = SampleCx {
+            now: Instant::now(),
+            due: &[topic],
+        };
+        let v = gpu.sample(&cx).unwrap();
+        assert!(matches!(v[0].value, Value::Num(_)), "{:?}", v[0].value);
+        assert!(nvidia_fds() > 0, "NVML is open while sampling");
+        gpu.release();
+        assert_eq!(
+            nvidia_fds(),
+            0,
+            "released: Opaline holds no /dev/nvidia* handle"
+        );
     }
 }
