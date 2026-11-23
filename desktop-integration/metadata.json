@@ -1,0 +1,9 @@
+{
+  "uuid": "opaline-desktop@ali-kenjo.github.io",
+  "name": "Opaline Desktop Integration",
+  "description": "Places Opaline's widget layer on the desktop: above the desktop icons, below windows, on every workspace, hidden from Alt-Tab and the overview. Only does window placement; Opaline itself renders the widgets.",
+  "shell-version": ["50"],
+  "url": "https://github.com/ali-kenjo/opaline",
+  "settings-schema": "org.gnome.shell.extensions.opaline-desktop",
+  "version-name": "1.0"
+}

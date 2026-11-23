@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.opaline-desktop"
+          path="/org/gnome/shell/extensions/opaline-desktop/">
+    <key name="peek-shortcut" type="as">
+      <default><![CDATA[['<Super><Alt>w']]]></default>
+      <summary>Peek at the widgets</summary>
+      <description>Raises the widget layer above all windows until it is dismissed.</description>
+    </key>
+    <key name="edit-shortcut" type="as">
+      <default><![CDATA[['<Super><Alt>e']]]></default>
+      <summary>Edit widgets</summary>
+    </key>
+  </schema>
+</schemalist>
