@@ -140,7 +140,9 @@ The brief lists only the NVMe drive. The second, internal SATA SSD is a useful t
 - **PipeWire 1.6.2** (compiled and linked). WirePlumber `wpctl` works; `pactl` is not installed (we don't need it).
 - Sinks: "Internes Audio Analoges Stereo" (default) and the NVIDIA HDMI audio sink. The default sink's monitor port is the capture target.
 - ⚠️ The NVIDIA HDMI audio sink belongs to the dGPU's audio function `01:00.1`. Opening its monitor would wake that function; we only ever capture the **default** sink, so this matters only if the user makes HDMI audio the default.
-- Microphone privacy indicator while capturing a sink monitor: **not yet tested** (needs a running capture; done in P1).
+- Microphone privacy indicator while capturing the default sink's monitor: **not shown** (checked 2026-11-23 on GNOME 50.1 with
+  Opaline's passive `stream.capture.sink` stream running; screenshots of the top bar during and after the capture are identical).
+  Capture still only runs while a visualizer is visible and audio plays, and stops after 3 s of silence.
 - **MPRIS ✅**: `org.mpris.MediaPlayer2.chromium.instance<pid>` was playing, with `CanControl`, `CanSeek`, `mpris:artUrl`, `mpris:length`, `xesam:title`.
 
 ## 11. Desktop, shell and portals
@@ -207,7 +209,6 @@ Latest versions checked on crates.io/npm today: Tauri **2.x stable** (CLI 2.12.6
 ## 15. Still to verify (scheduled in PLAN.md)
 
 - WebGL2 inside a Tauri/WebKitGTK 2.52 webview on this machine (P2 acceptance).
-- Microphone privacy indicator during sink-monitor capture (P1).
 - `gnome-shell --devkit` nested session actually starts and loads a test helper (P4).
 - Instant mode under Xwayland with `xwayland-native-scaling` at 1.0 / 1.25 / 1.5 / 2.0 (P4).
 - Spring token values against androidx `MotionScheme` source (P2).

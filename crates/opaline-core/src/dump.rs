@@ -2,6 +2,8 @@
 //! JSON, to compare against reference tools (`top`, `free`, `sensors`, …; PLAN task 1.18).
 
 use std::collections::BTreeMap;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
 use opaline_ipc::{ActivityClass, Availability, BackendKind, Topic, Value};
@@ -25,6 +27,27 @@ pub async fn dump(prefix: Option<&str>) -> BTreeMap<String, serde_json::Value> {
     for topic in &topics {
         hub.subscribe(topic, ActivityClass::Interactive);
     }
+    // The visualizer's frames aren't topic values; count them instead.
+    let spectrum_wanted = prefix.is_none_or(|p| providers::audio::SPECTRUM.starts_with(p));
+    if spectrum_wanted {
+        hub.subscribe(
+            &Topic::new(providers::audio::SPECTRUM),
+            ActivityClass::Interactive,
+        );
+    }
+    let frames = Arc::new(AtomicU64::new(0));
+    let loudest = Arc::new(AtomicU64::new(0));
+    let counter = {
+        let (frames, loudest) = (frames.clone(), loudest.clone());
+        let mut rx = hub.spectrum();
+        tokio::spawn(async move {
+            while let Ok(f) = rx.recv().await {
+                frames.fetch_add(1, Ordering::Relaxed);
+                let max = u64::from(f.levels.iter().copied().max().unwrap_or(0));
+                loudest.fetch_max(max, Ordering::Relaxed);
+            }
+        })
+    };
     let sampler = tokio::spawn(Sampler::new(hub.clone(), polled).run());
     let event_driven = tokio::spawn(providers::run_async(hub.clone()));
     tokio::time::sleep(RUN_FOR).await;
@@ -37,6 +60,16 @@ pub async fn dump(prefix: Option<&str>) -> BTreeMap<String, serde_json::Value> {
             (t.0.clone(), value)
         })
         .collect();
+    counter.abort();
+    if spectrum_wanted {
+        out.insert(
+            providers::audio::SPECTRUM.to_owned(),
+            serde_json::json!({
+                "frames": frames.load(Ordering::Relaxed),
+                "loudest": loudest.load(Ordering::Relaxed),
+            }),
+        );
+    }
     let statuses = hub.provider_statuses();
     if let Ok(status) = serde_json::to_value(statuses) {
         out.insert("_providers".to_owned(), status);

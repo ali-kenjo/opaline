@@ -185,6 +185,7 @@ async fn handle_client(hub: Arc<Hub>, stream: UnixStream) -> Result<(), ClientEr
     // Subscribe to the broadcasts before sending Welcome so nothing is missed in between.
     let mut updates = hub.updates();
     let mut events = hub.events();
+    let mut spectrum = hub.spectrum();
     let welcome = ServerMsg::Welcome(Welcome {
         protocol: PROTOCOL_VERSION,
         core_version: env!("CARGO_PKG_VERSION").to_owned(),
@@ -271,6 +272,15 @@ async fn handle_client(hub: Arc<Hub>, stream: UnixStream) -> Result<(), ClientEr
                 Err(broadcast::error::RecvError::Lagged(skipped)) => {
                     tracing::debug!(skipped, "client lagged; skipping to newest data");
                 }
+                Err(broadcast::error::RecvError::Closed) => break Ok(()),
+            },
+            frame = spectrum.recv() => match frame {
+                Ok(frame) => {
+                    if subs.pushes(&Topic::new(crate::providers::audio::SPECTRUM)) {
+                        opaline_ipc::write_spectrum(&mut writer, &frame, &mut scratch).await?;
+                    }
+                }
+                Err(broadcast::error::RecvError::Lagged(_)) => {}
                 Err(broadcast::error::RecvError::Closed) => break Ok(()),
             },
             Some((id, result)) = results.recv() => {

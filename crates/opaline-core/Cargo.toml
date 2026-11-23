@@ -24,6 +24,8 @@ rustix = { version = "1", features = ["fs"] }
 nvml-wrapper = "0.13"
 socket2 = { version = "0.6", features = ["all"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+pipewire = "0.10"
+rustfft = "6"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "sync", "time", "macros", "fs", "test-util"] }

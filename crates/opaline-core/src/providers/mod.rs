@@ -1,5 +1,6 @@
 //! Every sensor provider (brief §6, docs/SENSORS.md).
 
+pub mod audio;
 pub mod cpu;
 pub mod desktop_settings;
 pub mod fans;
@@ -52,6 +53,7 @@ pub const ASYNC_TOPICS: &[&str] = &[
     upower::PROFILE,
     upower::PERIPHERALS,
     desktop_settings::CLOCK,
+    audio::STATE,
 ];
 
 type Task = Pin<Box<dyn Future<Output = ()> + Send>>;
@@ -71,6 +73,7 @@ pub async fn run_async(hub: Arc<Hub>) {
         task!("data-usage", usage::run),
         task!("upower", upower::run),
         task!("desktop-settings", desktop_settings::run),
+        task!("audio", audio::run),
     ];
     futures_util::future::join_all(tasks).await;
 }

@@ -5,7 +5,8 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use opaline_ipc::{
-    ActivityClass, BackendKind, CoreEvent, MonitorInfo, Topic, TopicUpdate, UpdateBatch, Value,
+    ActivityClass, BackendKind, CoreEvent, MonitorInfo, SpectrumFrame, Topic, TopicUpdate,
+    UpdateBatch, Value,
 };
 use tokio::sync::{broadcast, watch};
 
@@ -50,6 +51,10 @@ pub struct Hub {
     /// On battery with the power-saver profile: every interval doubles (brief §5.4).
     eco: watch::Sender<bool>,
     providers: Mutex<BTreeMap<String, ProviderStatus>>,
+    /// Visualizer frames; a small buffer, a slow client just skips frames.
+    spectrum: broadcast::Sender<Arc<SpectrumFrame>>,
+    /// Whether any MPRIS player is playing: `None` = no player known.
+    media_playing: watch::Sender<Option<bool>>,
 }
 
 impl Hub {
@@ -65,6 +70,8 @@ impl Hub {
             seq: Mutex::new(0),
             eco: watch::channel(false).0,
             providers: Mutex::new(BTreeMap::new()),
+            spectrum: broadcast::channel(4).0,
+            media_playing: watch::channel(None).0,
         })
     }
 
@@ -209,6 +216,26 @@ impl Hub {
             *current = eco;
             changed
         });
+    }
+
+    pub fn publish_spectrum(&self, frame: SpectrumFrame) {
+        let _ = self.spectrum.send(Arc::new(frame));
+    }
+
+    pub fn spectrum(&self) -> broadcast::Receiver<Arc<SpectrumFrame>> {
+        self.spectrum.subscribe()
+    }
+
+    pub fn set_media_playing(&self, playing: Option<bool>) {
+        self.media_playing.send_if_modified(|current| {
+            let changed = *current != playing;
+            *current = playing;
+            changed
+        });
+    }
+
+    pub fn watch_media_playing(&self) -> watch::Receiver<Option<bool>> {
+        self.media_playing.subscribe()
     }
 
     pub fn set_provider_status(&self, id: &str, status: ProviderStatus) {
