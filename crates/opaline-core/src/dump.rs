@@ -18,7 +18,9 @@ const RUN_FOR: Duration = Duration::from_millis(3000);
 
 pub async fn dump(prefix: Option<&str>) -> BTreeMap<String, serde_json::Value> {
     let monitors = match zbus::Connection::session().await {
-        Ok(conn) => crate::displays::current_monitors(&conn).await.unwrap_or_default(),
+        Ok(conn) => crate::displays::current_monitors(&conn)
+            .await
+            .unwrap_or_default(),
         Err(_) => Vec::new(),
     };
     let hub = Hub::new(BackendKind::Instant, monitors);

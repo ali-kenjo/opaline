@@ -26,6 +26,7 @@ socket2 = { version = "0.6", features = ["all"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
 jxl-oxide = "0.12"
+rusqlite = { version = "0.43", features = ["bundled"] }
 reqwest = { version = "0.13", default-features = false, features = ["rustls", "http2"] }
 pipewire = "0.10"
 rustfft = "6"

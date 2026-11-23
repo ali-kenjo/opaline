@@ -59,6 +59,7 @@ pub struct Hub {
     settings: watch::Sender<Arc<Settings>>,
     /// Screen locked: every subscription counts as Idle and nothing is pushed.
     locked: std::sync::atomic::AtomicBool,
+    history: crate::history::Shared,
     /// False when settings.json comes from a newer Opaline (or is broken): never overwrite it.
     settings_writable: std::sync::atomic::AtomicBool,
 }
@@ -80,6 +81,7 @@ impl Hub {
             media_playing: watch::channel(None).0,
             settings: watch::channel(Arc::new(Settings::default())).0,
             locked: std::sync::atomic::AtomicBool::new(false),
+            history: crate::history::Shared::default(),
             settings_writable: std::sync::atomic::AtomicBool::new(true),
         })
     }
@@ -196,6 +198,10 @@ impl Hub {
         } else {
             class
         }
+    }
+
+    pub fn history(&self) -> crate::history::Shared {
+        self.history.clone()
     }
 
     pub fn locked(&self) -> bool {

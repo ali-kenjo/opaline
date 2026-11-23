@@ -73,6 +73,14 @@ pub fn run(request: Option<AppRequest>) -> ExitCode {
     rt.spawn(providers::run_async(hub.clone()));
     {
         let hub = hub.clone();
+        rt.spawn(async move {
+            if let Err(error) = opaline_core::history::run(hub.clone(), hub.history()).await {
+                tracing::error!(%error, "history stopped");
+            }
+        });
+    }
+    {
+        let hub = hub.clone();
         let bus = bus.clone();
         rt.spawn(async move {
             let result = displays::watch_monitors(&bus, |monitors| {

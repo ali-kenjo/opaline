@@ -70,8 +70,8 @@ async fn run(command: Command) -> Result<(), String> {
             docker::container_action(&id, action).await
         }
         Command::StartDockerDesktop => crate::providers::docker::start_desktop().await,
-        Command::UpdateSettings { .. } | Command::GeocodeSearch { .. } => {
-            Err("handled-above".into())
-        }
+        Command::UpdateSettings { .. }
+        | Command::GeocodeSearch { .. }
+        | Command::History { .. } => Err("handled-above".into()),
     }
 }

@@ -239,6 +239,9 @@ pub enum Command {
     UpdateSettings { patch: Value },
     /// Search places for the weather location (Open-Meteo geocoding); answers with data.
     GeocodeSearch { query: String, language: String },
+    /// The last `seconds` of a numeric series (`cpu.load`, `cpu.perThread#3`); answers with
+    /// `{ stepS, values }`.
+    History { series: String, seconds: u64 },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

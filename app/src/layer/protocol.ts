@@ -53,7 +53,8 @@ export type Command =
   | { cmd: "container"; id: string; action: "start" | "stop" | "restart" }
   | { cmd: "start-docker-desktop" }
   | { cmd: "update-settings"; patch: Value }
-  | { cmd: "geocode-search"; query: string; language: string };
+  | { cmd: "geocode-search"; query: string; language: string }
+  | { cmd: "history"; series: string; seconds: number };
 
 export type MediaAction = "play" | "pause" | "play-pause" | "next" | "previous";
 
