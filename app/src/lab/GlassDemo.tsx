@@ -9,10 +9,11 @@ import { Icon } from "../design-system/icons";
 import { Odometer, applyPalette } from "../design-system/motion";
 import { cubicsToPath, materialShape } from "../design-system/shapes";
 import styles from "./Lab.module.css";
+import { StatesDemo } from "./StatesDemo";
 import { type LabWallpaper, makeWallpaper } from "./wallpapers";
 
 const STAGE_W = 1100;
-const STAGE_H = 460;
+const STAGE_H = 940;
 
 export interface GlassDemoProps {
   wallpaperId: LabWallpaper["id"];
@@ -106,6 +107,7 @@ export function GlassDemo({ wallpaperId, dark, slider, opaque, variant, value }:
                 <path d={cookie} fill="rgb(var(--md-primary))" />
               </svg>
             </div>
+            <StatesDemo value={value} />
           </div>
         </GlassStage>
       </div>

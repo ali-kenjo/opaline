@@ -1,0 +1,32 @@
+.ring {
+  display: block;
+}
+
+.track {
+  stroke: rgb(var(--md-on-surface) / 0.12);
+}
+
+.sparkline {
+  display: block;
+  width: 100%;
+}
+
+.heat {
+  display: grid;
+  gap: 3px;
+}
+
+.heatCell {
+  border-radius: 4px;
+  min-height: 10px;
+}
+
+.wavy {
+  display: block;
+  width: 100%;
+  overflow: visible;
+}
+
+.loading {
+  display: block;
+}

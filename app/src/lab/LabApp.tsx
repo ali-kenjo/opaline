@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import type { Variant } from "../design-system/color/scheme";
 import { setReducedMotion } from "../design-system/motion";
+import { ComponentsDemo } from "./ComponentsDemo";
 import { GlassDemo } from "./GlassDemo";
 import styles from "./Lab.module.css";
 import { Specimen } from "./Specimen";
@@ -117,6 +118,7 @@ export function LabApp() {
         variant={variant}
         value={value}
       />
+      <ComponentsDemo dark={dark} value={value} />
       <Specimen value={value} />
     </main>
   );

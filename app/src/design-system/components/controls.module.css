@@ -1,0 +1,168 @@
+/* Buttons, switches and sliders (Material 3 Expressive shapes and states, our tokens). */
+.button {
+  --bg: transparent;
+  --fg: rgb(var(--md-primary));
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 40px;
+  padding: 0 var(--space-6);
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--bg);
+  color: var(--fg);
+  font: var(--type-label);
+  font-size: 14px;
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    border-radius 200ms cubic-bezier(0.2, 0, 0, 1),
+    transform 120ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* State layer: hover 8 %, pressed 10 % of the content color. */
+.button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity 150ms linear;
+}
+
+.button:hover::after {
+  opacity: 0.08;
+}
+
+.button:active::after {
+  opacity: 0.1;
+}
+
+/* Expressive: pressed buttons square off slightly. */
+.button:active {
+  border-radius: 12px;
+}
+
+.button:focus-visible {
+  outline: 2px solid rgb(var(--md-primary));
+  outline-offset: 2px;
+}
+
+.button:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.filled {
+  --bg: rgb(var(--md-primary));
+  --fg: rgb(var(--md-on-primary));
+}
+
+.tonal {
+  --bg: rgb(var(--md-secondary-container));
+  --fg: rgb(var(--md-on-secondary-container));
+}
+
+.outlined {
+  box-shadow: inset 0 0 0 1px rgb(var(--md-outline));
+}
+
+.icon {
+  min-height: 40px;
+  min-width: 40px;
+  padding: 0;
+}
+
+.switch {
+  position: relative;
+  width: 52px;
+  height: 32px;
+  border: none;
+  padding: 0;
+  border-radius: var(--radius-pill);
+  background: rgb(var(--md-surface-container-highest));
+  box-shadow: inset 0 0 0 2px rgb(var(--md-outline));
+  cursor: pointer;
+  transition: background 150ms linear;
+}
+
+.switch[aria-checked="true"] {
+  background: rgb(var(--md-primary));
+  box-shadow: none;
+}
+
+.thumb {
+  position: absolute;
+  top: 50%;
+  left: 8px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgb(var(--md-outline));
+  translate: 0 -50%;
+  display: grid;
+  place-items: center;
+  color: rgb(var(--md-primary));
+  transition:
+    left 250ms cubic-bezier(0.34, 1.4, 0.64, 1),
+    width 150ms,
+    height 150ms;
+}
+
+.switch[aria-checked="true"] .thumb {
+  left: 24px;
+  width: 24px;
+  height: 24px;
+  background: rgb(var(--md-on-primary));
+}
+
+.switch:active .thumb {
+  width: 28px;
+  height: 28px;
+}
+
+.switch:focus-visible {
+  outline: 2px solid rgb(var(--md-primary));
+  outline-offset: 2px;
+}
+
+.slider {
+  appearance: none;
+  width: 100%;
+  height: 44px;
+  background: transparent;
+  cursor: pointer;
+  --pct: 50%;
+}
+
+.slider::-webkit-slider-runnable-track {
+  height: 16px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    to right,
+    rgb(var(--md-primary)) 0 calc(var(--pct) - 6px),
+    transparent calc(var(--pct) - 6px) calc(var(--pct) + 6px),
+    rgb(var(--md-secondary-container)) calc(var(--pct) + 6px)
+  );
+}
+
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 4px;
+  height: 44px;
+  margin-top: -14px;
+  border-radius: 2px;
+  background: rgb(var(--md-primary));
+}
+
+.slider:active::-webkit-slider-thumb {
+  width: 2px;
+}
+
+.slider:focus-visible {
+  outline: 2px solid rgb(var(--md-primary));
+  outline-offset: 4px;
+  border-radius: 8px;
+}
