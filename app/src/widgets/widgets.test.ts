@@ -7,6 +7,11 @@ import { bytes, frequency, temperature } from "./format";
 import { fromJson, mergePatch, toJson } from "./json";
 import { storedSettings } from "./layerHost";
 import { WIDGETS } from "./registry";
+import { battery, duration } from "./battery";
+import { gpu, gpuIndex } from "./gpu";
+import { iface, netRate, network } from "./network";
+import { storage, volume } from "./storage";
+import { condition, weather } from "./weather";
 
 describe("content", () => {
   it("falls back to the widget's defaults", () => {
@@ -119,5 +124,70 @@ describe("json", () => {
     expect(Object.keys(s.widgets)).toEqual(["cpu-1"]);
     expect(s.widgets["cpu-1"]?.content).toEqual({ fields: ["load"] });
     expect(fromJson(null).kind).toBe("missing");
+  });
+});
+
+describe("more widgets", () => {
+  const values = mockValues(50);
+  const ctxFor = (def: (typeof WIDGETS)[number], content: unknown = {}) => ({
+    get: (t: string) => values[t],
+    content: resolveContent(def, content),
+  });
+  const read = (def: (typeof WIDGETS)[number], id: string, content: unknown = {}) =>
+    def.fields.find((f) => f.id === id)?.read(ctxFor(def, content)) ?? null;
+
+  it("every widget is ready with the Lab's data", () => {
+    for (const w of WIDGETS) expect(w.status(ctxFor(w)).kind, w.kind).toBe("ready");
+  });
+
+  it("GPU picks the discrete card automatically, or the chosen one", () => {
+    expect(gpuIndex(ctxFor(gpu))).toBe(1);
+    expect(gpuIndex(ctxFor(gpu, { gpu: "0" }))).toBe(0);
+    expect(gpuIndex(ctxFor(gpu, { gpu: "7" }))).toBe(0);
+    expect(read(gpu, "vram")?.text).toMatch(/GiB|GB/);
+  });
+
+  it("storage follows the chosen volume and offers eject only where it can", () => {
+    expect(volume(ctxFor(storage))?.id).toBe("/");
+    expect(volume(ctxFor(storage, { volume: "/media/lab/USB" }))?.drive).toBe("sdb");
+    expect(storage.actions?.(ctxFor(storage)) ?? []).toEqual([]);
+    expect(
+      (storage.actions?.(ctxFor(storage, { volume: "/media/lab/USB" })) ?? []).map((a) => a.id),
+    ).toEqual(["eject", "off"]);
+  });
+
+  it("network rates in bits or bytes, and the interface in use", () => {
+    expect(netRate(1.25e6, "bits", 0)).toMatch(/^10[.,]0 Mbit\/s$/);
+    expect(netRate(1.25e6, "bytes", 0)).toMatch(/MB\/s$/);
+    expect(iface(ctxFor(network))).toBe("wlo1");
+    expect(read(network, "wifi", { showSsid: false })?.text).not.toContain("Lab Wi-Fi");
+  });
+
+  it("battery: time left, power mode buttons, desktops without a battery", () => {
+    expect(duration(3 * 3600 + 25 * 60)).toBe("3 h 25 min");
+    const acts = battery.actions?.(ctxFor(battery)) ?? [];
+    expect(acts.map((a) => [a.id, a.active ?? false])).toEqual([
+      ["power-saver", false],
+      ["balanced", true],
+      ["performance", false],
+    ]);
+    const none = {
+      get: (t: string) =>
+        t === "power.battery"
+          ? ({ kind: "missing", v: { state: "unavailable", reason: "no-battery" } } as const)
+          : values[t],
+      content: resolveContent(battery, {}),
+    };
+    expect(battery.status(none).kind).toBe("unavailable");
+    expect(
+      battery.status({ ...none, content: resolveContent(battery, { fields: ["profile"] }) }).kind,
+    ).toBe("ready");
+  });
+
+  it("weather words and icons", () => {
+    expect(condition(0, true)).toEqual({ text: "Clear", icon: "sunny" });
+    expect(condition(0, false).icon).toBe("dark_mode");
+    expect(condition(95, true).text).toBe("Thunderstorm");
+    expect(read(weather, "wind", { windUnit: "ms" })?.text).toMatch(/m\/s SW$/);
   });
 });

@@ -70,6 +70,10 @@ test("widgets: every size and two custom styles", async ({ page }) => {
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(500);
   await expect(page.getByTestId("widgets")).toHaveScreenshot("widgets-dusk-dark.png", SNAPSHOT);
+  await expect(page.getByTestId("more-widgets")).toHaveScreenshot(
+    "more-widgets-dusk-dark.png",
+    SNAPSHOT,
+  );
   expect(errors).toEqual([]);
 });
 
@@ -110,4 +114,22 @@ test("the settings sheet edits content and style of one widget", async ({ page }
 
   await sheet.getByRole("button", { name: "Close settings" }).click();
   await expect(sheet).toBeHidden();
+});
+
+test("a source option lists live choices and switches the data", async ({ page }) => {
+  await page.goto("/lab.html?still&wallpaper=dusk");
+  const card = page.getByRole("group", { name: "GPU" });
+  await card.hover();
+  await card.getByRole("button", { name: "GPU settings" }).click();
+  const sheet = page.getByRole("dialog", { name: "GPU settings" });
+  const pick = sheet.getByRole("combobox", { name: "GPU", exact: true });
+  await expect(pick.locator("option")).toHaveText([
+    "Automatic (discrete first)",
+    "UHD Graphics 630",
+    "GeForce GTX 1660 Ti Mobile",
+  ]);
+  await pick.selectOption({ label: "UHD Graphics 630" });
+  // The Lab has no data for the integrated GPU: the card shows dashes, not the other GPU's numbers.
+  await expect(card).toContainText("—");
+  await expect(card).not.toContainText("51");
 });

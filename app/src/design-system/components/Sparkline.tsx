@@ -39,9 +39,9 @@ export function Sparkline({ values, min, max, height = 40, color, label }: Spark
       const span = hi - lo || 1;
       const step = w / (v.length - 2);
       const offset = shift.current.value * step;
-      const stroke =
-        color ??
-        (getComputedStyle(el).getPropertyValue("--spark-color").trim() || "rgb(200 200 220)");
+      // Canvas can't read var(): let CSS resolve the color on the element, then use the result.
+      el.style.color = color ?? "rgb(var(--md-primary))";
+      const stroke = getComputedStyle(el).color;
       ctx.beginPath();
       v.forEach((y, i) => {
         const px = (i - 1) * step + offset;

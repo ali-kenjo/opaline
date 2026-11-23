@@ -24,7 +24,7 @@ cd app && LAB=1 pnpm exec vite build && pnpm exec vite preview  # Widget Lab at 
 cd app && LAB=1 pnpm tauri build --debug --no-bundle && OPALINE_LAYER_PAGE='lab.html?still' ../target/debug/opaline
                                                # the Lab in the real layer windows; reports key="lab-glass" to the layer log
                                                # 'lab.html?live': widgets with real data/fonts, reports key="lab-widgets"
-cd app && pnpm exec playwright test --update-snapshots  # re-record the Lab baselines (look at the diff first)
+cd app && pnpm exec playwright test --update-snapshots=all  # re-record the Lab baselines (look at the diff first)
 cd app && pnpm icons                           # re-subset Material Symbols after adding to icons/codepoints.ts
 ```
 
