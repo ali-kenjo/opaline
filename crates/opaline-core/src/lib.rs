@@ -5,6 +5,7 @@
 pub mod app_service;
 pub mod diagnose;
 pub mod displays;
+pub mod dump;
 pub mod engine;
 pub mod hub;
 pub mod ipc_server;
