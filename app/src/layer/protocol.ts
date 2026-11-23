@@ -42,7 +42,9 @@ export type CoreEvent =
   | { event: "peek-requested" }
   | { event: "edit-requested" }
   | { event: "updates-paused"; paused: boolean }
-  | { event: "alert-opened"; rule: string };
+  | { event: "alert-opened"; rule: string }
+  | { event: "desktop-focus-changed"; focused: boolean }
+  | { event: "backend-changed"; backend: BackendKind };
 
 export type Command =
   | { cmd: "drive-eject"; drive: string }
@@ -71,4 +73,5 @@ export type LayerEvent =
   | { kind: "rejected"; reason: string }
   | { kind: "update"; seq: number; atMs: number; updates: TopicUpdate[] }
   | { kind: "spectrum"; seq: number; levels: number[] }
+  | { kind: "geometry"; x: number; y: number; width: number; height: number }
   | { kind: "core-event"; event: CoreEvent };

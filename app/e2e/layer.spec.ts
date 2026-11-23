@@ -1,13 +1,13 @@
 import { expect, test } from "@playwright/test";
 
-// Outside Tauri the layer page must still render and say so, instead of failing silently.
+// Outside Tauri the layer page must still load cleanly: glass stage up, no widgets (they come
+// from core's settings), no errors.
 test("layer page renders standalone in WebKit", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/layer.html");
-  await expect(page.getByRole("group", { name: "Load average" })).toContainText(
-    "Not running inside Opaline",
-  );
+  await expect(page.locator("[data-glass]")).toHaveAttribute("data-glass", "webgl2");
+  await expect(page.getByRole("group")).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 

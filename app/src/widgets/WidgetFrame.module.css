@@ -1,6 +1,8 @@
 /* Widget card. Every text/icon setting arrives as a --w-* variable from the widget's style. */
 .frame {
   position: relative;
+  /* The size is the grid span; padding sits inside it, on any page. */
+  box-sizing: border-box;
   color: rgb(var(--md-on-surface));
   font-family: var(--w-font);
   font-weight: var(--w-weight);
@@ -16,6 +18,12 @@
 .alert {
   outline: 2px solid rgb(var(--md-error));
   outline-offset: -2px;
+}
+
+.frame *,
+.frame *::before,
+.frame *::after {
+  box-sizing: border-box;
 }
 
 .inner {

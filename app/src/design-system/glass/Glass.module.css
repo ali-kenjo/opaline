@@ -8,8 +8,19 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  z-index: -1;
+  z-index: 0;
   pointer-events: none;
+}
+
+/* Content always paints above the glass canvas (a negative z-index on the canvas wasn't
+   reliable in the WebKitGTK layer window). */
+.content {
+  position: relative;
+  z-index: 1;
+  /* One GPU layer for all content: WebKitGTK then paints children (like the Peek hint) into
+     it, instead of giving a child its own layer, which it stretched over the whole window. */
+  transform: translateZ(0);
+  height: 100%;
 }
 
 .glass {

@@ -22,6 +22,10 @@ function base(): LayerState {
     connection: { state: "connecting", attempt: 0 },
     monitor: null,
     values: {},
+    geometry: null,
+    desktopFocused: null,
+    peekRequests: 0,
+    editRequests: 0,
     updatesPaused: false,
     apply: () => undefined,
   };

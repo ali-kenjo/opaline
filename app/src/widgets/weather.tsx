@@ -153,6 +153,9 @@ function Weather({ ctx }: { ctx: RenderCtx }) {
   const cnd = condition(num(c?.code), day);
   const t = num(c?.tempC);
   const big = ctx.size === "L" || ctx.size === "XL";
+  // Rows give way to the hour and day strips on L.
+  const strips = ctx.content.fields.filter((f) => f === "hourly" || f === "daily").length;
+  const bigRows = ctx.size === "XL" ? 8 : strips === 2 ? 3 : strips === 1 ? 5 : 8;
   const rest: RenderCtx = {
     ...ctx,
     readings: ctx.readings.filter(
@@ -179,7 +182,7 @@ function Weather({ ctx }: { ctx: RenderCtx }) {
       </div>
       {ctx.size !== "1x1" && ctx.size !== "2x1" && rest.readings.length ? (
         <dl className={frame.rows}>
-          {rest.readings.slice(0, big ? 6 : ctx.size === "M" ? 3 : 2).map((r) => (
+          {rest.readings.slice(0, big ? bigRows : ctx.size === "M" ? 3 : 2).map((r) => (
             <div key={r.field.id} className={frame.row}>
               <dt>
                 {r.field.icon ? (

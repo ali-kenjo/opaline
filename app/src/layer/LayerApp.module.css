@@ -1,38 +1,47 @@
-.glass {
-  /* Position and size are set by the spike to cover the card plus its shadow. */
+.layer {
+  /* Absolute, not fixed: WebKitGTK's GPU mode gave fixed full-window boxes a layer that it
+     filled with a child's background colour (a grey veil over the whole window). */
   position: absolute;
+  inset: 0;
+}
+
+.layer > div {
+  /* The glass stage (and its canvas) covers the window. Nothing else may be full-window:
+     a full-window positioned layer turned the whole transparent window into a grey veil in
+     WebKitGTK under Xwayland (Phase 4 finding). */
+  width: 100%;
+  height: 100%;
+}
+
+.surface {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.widget {
+  position: absolute;
+}
+
+/* Peek: the backdrop takes the clicks that dismiss it. */
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+}
+
+.hint {
+  /* Lives inside the glass stage's content layer (see LayerApp.tsx). */
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 32px;
+  width: max-content;
+  margin-inline: auto;
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: rgb(var(--md-surface-container-high) / 0.9);
+  color: rgb(var(--md-on-surface));
+  font: 500 13px/1.3 var(--font-ui);
   pointer-events: none;
-}
-
-.card {
-  position: absolute;
-  /* Placeholder position until the grid engine (Phase 5) places widgets in the work area. */
-  top: 72px;
-  left: 24px;
-  width: 372px;
-  height: 180px;
-  box-sizing: border-box;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  color: #f1f1f4;
-  font-family: system-ui, sans-serif;
-}
-
-.label {
-  font-size: 13px;
-  opacity: 0.75;
-}
-
-.value {
-  font-size: 30px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
-}
-
-.meta {
-  font-size: 12px;
-  opacity: 0.6;
 }

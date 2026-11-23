@@ -98,7 +98,7 @@ export function StatLayout({
         </div>
       )}
       {hero && !showRing ? <div className={styles.heroLabel}>{hero.label}</div> : null}
-      {hero?.reading?.sub && size !== "1x1" && size !== "2x1" ? (
+      {hero?.reading?.sub && size !== "1x1" && size !== "2x1" && !(showRing && size === "S") ? (
         <div className={styles.sub}>{hero.reading.sub}</div>
       ) : null}
       {showBar ? (

@@ -12,6 +12,13 @@ export interface LayerState {
   monitor: Monitor | null;
   values: Readonly<Record<string, Value>>;
   updatesPaused: boolean;
+  /** This window's rectangle in global logical pixels (for wallpaper alignment). */
+  geometry: { x: number; y: number; width: number; height: number } | null;
+  /** Native mode: the desktop has focus (Automatic appearance). Null until core says. */
+  desktopFocused: boolean | null;
+  /** Peek requests counted, so every request toggles once. */
+  peekRequests: number;
+  editRequests: number;
   apply: (event: LayerEvent) => void;
 }
 
@@ -39,6 +46,8 @@ export function reduce(state: LayerState, event: LayerEvent): Partial<LayerState
     case "spectrum":
       // Routed to the visualizer directly (widgets/spectrum.ts), never through the store.
       return {};
+    case "geometry":
+      return { geometry: { x: event.x, y: event.y, width: event.width, height: event.height } };
     case "core-event":
       switch (event.event.event) {
         case "updates-paused":
@@ -49,9 +58,17 @@ export function reduce(state: LayerState, event: LayerEvent): Partial<LayerState
           return { monitor };
         }
         case "peek-requested":
+          return { peekRequests: state.peekRequests + 1 };
         case "edit-requested":
+          return { editRequests: state.editRequests + 1 };
+        case "desktop-focus-changed":
+          return { desktopFocused: event.event.focused };
+        case "backend-changed":
+          return state.connection.state === "connected"
+            ? { connection: { ...state.connection, backend: event.event.backend } }
+            : {};
         case "alert-opened":
-          // Peek, Edit and detail views arrive with Phases 3–5; nothing to show yet.
+          // Detail views arrive with Phase 5.
           return {};
       }
   }
@@ -62,6 +79,10 @@ export const useLayer = create<LayerState>()((set) => ({
   monitor: null,
   values: {},
   updatesPaused: false,
+  geometry: null,
+  desktopFocused: null,
+  peekRequests: 0,
+  editRequests: 0,
   apply: (event) => {
     set((state) => reduce(state, event));
   },

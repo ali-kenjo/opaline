@@ -8,6 +8,7 @@
     "allow-layer-subscribe",
     "allow-layer-command",
     "allow-layer-set-raised",
+    "allow-layer-asset",
     "allow-layer-set-input-region",
     "allow-layer-report"
   ]

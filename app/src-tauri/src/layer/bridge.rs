@@ -44,6 +44,13 @@ pub enum LayerEvent {
     CoreEvent {
         event: CoreEvent,
     },
+    /// Where this window sits, in global logical pixels (for wallpaper alignment).
+    Geometry {
+        x: f64,
+        y: f64,
+        width: f64,
+        height: f64,
+    },
     /// Visualizer levels then peaks (`2 × bands`, 0–255), about 60 per second while capturing.
     Spectrum {
         seq: u32,
@@ -68,6 +75,11 @@ struct Inner {
     topics: HashSet<Topic>,
     /// Commands sent to core, waiting for their result.
     pending: HashMap<u32, oneshot::Sender<CommandResult>>,
+    /// Each window's last placement (replayed when its page attaches).
+    geometry: HashMap<String, (f64, f64, f64, f64)>,
+    /// Latest value of every topic, replayed to a window that attaches after the topic was
+    /// subscribed (core sends the latest value only once, to the first subscriber).
+    latest: HashMap<Topic, TopicUpdate>,
 }
 
 pub struct Bridge {
@@ -95,6 +107,8 @@ impl Bridge {
                 conn: ConnState::Connecting(0),
                 topics: HashSet::new(),
                 pending: HashMap::new(),
+                geometry: HashMap::new(),
+                latest: HashMap::new(),
             }),
             outgoing,
             next_command: AtomicU32::new(1),
@@ -148,9 +162,32 @@ impl Bridge {
     }
 
     pub fn broadcast(&self, event: &LayerEvent) {
-        let inner = self.lock();
+        let mut inner = self.lock();
+        if let LayerEvent::Update { updates, .. } = event {
+            for u in updates {
+                inner.latest.insert(u.topic.clone(), u.clone());
+            }
+        }
         for (label, channel) in &inner.channels {
             Self::send(label, channel, event.clone());
+        }
+    }
+
+    /// Records where a window was placed and tells its page.
+    pub fn set_geometry(&self, label: &str, rect: (f64, f64, f64, f64)) {
+        let mut inner = self.lock();
+        inner.geometry.insert(label.to_owned(), rect);
+        if let Some(channel) = inner.channels.get(label) {
+            Self::send(label, channel, Self::geometry_event(rect));
+        }
+    }
+
+    fn geometry_event((x, y, width, height): (f64, f64, f64, f64)) -> LayerEvent {
+        LayerEvent::Geometry {
+            x,
+            y,
+            width,
+            height,
         }
     }
 
@@ -217,6 +254,21 @@ impl Bridge {
     fn attach(&self, label: String, channel: Channel<LayerEvent>) -> Option<MonitorInfo> {
         let mut inner = self.lock();
         Self::send(&label, &channel, Self::connection_event(&inner, &label));
+        if let Some(rect) = inner.geometry.get(&label) {
+            Self::send(&label, &channel, Self::geometry_event(*rect));
+        }
+        if !inner.latest.is_empty() {
+            let updates: Vec<TopicUpdate> = inner.latest.values().cloned().collect();
+            Self::send(
+                &label,
+                &channel,
+                LayerEvent::Update {
+                    seq: 0,
+                    at_ms: 0,
+                    updates,
+                },
+            );
+        }
         let monitor = inner.monitors_by_label.get(&label).cloned();
         inner.channels.insert(label, channel);
         monitor

@@ -288,7 +288,7 @@ export function WidgetFrame({
       }}
     >
       <div className={styles.inner} data-size={size}>
-        {title && size !== "1x1" ? (
+        {title && sizes[size].h > 1 ? (
           <div className={styles.header}>
             <Icon name={def.icon} size={18} className={styles.icon} />
             <span className={styles.title}>{title}</span>

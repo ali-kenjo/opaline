@@ -40,6 +40,8 @@ function events(v: Value | undefined): Event[] {
 }
 
 const ROWS = { "1x1": 1, "2x1": 1, "4x1": 2, S: 3, M: 4, L: 9, XL: 12 } as const;
+/** Lines (events and day headings) that fit per size. */
+const LINES = { "1x1": 1, "2x1": 1, "4x1": 2, S: 4, M: 4, L: 11, XL: 11 } as const;
 
 function dayKey(ms: number): string {
   const d = new Date(ms);
@@ -101,9 +103,18 @@ function CalendarList({ ctx }: { ctx: RenderCtx }) {
     });
     last = k;
   }
+  // Headings take a line too: keep what fits, and never end on a heading.
+  const fit: typeof items = [];
+  let lines = 0;
+  for (const it of items) {
+    const need = it.head ? 2 : 1;
+    if (lines + need > LINES[size]) break;
+    fit.push(it);
+    lines += need;
+  }
   return (
     <ul className={styles.list} aria-label={content.title}>
-      {items.flatMap(({ e, head, key }) => [
+      {fit.flatMap(({ e, head, key }) => [
         head ? (
           <li key={`h-${key}`} className={styles.section}>
             {head}

@@ -10,7 +10,7 @@ import type { ActivityClass, Value } from "../layer/protocol";
 import { useLayer } from "../layer/store";
 import type { StoredSettings, StoredWidget } from "./host";
 import { type Json, fromJson, toJson } from "./json";
-import { emitSpectrum } from "./spectrum";
+import { emitSpectrum, onSpectrum } from "./spectrum";
 
 export const SETTINGS_TOPIC = "settings";
 export const APPEARANCE_TOPIC = "appearance.settings";
@@ -112,4 +112,24 @@ export async function attachLayer(): Promise<void> {
     if (event.kind === "spectrum") emitSpectrum(event.levels);
     else apply(event);
   });
+}
+
+/** The widget host for a layer window: everything from core. */
+export function useCoreHost(monitorKey: string | null): import("./host").WidgetHost {
+  const settingsValue = useLayer((s) => s.values[SETTINGS_TOPIC]);
+  const settings = useMemo(() => storedSettings(settingsValue), [settingsValue]);
+  const colors = useCoreColors(monitorKey);
+  return useMemo(
+    () => ({
+      useValues: useLayerValues,
+      subscribe: subscribeTopics,
+      settings,
+      updateSettings,
+      listFonts,
+      command: (cmd) => command(cmd),
+      onSpectrum,
+      colors,
+    }),
+    [settings, colors],
+  );
 }

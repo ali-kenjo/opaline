@@ -36,6 +36,7 @@ pub fn run(backend: Backend) -> ExitCode {
             bridge::layer_subscribe,
             bridge::layer_command,
             bridge::layer_set_raised,
+            assets::layer_asset,
             bridge::layer_set_input_region,
             bridge::layer_report,
         ])

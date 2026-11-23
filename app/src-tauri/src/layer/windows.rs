@@ -83,6 +83,10 @@ pub fn place(
     if let Err(error) = window.set_size(size) {
         tracing::warn!(%error, label = window.label(), "could not size layer window");
     }
+    app.state::<Arc<Bridge>>().set_geometry(
+        window.label(),
+        (position.x, position.y, size.width, size.height),
+    );
     // In Native mode the helper positions the window; Wayland clients can't anyway.
     if backend == BackendKind::Instant {
         pin(app, window, (to_int(position.x), to_int(position.y)));
@@ -304,6 +308,8 @@ fn create(
         Ok(window) => {
             tracing::info!(label, connector = %monitor.connector, x = position.x, y = position.y,
                 width = size.width, height = size.height, scale = monitor.scale, shared_process = related_used, "layer window created");
+            app.state::<Arc<Bridge>>()
+                .set_geometry(label, (position.x, position.y, size.width, size.height));
             match backend {
                 BackendKind::Instant => {
                     show_at(&window, position, size);

@@ -213,7 +213,7 @@ export function GlassStage(props: GlassStageProps) {
     <Ctx.Provider value={ctx}>
       <div className={styles.stage} data-glass={compositor ? "webgl2" : "css"}>
         <canvas ref={canvas} className={styles.canvas} aria-hidden="true" />
-        {children}
+        <div className={styles.content}>{children}</div>
       </div>
     </Ctx.Provider>
   );

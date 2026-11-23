@@ -164,7 +164,13 @@ impl Hub {
 
     /// Records which backend places the layer now and tells the layer.
     pub fn set_backend(&self, backend: BackendKind) {
-        if self.backend.send_replace(backend) != backend {
+        // Only a real change notifies watchers (the Instant supervisor restarts on change).
+        let changed = self.backend.send_if_modified(|current| {
+            let differs = *current != backend;
+            *current = backend;
+            differs
+        });
+        if changed {
             self.emit(CoreEvent::BackendChanged { backend });
         }
     }
