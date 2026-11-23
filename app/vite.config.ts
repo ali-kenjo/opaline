@@ -23,5 +23,8 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+    // material-color-utilities 0.4.0 has an extension-less ESM import (color_spec_2025.js)
+    // that Node rejects; let Vite resolve it like the app build does.
+    server: { deps: { inline: ["@material/material-color-utilities"] } },
   },
 });
