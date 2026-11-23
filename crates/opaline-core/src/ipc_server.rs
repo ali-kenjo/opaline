@@ -132,9 +132,11 @@ impl Subscriptions {
     /// Covered and idle subscribers get history and alerts, but nothing is pushed to them
     /// (brief §5.4).
     fn pushes(&self, topic: &Topic) -> bool {
-        self.topics
-            .get(topic)
-            .is_some_and(|class| *class >= ActivityClass::Ambient)
+        !self.hub.locked()
+            && self
+                .topics
+                .get(topic)
+                .is_some_and(|class| *class >= ActivityClass::Ambient)
     }
 }
 

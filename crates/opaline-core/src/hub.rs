@@ -57,6 +57,8 @@ pub struct Hub {
     /// Whether any MPRIS player is playing: `None` = no player known.
     media_playing: watch::Sender<Option<bool>>,
     settings: watch::Sender<Arc<Settings>>,
+    /// Screen locked: every subscription counts as Idle and nothing is pushed.
+    locked: std::sync::atomic::AtomicBool,
     /// False when settings.json comes from a newer Opaline (or is broken): never overwrite it.
     settings_writable: std::sync::atomic::AtomicBool,
 }
@@ -77,6 +79,7 @@ impl Hub {
             spectrum: broadcast::channel(4).0,
             media_playing: watch::channel(None).0,
             settings: watch::channel(Arc::new(Settings::default())).0,
+            locked: std::sync::atomic::AtomicBool::new(false),
             settings_writable: std::sync::atomic::AtomicBool::new(true),
         })
     }
@@ -179,22 +182,44 @@ impl Hub {
     }
 
     /// The most demanding class anyone subscribed to `topic` with, or `None` if nobody is.
+    /// While the screen is locked, every subscription counts as Idle.
     pub fn interest(&self, topic: &str) -> Option<ActivityClass> {
         let subs = lock(&self.subscriptions);
         let counts = subs.iter().find(|(t, _)| t.as_str() == topic)?.1;
-        CLASSES
+        let class = CLASSES
             .iter()
             .rev()
             .find(|class| counts[class_index(**class)] > 0)
-            .copied()
+            .copied();
+        if self.locked() {
+            class.map(|_| ActivityClass::Idle)
+        } else {
+            class
+        }
+    }
+
+    pub fn locked(&self) -> bool {
+        self.locked.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    pub fn set_locked(&self, locked: bool) {
+        if self
+            .locked
+            .swap(locked, std::sync::atomic::Ordering::Relaxed)
+            != locked
+        {
+            // Re-plan sampling and pushes.
+            self.bump();
+        }
     }
 
     pub fn is_subscribed(&self, topic: &str) -> bool {
         self.interest(topic).is_some()
     }
 
-    /// Every subscribed topic with its most demanding class.
+    /// Every subscribed topic with its most demanding class (Idle for all while locked).
     pub fn interests(&self) -> Vec<(Topic, ActivityClass)> {
+        let locked = self.locked();
         let subs = lock(&self.subscriptions);
         subs.iter()
             .filter_map(|(topic, counts)| {
@@ -202,7 +227,12 @@ impl Hub {
                     .iter()
                     .rev()
                     .find(|class| counts[class_index(**class)] > 0)
-                    .map(|class| (topic.clone(), *class))
+                    .map(|class| {
+                        (
+                            topic.clone(),
+                            if locked { ActivityClass::Idle } else { *class },
+                        )
+                    })
             })
             .collect()
     }
@@ -323,6 +353,18 @@ mod tests {
         assert!(!hub.is_subscribed("system.loadavg"));
         hub.unsubscribe(&topic, ActivityClass::Ambient);
         assert!(!hub.is_subscribed("system.loadavg"));
+    }
+
+    #[test]
+    fn a_locked_screen_makes_everything_idle() {
+        let hub = Hub::new(BackendKind::Instant, Vec::new());
+        let topic = Topic::new("cpu.load");
+        hub.subscribe(&topic, ActivityClass::Interactive);
+        hub.set_locked(true);
+        assert_eq!(hub.interest("cpu.load"), Some(ActivityClass::Idle));
+        assert_eq!(hub.interests()[0].1, ActivityClass::Idle);
+        hub.set_locked(false);
+        assert_eq!(hub.interest("cpu.load"), Some(ActivityClass::Interactive));
     }
 
     #[test]
