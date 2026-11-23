@@ -58,6 +58,8 @@ pub fn run(request: Option<AppRequest>) -> ExitCode {
         });
     tracing::info!(count = monitors.len(), "monitors");
     let hub = Hub::new(BackendKind::Instant, monitors);
+    let (settings, writable) = opaline_core::store::load();
+    hub.init_settings(settings, writable);
 
     let listener = match rt.block_on(ipc_server::bind_default()) {
         Ok(listener) => listener,

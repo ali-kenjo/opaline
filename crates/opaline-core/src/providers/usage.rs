@@ -20,8 +20,6 @@ pub const USAGE: &str = "network.usage";
 const ACCOUNT_EVERY: Duration = Duration::from_secs(60);
 const SAVE_EVERY: u32 = 10; // minutes
 const KEEP_DAYS: i64 = 400;
-/// The day of the month a billing period starts. A setting in Phase 6.
-pub const DEFAULT_BILLING_DAY: u32 = 1;
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Ledger {
@@ -181,7 +179,11 @@ pub async fn run(hub: Arc<Hub>) -> Result<(), String> {
         if hub.is_subscribed(USAGE) {
             hub.publish(vec![update(
                 USAGE,
-                value(&ledger, Local::now().date_naive(), DEFAULT_BILLING_DAY),
+                value(
+                    &ledger,
+                    Local::now().date_naive(),
+                    hub.settings().network.billing_day,
+                ),
             )]);
         }
     }

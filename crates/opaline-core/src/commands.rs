@@ -1,15 +1,43 @@
 //! Executes commands from the layer (End task, Docker, media, eject, power mode). Each one is
 //! validated by the provider that owns the thing it acts on (ARCHITECTURE §3.7).
 
-use opaline_ipc::{Command, CommandResult};
+use std::sync::Arc;
+
+use opaline_ipc::{Command, CommandResult, Value};
+
+use crate::hub::Hub;
 
 use crate::providers::media::{self, MediaAction};
 use crate::providers::udisks::{self, DriveAction};
 use crate::providers::upower;
 
-pub async fn execute(command: Command) -> CommandResult {
+pub async fn execute(hub: &Arc<Hub>, command: Command) -> CommandResult {
     tracing::info!(?command, "command");
-    let result = match command {
+    let result: Result<Option<Value>, String> = match command {
+        Command::UpdateSettings { patch } => {
+            crate::store::update(hub, crate::json::patch_to_json(&patch))
+                .await
+                .map(|()| None)
+        }
+        Command::GeocodeSearch { query, language } => {
+            crate::providers::weather::geocode(&query, &language)
+                .await
+                .map(Some)
+        }
+        other => run(other).await.map(|()| None),
+    };
+    match result {
+        Ok(None) => CommandResult::Ok,
+        Ok(Some(value)) => CommandResult::Data { value },
+        Err(reason) => {
+            tracing::warn!(%reason, "command failed");
+            CommandResult::Err { reason }
+        }
+    }
+}
+
+async fn run(command: Command) -> Result<(), String> {
+    match command {
         Command::DriveEject { drive } => udisks::drive_action(&drive, DriveAction::Eject).await,
         Command::DrivePowerOff { drive } => {
             udisks::drive_action(&drive, DriveAction::PowerOff).await
@@ -42,12 +70,8 @@ pub async fn execute(command: Command) -> CommandResult {
             docker::container_action(&id, action).await
         }
         Command::StartDockerDesktop => crate::providers::docker::start_desktop().await,
-    };
-    match result {
-        Ok(()) => CommandResult::Ok,
-        Err(reason) => {
-            tracing::warn!(%reason, "command failed");
-            CommandResult::Err { reason }
+        Command::UpdateSettings { .. } | Command::GeocodeSearch { .. } => {
+            Err("handled-above".into())
         }
     }
 }

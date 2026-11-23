@@ -51,11 +51,14 @@ export type Command =
   | { cmd: "media-seek"; player: string; position_us: number }
   | { cmd: "end-task"; pid: number; start: number; force: boolean }
   | { cmd: "container"; id: string; action: "start" | "stop" | "restart" }
-  | { cmd: "start-docker-desktop" };
+  | { cmd: "start-docker-desktop" }
+  | { cmd: "update-settings"; patch: Value }
+  | { cmd: "geocode-search"; query: string; language: string };
 
 export type MediaAction = "play" | "pause" | "play-pause" | "next" | "previous";
 
-export type CommandResult = { result: "ok" } | { result: "err"; reason: string };
+export type CommandResult =
+  { result: "ok" } | { result: "data"; value: Value } | { result: "err"; reason: string };
 
 export type ActivityClass = "idle" | "covered" | "ambient" | "interactive";
 

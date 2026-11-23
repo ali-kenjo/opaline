@@ -11,6 +11,7 @@ use opaline_ipc::{
 use tokio::sync::{broadcast, watch};
 
 use crate::engine::ProviderStatus;
+use crate::store::Settings;
 
 /// Capacity of the update/event broadcast channels. A client that falls this far behind skips
 /// ahead to the newest data (it's a live view, not a log).
@@ -55,6 +56,9 @@ pub struct Hub {
     spectrum: broadcast::Sender<Arc<SpectrumFrame>>,
     /// Whether any MPRIS player is playing: `None` = no player known.
     media_playing: watch::Sender<Option<bool>>,
+    settings: watch::Sender<Arc<Settings>>,
+    /// False when settings.json comes from a newer Opaline (or is broken): never overwrite it.
+    settings_writable: std::sync::atomic::AtomicBool,
 }
 
 impl Hub {
@@ -72,6 +76,8 @@ impl Hub {
             providers: Mutex::new(BTreeMap::new()),
             spectrum: broadcast::channel(4).0,
             media_playing: watch::channel(None).0,
+            settings: watch::channel(Arc::new(Settings::default())).0,
+            settings_writable: std::sync::atomic::AtomicBool::new(true),
         })
     }
 
@@ -236,6 +242,36 @@ impl Hub {
 
     pub fn watch_media_playing(&self) -> watch::Receiver<Option<bool>> {
         self.media_playing.subscribe()
+    }
+
+    pub fn settings(&self) -> Arc<Settings> {
+        self.settings.borrow().clone()
+    }
+
+    pub fn watch_settings(&self) -> watch::Receiver<Arc<Settings>> {
+        self.settings.subscribe()
+    }
+
+    pub fn settings_writable(&self) -> bool {
+        self.settings_writable
+            .load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    /// Installs the settings loaded at startup.
+    pub fn init_settings(&self, settings: Settings, writable: bool) {
+        self.settings_writable
+            .store(writable, std::sync::atomic::Ordering::Relaxed);
+        self.set_settings(settings);
+    }
+
+    /// Replaces the settings and publishes them as the `settings` topic.
+    pub fn set_settings(&self, settings: Settings) {
+        let json = serde_json::to_value(&settings).unwrap_or_default();
+        self.settings.send_replace(Arc::new(settings));
+        self.publish(vec![TopicUpdate {
+            topic: Topic::new(crate::store::TOPIC),
+            value: crate::json::from_json(&json),
+        }]);
     }
 
     pub fn set_provider_status(&self, id: &str, status: ProviderStatus) {

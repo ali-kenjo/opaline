@@ -15,10 +15,12 @@ pub mod nm;
 pub mod processes;
 pub mod props;
 pub mod psi;
+pub mod public_ip;
 pub mod storage;
 pub mod udisks;
 pub mod upower;
 pub mod usage;
+pub mod weather;
 
 use std::future::Future;
 use std::pin::Pin;
@@ -62,6 +64,11 @@ pub const ASYNC_TOPICS: &[&str] = &[
     media::PLAYERS,
     docker::STATE,
     docker::CONTAINERS,
+    weather::CURRENT,
+    weather::HOURLY,
+    weather::DAILY,
+    weather::AIR,
+    public_ip::PUBLIC_IP,
 ];
 
 type Task = Pin<Box<dyn Future<Output = ()> + Send>>;
@@ -84,6 +91,8 @@ pub async fn run_async(hub: Arc<Hub>) {
         task!("audio", audio::run),
         task!("mpris", media::run),
         task!("docker", docker::run),
+        task!("weather", weather::run),
+        task!("public-ip", public_ip::run),
     ];
     futures_util::future::join_all(tasks).await;
 }

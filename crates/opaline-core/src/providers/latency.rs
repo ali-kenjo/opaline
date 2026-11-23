@@ -15,7 +15,8 @@ use crate::hub::Hub;
 pub const LATENCY: &str = "network.latency";
 const PERIOD: Duration = Duration::from_secs(5);
 const TIMEOUT: Duration = Duration::from_secs(2);
-/// Cloudflare's resolver: anycast, close to most people, answers pings. A setting in Phase 6.
+/// Cloudflare's resolver (the default `network.latencyTarget`): anycast, close to most people,
+/// answers pings.
 pub const DEFAULT_TARGET: IpAddr = IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1));
 
 /// An ICMP echo request. With datagram ping sockets the kernel fills in the identifier and

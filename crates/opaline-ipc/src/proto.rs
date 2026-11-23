@@ -235,6 +235,10 @@ pub enum Command {
     Container { id: String, action: ContainerAction },
     /// Start Docker Desktop (its systemd user unit).
     StartDockerDesktop,
+    /// Change settings with a JSON merge patch (as a `Map`; a missing value clears a field).
+    UpdateSettings { patch: Value },
+    /// Search places for the weather location (Open-Meteo geocoding); answers with data.
+    GeocodeSearch { query: String, language: String },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -256,11 +260,17 @@ pub enum MediaAction {
 }
 
 /// How a command ended. `reason` is a stable code the UI translates.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "result", rename_all = "kebab-case")]
 pub enum CommandResult {
     Ok,
-    Err { reason: String },
+    /// Success with an answer (search results and the like).
+    Data {
+        value: Value,
+    },
+    Err {
+        reason: String,
+    },
 }
 
 /// Messages from a client (the layer) to core.

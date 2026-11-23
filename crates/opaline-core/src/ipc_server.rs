@@ -240,8 +240,9 @@ async fn handle_client(hub: Arc<Hub>, stream: UnixStream) -> Result<(), ClientEr
                 Some(Ok(ClientMsg::Unsubscribe { topic })) => subs.remove(&topic),
                 Some(Ok(ClientMsg::Command { id, command })) => {
                     let tx = results_tx.clone();
+                    let hub = hub.clone();
                     tokio::spawn(async move {
-                        let result = crate::commands::execute(command).await;
+                        let result = crate::commands::execute(&hub, command).await;
                         let _ = tx.send((id, result)).await;
                     });
                 }
