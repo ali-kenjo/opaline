@@ -100,7 +100,7 @@ frame).
 | `df -B1` | `/` used 205 290 618 880, avail 270 953 213 952 | identical | ✅ |
 | `ip -s link` | eno1 down, wlo1 up | eno1 DOWN, wlo1 UP | ✅ |
 | `upower -d` | 100 %, full, capacity 75.0 % | 100 %, fully-charged, 75.0095 % | ✅ |
-| `docker ps` | "Docker Desktop is stopped" | daemon not running | ⏳ needs Docker Desktop running once (you) |
+| `docker ps -a` | Docker Desktop stopped: "desktop-stopped". Started (2026-11-23): engine 29.8.2 via `context:desktop-linux`, container `n8n` (`n8nio/n8n:latest`, exited, "Exited (0) 6 weeks ago") | same container, image and status | ✅ (CPU/memory per container only exist while one runs; covered by unit tests) |
 | Parser tests on all fixtures | | | ✅ |
 | dGPU (ADR 0003) | sleeping-card fixture: no NVML, no device reads; on this laptop NVML holds no `/dev/nvidia*` after release (`cargo test -p opaline-core -- --ignored nvml`) | | ✅ (the RTD3 check needs a machine that supports RTD3) |
 
@@ -121,7 +121,6 @@ share of `libLLVM` grew from 15 to 21.7 MB each. The PSS budget therefore moves 
 - `RDATE` and `RANGE=THISANDFUTURE` in recurring events (ADR 0010).
 
 **Needs you**
-1. Start Docker Desktop once (or tell me to), so I can compare with `docker ps`.
-2. Optional: install the privileged helper to try CPU power (`sudo` copy of three files and the binary; I'll give you
+1. Optional: install the privileged helper to try CPU power (`sudo` copy of three files and the binary; I'll give you
    the exact commands, or it waits for the `.deb` in Phase 8).
-3. Optional: play some music for a minute, so I can check the visualizer levels and the media widget's data live.
+2. Optional: play some music for a minute, so I can check the visualizer levels and the media widget's data live.
