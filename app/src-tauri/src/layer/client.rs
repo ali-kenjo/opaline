@@ -33,9 +33,21 @@ pub async fn run(
             return;
         }
     };
+    // Core (Instant) or the shell helper (Native) starts the layer. If that process is gone,
+    // nobody supervises this layer any more and a new core would start a second one, so we
+    // leave instead of reconnecting.
+    let parent = std::os::unix::process::parent_id();
     let mut attempt = 0u32;
     let mut backoff = MIN_BACKOFF;
     loop {
+        if std::os::unix::process::parent_id() != parent {
+            tracing::info!(
+                parent,
+                "the process that started the layer is gone; exiting"
+            );
+            app.exit(0);
+            return;
+        }
         attempt = attempt.saturating_add(1);
         bridge.set_connection(ConnState::Connecting(attempt));
         match UnixStream::connect(&path).await {

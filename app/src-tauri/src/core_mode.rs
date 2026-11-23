@@ -83,7 +83,11 @@ pub fn run(request: Option<AppRequest>) -> ExitCode {
     }
 
     let (stop_tx, stop_rx) = watch::channel(false);
-    rt.spawn(instant::supervise_layer(stop_rx));
+    let (layer_done_tx, layer_done_rx) = std::sync::mpsc::channel::<()>();
+    rt.spawn(async move {
+        instant::supervise_layer(stop_rx).await;
+        let _ = layer_done_tx.send(());
+    });
 
     let app = tauri::Builder::default()
         .setup({
@@ -114,7 +118,12 @@ pub fn run(request: Option<AppRequest>) -> ExitCode {
             api, code: None, ..
         } => api.prevent_exit(),
         RunEvent::Exit => {
+            // Tauri ends the process right after this event, so wait here until the supervisor
+            // has stopped the layer; otherwise the layer can outlive core.
             let _ = stop_tx.send(true);
+            if layer_done_rx.recv_timeout(LAYER_STOP_TIMEOUT).is_err() {
+                tracing::warn!("the layer did not stop in time");
+            }
         }
         _ => {}
     });
@@ -123,6 +132,8 @@ pub fn run(request: Option<AppRequest>) -> ExitCode {
 }
 
 const PAUSE_ID: &str = "pause";
+/// How long quitting waits for the layer process to be stopped.
+const LAYER_STOP_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(2);
 
 fn build_tray(app: &AppHandle) -> tauri::Result<()> {
     let peek = MenuItem::with_id(app, "peek", "Peek", true, None::<&str>)?;
