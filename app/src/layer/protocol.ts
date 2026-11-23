@@ -27,6 +27,9 @@ export type Value =
   | { kind: "num"; v: number }
   | { kind: "nums"; v: number[] }
   | { kind: "text"; v: string }
+  | { kind: "bool"; v: boolean }
+  | { kind: "list"; v: Value[] }
+  | { kind: "map"; v: Record<string, Value> }
   | { kind: "missing"; v: Availability };
 
 export interface TopicUpdate {

@@ -5,8 +5,9 @@ use std::process::ExitCode;
 use std::sync::Arc;
 
 use opaline_core::app_service::{self, AppRequest, Claim};
+use opaline_core::engine::Sampler;
 use opaline_core::hub::Hub;
-use opaline_core::{displays, ipc_server, loadavg};
+use opaline_core::{displays, ipc_server, providers};
 use opaline_ipc::{BackendKind, CoreEvent};
 use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
@@ -66,7 +67,7 @@ pub fn run(request: Option<AppRequest>) -> ExitCode {
         }
     };
     rt.spawn(ipc_server::serve(hub.clone(), listener));
-    rt.spawn(loadavg::run(hub.clone()));
+    rt.spawn(Sampler::new(hub.clone(), providers::polled()).run());
     {
         let hub = hub.clone();
         let bus = bus.clone();

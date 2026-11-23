@@ -96,13 +96,73 @@ pub enum Availability {
 }
 
 /// The value carried by a topic update.
+///
+/// Scalars and number arrays cover most topics; `List` and `Map` carry structured data (drives,
+/// processes, containers) without a new message type per provider.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "v", rename_all = "kebab-case")]
 pub enum Value {
     Num(f64),
     Nums(Vec<f64>),
     Text(String),
+    Bool(bool),
+    List(Vec<Value>),
+    Map(std::collections::BTreeMap<String, Value>),
     Missing(Availability),
+}
+
+impl Value {
+    /// The value's numbers if it's numeric, for history and alerts.
+    pub fn numbers(&self) -> Option<&[f64]> {
+        match self {
+            Self::Num(v) => Some(std::slice::from_ref(v)),
+            Self::Nums(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    /// A `Missing(Unavailable)` value with a stable reason code.
+    pub fn unavailable(reason: impl Into<String>) -> Self {
+        Self::Missing(Availability::Unavailable {
+            reason: reason.into(),
+        })
+    }
+
+    /// Builds a `Map` from key/value pairs.
+    pub fn map<K: Into<String>>(entries: impl IntoIterator<Item = (K, Value)>) -> Self {
+        Self::Map(entries.into_iter().map(|(k, v)| (k.into(), v)).collect())
+    }
+}
+
+impl From<f64> for Value {
+    fn from(v: f64) -> Self {
+        Self::Num(v)
+    }
+}
+
+impl From<bool> for Value {
+    fn from(v: bool) -> Self {
+        Self::Bool(v)
+    }
+}
+
+impl From<String> for Value {
+    fn from(v: String) -> Self {
+        Self::Text(v)
+    }
+}
+
+impl From<&str> for Value {
+    fn from(v: &str) -> Self {
+        Self::Text(v.to_owned())
+    }
+}
+
+impl<T: Into<Value>> From<Option<T>> for Value {
+    /// `None` becomes "not reported" (the source exists but doesn't give this field).
+    fn from(v: Option<T>) -> Self {
+        v.map_or_else(|| Self::unavailable("not-reported"), Into::into)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -253,6 +313,14 @@ mod tests {
                     TopicUpdate {
                         topic: Topic::new("gpu.1.load"),
                         value: Value::Missing(Availability::Asleep),
+                    },
+                    TopicUpdate {
+                        topic: Topic::new("storage.drives"),
+                        value: Value::List(vec![Value::map([
+                            ("name", Value::from("nvme0n1")),
+                            ("removable", Value::Bool(false)),
+                            ("tempC", Value::Num(41.0)),
+                        ])]),
                     },
                 ],
             }),

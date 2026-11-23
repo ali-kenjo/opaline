@@ -1,6 +1,6 @@
 //! IPC server for layer clients (ARCHITECTURE §3.7).
 
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::io;
 use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
 use std::path::{Path, PathBuf};
@@ -8,8 +8,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use opaline_ipc::{
-    ClientMsg, FrameKind, PROTOCOL_VERSION, RejectReason, ServerMsg, Topic, Welcome, read_frame,
-    write_message,
+    ActivityClass, ClientMsg, FrameKind, PROTOCOL_VERSION, RejectReason, ServerMsg, Topic, Welcome,
+    read_frame, write_message,
 };
 use tokio::io::AsyncWrite;
 use tokio::net::{UnixListener, UnixStream};
@@ -99,16 +99,49 @@ enum ClientError {
     ProtocolMismatch(u16),
 }
 
-/// Drops the client's subscriptions when its task ends, however it ends.
+/// The client's subscriptions; dropped with the client's task, however it ends.
 struct Subscriptions {
     hub: Arc<Hub>,
-    topics: HashSet<Topic>,
+    topics: HashMap<Topic, ActivityClass>,
+}
+
+impl Subscriptions {
+    /// Subscribes, or changes the class of an existing subscription. Returns whether the topic
+    /// is new for this client.
+    fn set(&mut self, topic: Topic, class: ActivityClass) -> bool {
+        match self.topics.insert(topic.clone(), class) {
+            Some(old) if old == class => false,
+            Some(old) => {
+                self.hub.subscribe(&topic, class);
+                self.hub.unsubscribe(&topic, old);
+                false
+            }
+            None => {
+                self.hub.subscribe(&topic, class);
+                true
+            }
+        }
+    }
+
+    fn remove(&mut self, topic: &Topic) {
+        if let Some(class) = self.topics.remove(topic) {
+            self.hub.unsubscribe(topic, class);
+        }
+    }
+
+    /// Covered and idle subscribers get history and alerts, but nothing is pushed to them
+    /// (brief §5.4).
+    fn pushes(&self, topic: &Topic) -> bool {
+        self.topics
+            .get(topic)
+            .is_some_and(|class| *class >= ActivityClass::Ambient)
+    }
 }
 
 impl Drop for Subscriptions {
     fn drop(&mut self) {
-        for topic in &self.topics {
-            self.hub.unsubscribe(topic);
+        for (topic, class) in &self.topics {
+            self.hub.unsubscribe(topic, *class);
         }
     }
 }
@@ -179,7 +212,7 @@ async fn handle_client(hub: Arc<Hub>, stream: UnixStream) -> Result<(), ClientEr
 
     let mut subs = Subscriptions {
         hub: hub.clone(),
-        topics: HashSet::new(),
+        topics: HashMap::new(),
     };
     let result = loop {
         tokio::select! {
@@ -188,15 +221,20 @@ async fn handle_client(hub: Arc<Hub>, stream: UnixStream) -> Result<(), ClientEr
                 Some(Err(error)) => break Err(error.into()),
                 Some(Ok(ClientMsg::Subscribe { topic, class })) => {
                     tracing::debug!(%topic, ?class, "subscribe");
-                    if subs.topics.insert(topic.clone()) {
-                        hub.subscribe(&topic);
+                    let new = subs.set(topic.clone(), class);
+                    // Give a new subscriber the current value at once instead of waiting a tick.
+                    if new && subs.pushes(&topic)
+                        && let Some(value) = hub.latest(&topic)
+                    {
+                        let msg = ServerMsg::Update(opaline_ipc::UpdateBatch {
+                            seq: 0,
+                            at_ms: crate::hub::now_ms(),
+                            updates: vec![opaline_ipc::TopicUpdate { topic, value }],
+                        });
+                        send(&mut writer, &msg, &mut scratch).await?;
                     }
                 }
-                Some(Ok(ClientMsg::Unsubscribe { topic })) => {
-                    if subs.topics.remove(&topic) {
-                        hub.unsubscribe(&topic);
-                    }
-                }
+                Some(Ok(ClientMsg::Unsubscribe { topic })) => subs.remove(&topic),
                 Some(Ok(ClientMsg::Ping { nonce })) => {
                     send(&mut writer, &ServerMsg::Pong { nonce }, &mut scratch).await?;
                 }
@@ -209,7 +247,7 @@ async fn handle_client(hub: Arc<Hub>, stream: UnixStream) -> Result<(), ClientEr
                     let wanted: Vec<_> = batch
                         .updates
                         .iter()
-                        .filter(|u| subs.topics.contains(&u.topic))
+                        .filter(|u| subs.pushes(&u.topic))
                         .cloned()
                         .collect();
                     if !wanted.is_empty() {
@@ -242,9 +280,7 @@ mod tests {
     #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
     use super::*;
-    use opaline_ipc::{
-        ActivityClass, BackendKind, CoreEvent, Hello, Role, TopicUpdate, UpdateBatch, Value,
-    };
+    use opaline_ipc::{ActivityClass, BackendKind, CoreEvent, Hello, Role, TopicUpdate, Value};
 
     async fn start() -> (Arc<Hub>, PathBuf, tempfile::TempDir) {
         let dir = tempfile::tempdir().unwrap();
@@ -325,20 +361,16 @@ mod tests {
         }
         assert!(hub.is_subscribed("system.loadavg"));
 
-        hub.publish(UpdateBatch {
-            seq: 1,
-            at_ms: 0,
-            updates: vec![
-                TopicUpdate {
-                    topic: Topic::new("not.subscribed"),
-                    value: Value::Num(1.0),
-                },
-                TopicUpdate {
-                    topic: topic.clone(),
-                    value: Value::Nums(vec![0.1, 0.2, 0.3]),
-                },
-            ],
-        });
+        hub.publish(vec![
+            TopicUpdate {
+                topic: Topic::new("not.subscribed"),
+                value: Value::Num(1.0),
+            },
+            TopicUpdate {
+                topic: topic.clone(),
+                value: Value::Nums(vec![0.1, 0.2, 0.3]),
+            },
+        ]);
         match recv(&mut stream).await {
             ServerMsg::Update(batch) => {
                 assert_eq!(batch.updates.len(), 1);
