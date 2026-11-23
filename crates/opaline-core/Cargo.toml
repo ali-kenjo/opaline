@@ -22,6 +22,8 @@ tracing-journald = "0.3"
 zbus = { version = "6", default-features = false, features = ["tokio", "proxy", "service"] }
 rustix = { version = "1", features = ["fs"] }
 nvml-wrapper = "0.13"
+socket2 = { version = "0.6", features = ["all"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "sync", "time", "macros", "fs", "test-util"] }

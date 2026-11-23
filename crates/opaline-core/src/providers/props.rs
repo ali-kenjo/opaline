@@ -49,6 +49,11 @@ impl Prop {
         {
             return Self::Strs(strs);
         }
+        if let Ok(cloned) = v.try_clone()
+            && let Ok(paths) = Vec::<zbus::OwnedObjectPath>::try_from(cloned)
+        {
+            return Self::Strs(paths.iter().map(|p| p.as_str().to_owned()).collect());
+        }
         Self::Other
     }
 
