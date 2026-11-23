@@ -7,6 +7,7 @@ pub mod fans;
 pub mod gpu;
 pub mod hwmon;
 pub mod latency;
+pub mod media;
 pub mod memory;
 pub mod network;
 pub mod nm;
@@ -54,6 +55,8 @@ pub const ASYNC_TOPICS: &[&str] = &[
     upower::PERIPHERALS,
     desktop_settings::CLOCK,
     audio::STATE,
+    media::PLAYER,
+    media::PLAYERS,
 ];
 
 type Task = Pin<Box<dyn Future<Output = ()> + Send>>;
@@ -74,6 +77,7 @@ pub async fn run_async(hub: Arc<Hub>) {
         task!("upower", upower::run),
         task!("desktop-settings", desktop_settings::run),
         task!("audio", audio::run),
+        task!("mpris", media::run),
     ];
     futures_util::future::join_all(tasks).await;
 }

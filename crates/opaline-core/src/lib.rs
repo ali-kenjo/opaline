@@ -8,6 +8,7 @@ pub mod diagnose;
 pub mod displays;
 pub mod dump;
 pub mod engine;
+pub mod http;
 pub mod hub;
 pub mod ipc_server;
 pub mod logging;

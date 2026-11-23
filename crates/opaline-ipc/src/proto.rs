@@ -224,6 +224,20 @@ pub enum Command {
     DrivePowerOff { drive: String },
     /// Switch the power profile to one listed in `power.profile`.
     SetPowerProfile { profile: String },
+    /// Control an MPRIS player listed in `media.players` (bus name).
+    Media { player: String, action: MediaAction },
+    /// Seek a player to an absolute position.
+    MediaSeek { player: String, position_us: i64 },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum MediaAction {
+    Play,
+    Pause,
+    PlayPause,
+    Next,
+    Previous,
 }
 
 /// How a command ended. `reason` is a stable code the UI translates.

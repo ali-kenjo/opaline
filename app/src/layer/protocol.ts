@@ -46,7 +46,11 @@ export type CoreEvent =
 export type Command =
   | { cmd: "drive-eject"; drive: string }
   | { cmd: "drive-power-off"; drive: string }
-  | { cmd: "set-power-profile"; profile: string };
+  | { cmd: "set-power-profile"; profile: string }
+  | { cmd: "media"; player: string; action: MediaAction }
+  | { cmd: "media-seek"; player: string; position_us: number };
+
+export type MediaAction = "play" | "pause" | "play-pause" | "next" | "previous";
 
 export type CommandResult = { result: "ok" } | { result: "err"; reason: string };
 
