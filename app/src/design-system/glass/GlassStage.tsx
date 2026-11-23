@@ -225,12 +225,14 @@ export interface GlassProps extends GlassOptions {
   style?: React.CSSProperties;
   /** Accessible name of the surface (a widget's name). */
   label?: string;
+  /** Don't light the rim toward the pointer (style: hover lift off). */
+  noHover?: boolean;
 }
 
 /** A glass surface: drawn by the compositor, or by CSS when WebGL2 is missing. */
 export function Glass(props: GlassProps) {
   const { children, className, style, label, radius, dimmed, lifted } = props;
-  const { tint, alpha, legibility, textLuminance, look } = props;
+  const { tint, alpha, legibility, textLuminance, look, noHover = false } = props;
   const stage = useContext(Ctx);
   const el = useRef<HTMLDivElement>(null);
   const id = useId();
@@ -262,6 +264,7 @@ export function Glass(props: GlassProps) {
   }, [stage, id, options]);
 
   const onMove = (e: React.PointerEvent) => {
+    if (noHover) return;
     stage?.update(id, { hovered: true, pointer: [e.clientX, e.clientY] });
   };
   const onLeave = () => {

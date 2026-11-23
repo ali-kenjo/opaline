@@ -2,6 +2,7 @@
 import { useLayoutEffect, useRef } from "react";
 import { type Animator, reducedMotion, scheduler } from "../motion/scheduler";
 import { Spring } from "../motion/spring";
+import type { SpringToken } from "../tokens/tokens";
 import styles from "./data.module.css";
 
 export interface RingProps {
@@ -12,6 +13,9 @@ export interface RingProps {
   /** CSS color of the arc (a ramp color for load/thermal). */
   color?: string;
   label: string;
+  /** Jump to the value without animating (the widget's animations are off). */
+  instant?: boolean;
+  spring?: SpringToken;
 }
 
 export function Ring({
@@ -20,6 +24,8 @@ export function Ring({
   thickness = 8,
   color = "rgb(var(--md-primary))",
   label,
+  instant = false,
+  spring: token = "spatialDefault",
 }: RingProps) {
   const arc = useRef<SVGCircleElement>(null);
   const anim = useRef<(Animator & { spring: Spring }) | null>(null);
@@ -30,7 +36,7 @@ export function Ring({
     const el = arc.current;
     if (!el) return;
     if (!anim.current) {
-      const spring = new Spring(value, "spatialDefault");
+      const spring = new Spring(value, token);
       anim.current = {
         spring,
         step(dt: number) {
@@ -43,11 +49,11 @@ export function Ring({
       };
     }
     const a = anim.current;
-    if (reducedMotion()) a.spring.snap(value);
+    if (instant || reducedMotion()) a.spring.snap(value);
     else a.spring.setTarget(value);
     a.step(0);
     scheduler.add(a);
-  }, [value, circumference]);
+  }, [value, circumference, instant, token]);
 
   return (
     <svg className={styles.ring} width={size} height={size} role="img" aria-label={label}>

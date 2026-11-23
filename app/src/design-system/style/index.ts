@@ -17,6 +17,7 @@ export {
   isDark,
   radiusFor,
   rolesFor,
+  sourceColor,
   springFor,
   styleVariables,
   transparencyAlpha,

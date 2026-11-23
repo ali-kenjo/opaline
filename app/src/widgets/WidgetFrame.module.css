@@ -1,0 +1,245 @@
+/* Widget card. Every text/icon setting arrives as a --w-* variable from the widget's style. */
+.frame {
+  position: relative;
+  color: rgb(var(--md-on-surface));
+  font-family: var(--w-font);
+  font-weight: var(--w-weight);
+  /* Width axis both ways: WebKit maps font-stretch to wdth for variable fonts. */
+  font-stretch: calc(var(--w-wdth) * 1%);
+  font-variation-settings: "wdth" var(--w-wdth);
+  letter-spacing: var(--w-letter);
+  text-shadow: var(--w-text-shadow);
+  font-variant-numeric: var(--w-nums);
+  overflow: hidden;
+}
+
+.alert {
+  outline: 2px solid rgb(var(--md-error));
+  outline-offset: -2px;
+}
+
+.inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--w-gap);
+  height: 100%;
+  min-height: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+  color: rgb(var(--md-on-surface-variant));
+  font-size: calc(13px * var(--w-scale));
+  text-transform: var(--w-label-case);
+}
+
+.icon {
+  display: var(--w-icons) !important;
+  flex: none;
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.settings {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: -4px -6px -4px 0;
+  border: none;
+  border-radius: 14px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.frame:hover .settings,
+.settings:focus-visible {
+  opacity: 1;
+}
+
+.settings:hover {
+  background: rgb(var(--md-on-surface) / 0.08);
+}
+
+.settings:focus-visible {
+  outline: 2px solid rgb(var(--md-primary));
+}
+
+.floating {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  margin: 0;
+  z-index: 1;
+}
+
+.reason {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+  color: rgb(var(--md-on-surface-variant));
+  font-size: calc(13px * var(--w-scale));
+}
+
+/* Standard layout */
+.stat {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--w-gap);
+}
+
+.stat[data-size="M"],
+.stat[data-size="4x1"] {
+  flex-direction: row;
+  align-items: center;
+}
+
+.stat[data-size="M"] .rows,
+.stat[data-size="4x1"] .rows {
+  flex: 1;
+}
+
+.stat[data-size="XL"] .rows {
+  grid-template-columns: 1fr 1fr;
+  column-gap: 24px;
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.stat[data-size="1x1"] .hero,
+.stat[data-size="2x1"] .hero {
+  flex: 1;
+  justify-content: center;
+}
+
+.number {
+  font-family: var(--w-num-font);
+  font-variant-numeric: var(--w-nums);
+}
+
+.heroValue {
+  font-size: calc(34px * var(--w-scale));
+  line-height: 1.1;
+  font-weight: max(var(--w-weight), 300);
+  white-space: nowrap;
+}
+
+.stat[data-size="1x1"] .heroValue {
+  font-size: calc(22px * var(--w-scale));
+}
+
+.stat[data-size="L"] .heroValue,
+.stat[data-size="XL"] .heroValue {
+  font-size: calc(48px * var(--w-scale));
+}
+
+.heroLabel,
+.sub {
+  color: rgb(var(--md-on-surface-variant));
+  font-size: calc(12px * var(--w-scale));
+  text-transform: var(--w-label-case);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stat[data-size="1x1"] .heroLabel {
+  display: none;
+}
+
+.ringWrap {
+  position: relative;
+  flex: none;
+}
+
+.ringValue {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: calc(18px * var(--w-scale));
+}
+
+.stat[data-size="L"] .ringValue,
+.stat[data-size="XL"] .ringValue {
+  font-size: calc(30px * var(--w-scale));
+}
+
+.bar {
+  height: 8px;
+  border-radius: 4px;
+  background: rgb(var(--md-on-surface) / 0.12);
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 400ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.rows {
+  display: grid;
+  gap: calc(var(--w-gap) * 0.5);
+  margin: 0;
+  min-width: 0;
+  align-content: start;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: calc(13px * var(--w-scale));
+  min-width: 0;
+}
+
+.row dt {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: rgb(var(--md-on-surface-variant));
+  text-transform: var(--w-label-case);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row dd {
+  margin: 0;
+  font-family: var(--w-num-font);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .barFill,
+  .settings {
+    transition: none;
+  }
+}
