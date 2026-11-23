@@ -218,6 +218,7 @@ share of `libLLVM` grew from 15 to 21.7 MB each. The PSS budget therefore moves 
   widget on the desktop exists; the alert rules from Phase 1 already notify.
 - Widgets on the real desktop: Phase 5 (layout, placing, edit mode). Until then they live in the Lab.
 
-**Needs you**
-1. Look at the Lab and tell me per widget what you'd change (Phase 3 acceptance: your visual sign-off per widget).
+**Acceptance (brief §10, P3):** 🧑 visual sign-off for all fourteen widgets ✅ (2026-11-24); every unavailable /
+asleep / needs-setup state can be shown in the Lab (card states, GPU asleep, no battery, weather without a location,
+Docker Desktop stopped) and was seen live where this laptop has it.
 
