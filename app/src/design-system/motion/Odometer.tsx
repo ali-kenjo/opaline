@@ -23,7 +23,7 @@ class Column implements Animator {
 export interface OdometerProps {
   /** The formatted text, e.g. "42.5 °C"; digits roll, the rest is static. */
   text: string;
-  className?: string;
+  className?: string | undefined;
 }
 
 export function Odometer({ text, className }: OdometerProps) {

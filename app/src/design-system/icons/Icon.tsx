@@ -11,7 +11,7 @@ export interface IconProps {
   size?: number;
   /** For icons that carry meaning on their own (status without text). */
   label?: string;
-  className?: string;
+  className?: string | undefined;
 }
 
 export function Icon({ name, fill = 0, weight = 400, size = 24, label, className }: IconProps) {

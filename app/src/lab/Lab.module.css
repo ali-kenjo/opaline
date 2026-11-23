@@ -34,3 +34,69 @@
   gap: var(--space-4);
   color: rgb(var(--md-primary));
 }
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: center;
+}
+
+.desktop {
+  background-size: cover;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.cards {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: var(--gap);
+  padding: var(--margin-safe);
+  box-sizing: border-box;
+}
+
+.cardS,
+.cardM {
+  height: 180px;
+  box-sizing: border-box;
+  padding: var(--pad-s);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: rgb(var(--md-on-surface));
+}
+
+.cardS {
+  width: 180px;
+}
+
+.cardM {
+  width: 372px;
+  padding: var(--pad-m);
+}
+
+.cardLabel {
+  font: var(--type-label);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: rgb(var(--md-on-surface-variant));
+}
+
+.cardValue {
+  font: var(--type-headline);
+}
+
+.cardMeta {
+  font: var(--type-micro);
+  color: rgb(var(--md-on-surface-variant));
+}
+
+.shapeCell {
+  width: 180px;
+  height: 180px;
+  display: grid;
+  place-items: center;
+}
