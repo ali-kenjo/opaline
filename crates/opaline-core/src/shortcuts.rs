@@ -61,7 +61,8 @@ async fn request(
     conn.call_method(Some(PORTAL), PORTAL_PATH, Some(IFACE), method, &body)
         .await
         .map_err(|e| format!("{method}: {e}"))?;
-    let msg = tokio::time::timeout(std::time::Duration::from_secs(120), responses.next())
+    // The user may answer GNOME's "Add Keyboard Shortcuts" dialog much later.
+    let msg = tokio::time::timeout(std::time::Duration::from_secs(30 * 60), responses.next())
         .await
         .map_err(|_| format!("{method}: no answer"))?
         .ok_or("response stream ended")?
