@@ -332,7 +332,9 @@ fn show_at(window: &tauri::WebviewWindow, position: LogicalPosition<f64>, size: 
                 | gtk::gdk::WindowHints::MAX_SIZE,
         );
         gtk_window.move_(x, y);
-        gtk_window.show();
+        // `show_all`, not `show`: the window was created hidden, so its children (Tauri's box and the
+        // webview) are unmapped too. `show` alone maps an empty toplevel and nothing is ever drawn.
+        gtk_window.show_all();
     });
     if let Err(error) = result {
         tracing::warn!(%error, "could not schedule showing the layer window");
