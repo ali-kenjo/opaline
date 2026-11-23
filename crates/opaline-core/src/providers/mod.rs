@@ -11,6 +11,7 @@ pub mod media;
 pub mod memory;
 pub mod network;
 pub mod nm;
+pub mod processes;
 pub mod props;
 pub mod psi;
 pub mod storage;
@@ -36,6 +37,7 @@ pub fn polled() -> Vec<Box<dyn Provider>> {
         Box::new(storage::Storage::new(root.clone())),
         Box::new(network::Network::new(root.clone())),
         Box::new(fans::Fans::new(&root)),
+        Box::new(processes::Processes::new(root)),
     ]
 }
 

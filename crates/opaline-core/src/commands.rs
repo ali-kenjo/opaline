@@ -29,6 +29,9 @@ pub async fn execute(command: Command) -> CommandResult {
             player,
             position_us,
         } => media::set_position(&player, position_us).await,
+        Command::EndTask { pid, start, force } => {
+            crate::providers::processes::signal(pid, start, force)
+        }
     };
     match result {
         Ok(()) => CommandResult::Ok,

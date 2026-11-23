@@ -228,6 +228,9 @@ pub enum Command {
     Media { player: String, action: MediaAction },
     /// Seek a player to an absolute position.
     MediaSeek { player: String, position_us: i64 },
+    /// SIGTERM (or SIGKILL with `force`) to one of the user's processes; `start` (from
+    /// `processes.list`) guards against PID reuse.
+    EndTask { pid: u32, start: u64, force: bool },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

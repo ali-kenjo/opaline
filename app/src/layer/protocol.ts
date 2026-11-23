@@ -48,7 +48,8 @@ export type Command =
   | { cmd: "drive-power-off"; drive: string }
   | { cmd: "set-power-profile"; profile: string }
   | { cmd: "media"; player: string; action: MediaAction }
-  | { cmd: "media-seek"; player: string; position_us: number };
+  | { cmd: "media-seek"; player: string; position_us: number }
+  | { cmd: "end-task"; pid: number; start: number; force: boolean };
 
 export type MediaAction = "play" | "pause" | "play-pause" | "next" | "previous";
 

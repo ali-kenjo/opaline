@@ -34,6 +34,11 @@ impl Root {
         }
     }
 
+    /// Whether this is the real `/` (not a fixture).
+    pub fn is_system(&self) -> bool {
+        self.dir == std::path::Path::new("/")
+    }
+
     /// The same root, recording every path accessed through it from now on.
     pub fn recording(mut self) -> Self {
         self.log = Some(Arc::new(Mutex::new(Vec::new())));
