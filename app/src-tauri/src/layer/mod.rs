@@ -1,5 +1,6 @@
 //! `opaline --layer`: one transparent webview window per monitor, fed by core over IPC.
 
+mod assets;
 mod bridge;
 mod client;
 mod windows;
@@ -23,6 +24,7 @@ pub fn run(backend: Backend) -> ExitCode {
     let bridge = Arc::new(Bridge::new(outgoing_tx));
 
     let app = tauri::Builder::default()
+        .register_uri_scheme_protocol("opaline-asset", |_ctx, request| assets::handle(&request))
         .manage(bridge.clone())
         .manage(windows::Pins::default())
         .manage(match backend {

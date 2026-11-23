@@ -12,11 +12,16 @@ use crate::engine::Sampler;
 use crate::hub::Hub;
 use crate::providers;
 
-/// Long enough for two ticks, so delta-based topics (CPU usage, rates) have a value.
-const RUN_FOR: Duration = Duration::from_millis(2300);
+/// Long enough for two ticks (delta-based topics such as CPU usage need two) and a wallpaper
+/// render.
+const RUN_FOR: Duration = Duration::from_millis(3000);
 
 pub async fn dump(prefix: Option<&str>) -> BTreeMap<String, serde_json::Value> {
-    let hub = Hub::new(BackendKind::Instant, Vec::new());
+    let monitors = match zbus::Connection::session().await {
+        Ok(conn) => crate::displays::current_monitors(&conn).await.unwrap_or_default(),
+        Err(_) => Vec::new(),
+    };
+    let hub = Hub::new(BackendKind::Instant, monitors);
     let (settings, _) = crate::store::load();
     hub.init_settings(settings, false);
     let polled = providers::polled();

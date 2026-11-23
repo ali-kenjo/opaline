@@ -21,6 +21,7 @@ pub mod storage;
 pub mod udisks;
 pub mod upower;
 pub mod usage;
+pub mod wallpaper;
 pub mod weather;
 
 use std::future::Future;
@@ -73,6 +74,8 @@ pub const ASYNC_TOPICS: &[&str] = &[
     weather::AIR,
     public_ip::PUBLIC_IP,
     calendar::EVENTS,
+    wallpaper::MONITORS,
+    wallpaper::SOURCE,
 ];
 
 type Task = Pin<Box<dyn Future<Output = ()> + Send>>;
@@ -99,6 +102,7 @@ pub async fn run_async(hub: Arc<Hub>) {
         task!("weather", weather::run),
         task!("public-ip", public_ip::run),
         task!("calendar", calendar::run),
+        task!("wallpaper", wallpaper::run),
     ];
     futures_util::future::join_all(tasks).await;
 }

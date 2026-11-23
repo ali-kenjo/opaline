@@ -109,17 +109,10 @@ pub fn player_value(p: &Player, art: Option<&str>) -> Value {
         ("canSeek", flag("CanSeek")),
         ("canControl", flag("CanControl")),
     ];
-    if let Some(path) = art {
-        e.push(("artPath", Value::from(path)));
+    if let Some(url) = art {
+        e.push(("art", Value::from(url)));
     }
     Value::map(e)
-}
-
-/// `file://` art is read directly; returns the local path.
-fn file_art(url: &str) -> Option<String> {
-    let path = url.strip_prefix("file://")?;
-    let decoded = percent_decode(path);
-    std::path::Path::new(&decoded).is_file().then_some(decoded)
 }
 
 fn percent_decode(s: &str) -> String {
@@ -142,7 +135,20 @@ fn percent_decode(s: &str) -> String {
     String::from_utf8_lossy(&out).into_owned()
 }
 
-fn art_cache_path(url: &str, content_type: &str) -> Option<PathBuf> {
+fn image_type(bytes: &[u8]) -> Option<&'static str> {
+    if bytes.starts_with(b"\x89PNG") {
+        Some("image/png")
+    } else if bytes.starts_with(&[0xff, 0xd8]) {
+        Some("image/jpeg")
+    } else if bytes.len() > 12 && &bytes[0..4] == b"RIFF" && &bytes[8..12] == b"WEBP" {
+        Some("image/webp")
+    } else {
+        None
+    }
+}
+
+/// Stores art in the cache under a content-independent name and returns its asset URL.
+fn cache_art(url: &str, bytes: &[u8], content_type: &str) -> Option<String> {
     let mut h = std::collections::hash_map::DefaultHasher::new();
     url.hash(&mut h);
     let ext = match content_type {
@@ -150,13 +156,16 @@ fn art_cache_path(url: &str, content_type: &str) -> Option<PathBuf> {
         t if t.starts_with("image/webp") => "webp",
         _ => "jpg",
     };
-    crate::paths::cache_dir()
-        .ok()
-        .map(|d| d.join("art").join(format!("{:016x}.{ext}", h.finish())))
+    let name = format!("{:016x}.{ext}", h.finish());
+    let path: PathBuf = crate::paths::cache_dir().ok()?.join("art").join(&name);
+    if !path.exists() {
+        crate::paths::write_atomic(&path, bytes).ok()?;
+    }
+    Some(format!("opaline-asset://art/{name}"))
 }
 
-/// Album art as a local file: `file://` directly, `https://` downloaded once (≤ 5 MB, images
-/// only) into the cache.
+/// Album art as an `opaline-asset://art/…` URL: `file://` art is copied into the cache,
+/// `https://` art is downloaded once (images only, at most 5 MB).
 async fn art(url: &str, cache: &Mutex<HashMap<String, Option<String>>>) -> Option<String> {
     if let Some(hit) = cache
         .lock()
@@ -165,14 +174,16 @@ async fn art(url: &str, cache: &Mutex<HashMap<String, Option<String>>>) -> Optio
     {
         return hit.clone();
     }
-    let result = if url.starts_with("file://") {
-        file_art(url)
+    let result = if let Some(path) = url.strip_prefix("file://") {
+        let path = percent_decode(path);
+        let bytes = std::fs::metadata(&path)
+            .ok()
+            .filter(|m| m.is_file() && m.len() <= ART_MAX as u64)
+            .and_then(|_| std::fs::read(&path).ok());
+        bytes.and_then(|b| cache_art(url, &b, image_type(&b)?))
     } else if url.starts_with("https://") {
         match crate::http::fetch_limited(url, ART_MAX, &["image/"]).await {
-            Ok((bytes, ct)) => art_cache_path(url, &ct).and_then(|path| {
-                crate::paths::write_atomic(&path, &bytes).ok()?;
-                Some(path.to_string_lossy().into_owned())
-            }),
+            Ok((bytes, ct)) => cache_art(url, &bytes, &ct),
             Err(error) => {
                 tracing::debug!(%error, "album art not fetched");
                 None
@@ -488,7 +499,7 @@ mod tests {
     fn value_shape() {
         let Value::Map(m) = player_value(
             &player("org.mpris.MediaPlayer2.x", "Playing"),
-            Some("/tmp/a.jpg"),
+            Some("opaline-asset://art/a.jpg"),
         ) else {
             panic!()
         };
@@ -500,7 +511,14 @@ mod tests {
         assert_eq!(m["lengthUs"], Value::Num(180_000_000.0));
         assert_eq!(m["canPause"], Value::Bool(true));
         assert_eq!(m["canNext"], Value::Bool(false));
-        assert_eq!(m["artPath"], Value::from("/tmp/a.jpg"));
+        assert_eq!(m["art"], Value::from("opaline-asset://art/a.jpg"));
+    }
+
+    #[test]
+    fn sniffs_image_types() {
+        assert_eq!(image_type(b"\x89PNG\r\n\x1a\n...."), Some("image/png"));
+        assert_eq!(image_type(&[0xff, 0xd8, 0xff]), Some("image/jpeg"));
+        assert_eq!(image_type(b"<svg"), None);
     }
 
     #[test]
