@@ -34,6 +34,7 @@ pub fn run(backend: Backend) -> ExitCode {
         .invoke_handler(tauri::generate_handler![
             bridge::layer_attach,
             bridge::layer_subscribe,
+            bridge::layer_command,
             bridge::layer_set_input_region,
             bridge::layer_report,
         ])

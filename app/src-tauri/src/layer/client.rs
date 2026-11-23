@@ -53,7 +53,9 @@ pub async fn run(
         match UnixStream::connect(&path).await {
             Ok(stream) => {
                 backoff = MIN_BACKOFF;
-                match session(&app, &bridge, stream, &mut outgoing).await {
+                let ended = session(&app, &bridge, stream, &mut outgoing).await;
+                bridge.fail_pending();
+                match ended {
                     Ok(()) => tracing::info!("core closed the connection"),
                     Err(SessionError::Rejected(reason)) => {
                         tracing::warn!(reason, "core rejected the layer");
@@ -180,8 +182,7 @@ fn handle(app: &AppHandle, bridge: &Bridge, msg: ServerMsg, backend: opaline_ipc
             }
             bridge.broadcast(&LayerEvent::CoreEvent { event });
         }
-        // Widgets send commands from Phase 3 on; until then a result is only logged.
-        ServerMsg::CommandResult { id, result } => tracing::debug!(id, ?result, "command result"),
+        ServerMsg::CommandResult { id, result } => bridge.command_result(id, result),
         ServerMsg::Pong { .. } | ServerMsg::Welcome(_) | ServerMsg::Rejected { .. } => {}
     }
 }

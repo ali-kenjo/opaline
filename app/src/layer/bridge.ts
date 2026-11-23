@@ -1,5 +1,5 @@
 import { Channel, invoke, isTauri } from "@tauri-apps/api/core";
-import type { ActivityClass, LayerEvent } from "./protocol";
+import type { ActivityClass, Command, CommandResult, LayerEvent } from "./protocol";
 
 /** True when running inside the Tauri layer process (false in a plain browser / Playwright). */
 export const inTauri = isTauri();
@@ -16,6 +16,12 @@ export async function attach(onEvent: (event: LayerEvent) => void): Promise<void
 
 export async function subscribe(topic: string, activity: ActivityClass): Promise<void> {
   await invoke("layer_subscribe", { topic, activity });
+}
+
+/** Sends a command to core; outside Tauri (Lab, tests) it answers "standalone". */
+export async function command(cmd: Command): Promise<CommandResult> {
+  if (!inTauri) return { result: "err", reason: "standalone" };
+  return await invoke<CommandResult>("layer_command", { command: cmd });
 }
 
 export interface Rect {
