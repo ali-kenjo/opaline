@@ -53,7 +53,10 @@ export function StatLayout({
   const { size, style, readings, content } = ctx;
   const animate = style.animations && style.odometer;
   const hero = readings.find((r) => r.field.id === content.hero);
-  const rest = readings.filter((r) => r !== hero).slice(0, ROWS[size]);
+  const withActions = actions.length > 0 && ACTION_SIZES.has(size);
+  const rest = readings
+    .filter((r) => r !== hero)
+    .slice(0, size === "M" && withActions ? 3 : ROWS[size]);
   const heroText = hero?.reading?.text ?? "—";
   const heroStyle = content.heroStyle;
   const ringSize = RING[size];
@@ -76,7 +79,13 @@ export function StatLayout({
             instant={!style.animations}
             spring={springFor(style)}
           />
-          <div className={styles.ringValue}>
+          <div
+            className={styles.ringValue}
+            // Long values ("2,825 rpm") shrink to fit inside the ring.
+            style={{
+              fontSize: `calc(${String(Math.min(ringSize >= 140 ? 30 : 18, (ringSize * 1.5) / Math.max(4, heroText.length)))}px * var(--w-scale))`,
+            }}
+          >
             <Value text={heroText} animate={animate} />
           </div>
         </div>
@@ -119,24 +128,26 @@ export function StatLayout({
   return (
     <div className={styles.stat} data-size={size}>
       {heroBlock}
-      {rest.length ? (
-        <dl className={styles.rows}>
-          {rest.map((r) => (
-            <div key={r.field.id} className={styles.row}>
-              <dt>
-                {r.field.icon ? (
-                  <Icon name={r.field.icon} size={16} className={styles.icon} />
-                ) : null}
-                {r.label}
-              </dt>
-              <dd>{r.reading?.text ?? "—"}</dd>
-            </div>
-          ))}
-        </dl>
-      ) : null}
-      {actions.length && onAction && ACTION_SIZES.has(size) ? (
-        <ActionBar actions={actions} onAction={onAction} />
-      ) : null}
+      <div className={styles.side}>
+        {rest.length ? (
+          <dl className={styles.rows}>
+            {rest.map((r) => (
+              <div key={r.field.id} className={styles.row}>
+                <dt>
+                  {r.field.icon ? (
+                    <Icon name={r.field.icon} size={16} className={styles.icon} />
+                  ) : null}
+                  {r.label}
+                </dt>
+                <dd>{r.reading?.text ?? "—"}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
+        {actions.length && onAction && ACTION_SIZES.has(size) ? (
+          <ActionBar actions={actions} onAction={onAction} compact={size === "M"} />
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -147,9 +158,12 @@ const ACTION_SIZES = new Set<SizeClass>(["M", "L", "XL"]);
 export function ActionBar({
   actions,
   onAction,
+  compact = false,
 }: {
   actions: readonly WidgetAction[];
   onAction: (cmd: Command) => Promise<CommandResult>;
+  /** Icon-only buttons (M size), with the label as tooltip and accessible name. */
+  compact?: boolean;
 }) {
   const [asking, setAsking] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -161,6 +175,8 @@ export function ActionBar({
           type="button"
           className={`${styles.action} ${a.active ? styles.actionOn : ""} ${asking === a.id ? styles.actionAsk : ""}`}
           aria-pressed={a.active}
+          aria-label={compact ? a.label : undefined}
+          title={compact ? a.label : undefined}
           onClick={() => {
             if (a.confirm && asking !== a.id) {
               setAsking(a.id);
@@ -180,7 +196,7 @@ export function ActionBar({
           }}
         >
           <Icon name={a.icon} size={16} />
-          {asking === a.id ? (a.confirm ?? a.label) : a.label}
+          {asking === a.id ? (a.confirm ?? a.label) : compact ? null : a.label}
         </button>
       ))}
       {error ? (

@@ -18,7 +18,8 @@ import { labTint } from "./labTint";
 import {
   mockSpectrum,
   LAB_FONTS,
-  LAB_LAYOUT,
+  LAB_STAGES,
+  type LabStage,
   LAB_NOW,
   LAB_SETTINGS,
   mockValues,
@@ -28,7 +29,6 @@ import styles from "./Lab.module.css";
 import { type LabWallpaper, makeWallpaper } from "./wallpapers";
 
 const STAGE_W = 1100;
-const STAGE_H = 1250;
 
 /** Mock frames at 30 Hz, or one still frame for screenshots. */
 function labSpectrum(listener: (levels: readonly number[]) => void, still: boolean): () => void {
@@ -60,7 +60,7 @@ export interface WidgetsDemoProps {
 export function WidgetsDemo({ wallpaperId, dark, variant, value, still, live }: WidgetsDemoProps) {
   const monitor = useLayer((st) => st.monitor);
   const coreColors = useCoreColors(live ? (monitor?.key ?? null) : null);
-  const wallpaper = useMemo(() => makeWallpaper(wallpaperId, STAGE_W, STAGE_H), [wallpaperId]);
+  const wallpaper = useMemo(() => makeWallpaper(wallpaperId, STAGE_W, 1250), [wallpaperId]);
   const source = useMemo(() => sourceColorFromImageBytes(wallpaper.pixels), [wallpaper]);
   const [settings, setSettings] = useState<StoredSettings>(LAB_SETTINGS);
   const [open, setOpen] = useState<string | null>(null);
@@ -103,45 +103,16 @@ export function WidgetsDemo({ wallpaperId, dark, variant, value, still, live }: 
 
   return (
     <HostContext.Provider value={host}>
-      <section className={styles.section} aria-label="Widgets">
-        <h2 className={styles.heading}>Widgets</h2>
-        <div
-          className={styles.desktop}
-          style={{ backgroundImage: `url(${wallpaper.url})`, width: STAGE_W, height: STAGE_H }}
-        >
-          <GlassStage
-            wallpaper={wallpaper.blurred}
-            wallpaperUrl={wallpaper.url}
-            placement={{ offsetX: 0, offsetY: 0, monitorWidth: STAGE_W, monitorHeight: STAGE_H }}
-            tint={tint.rgb}
-            textLuminance={tint.textLuminance}
-            luminance={wallpaper.luminance}
-            slider={45}
-          >
-            <div
-              className={styles.cards}
-              style={{ width: STAGE_W, height: STAGE_H }}
-              data-testid="widgets"
-            >
-              {LAB_LAYOUT.map(({ id, size }) => {
-                const w = settings.widgets[id];
-                const def = w ? widgetByKind(w.kind) : undefined;
-                return def ? (
-                  <WidgetFrame
-                    key={id}
-                    id={id}
-                    def={def}
-                    size={size}
-                    onOpenSettings={() => {
-                      setOpen(id);
-                    }}
-                  />
-                ) : null;
-              })}
-            </div>
-          </GlassStage>
-        </div>
-      </section>
+      {LAB_STAGES.map((stage) => (
+        <LabStageView
+          key={stage.id}
+          stage={stage}
+          wallpaperId={wallpaperId}
+          tint={tint}
+          widgets={settings.widgets}
+          onOpen={setOpen}
+        />
+      ))}
       {open && openDef ? (
         <WidgetSettings
           id={open}
@@ -153,5 +124,63 @@ export function WidgetsDemo({ wallpaperId, dark, variant, value, still, live }: 
         />
       ) : null}
     </HostContext.Provider>
+  );
+}
+
+function LabStageView({
+  stage,
+  wallpaperId,
+  tint,
+  widgets,
+  onOpen,
+}: {
+  stage: LabStage;
+  wallpaperId: LabWallpaper["id"];
+  tint: ReturnType<typeof labTint>;
+  widgets: StoredSettings["widgets"];
+  onOpen: (id: string) => void;
+}) {
+  const h = stage.height;
+  const wallpaper = useMemo(() => makeWallpaper(wallpaperId, STAGE_W, h), [wallpaperId, h]);
+  return (
+    <section className={styles.section} aria-label={stage.title}>
+      <h2 className={styles.heading}>{stage.title}</h2>
+      <div
+        className={styles.desktop}
+        style={{ backgroundImage: `url(${wallpaper.url})`, width: STAGE_W, height: h }}
+      >
+        <GlassStage
+          wallpaper={wallpaper.blurred}
+          wallpaperUrl={wallpaper.url}
+          placement={{ offsetX: 0, offsetY: 0, monitorWidth: STAGE_W, monitorHeight: h }}
+          tint={tint.rgb}
+          textLuminance={tint.textLuminance}
+          luminance={wallpaper.luminance}
+          slider={45}
+        >
+          <div
+            className={styles.cards}
+            style={{ width: STAGE_W, height: h }}
+            data-testid={stage.id}
+          >
+            {stage.items.map(({ id, size }) => {
+              const w = widgets[id];
+              const def = w ? widgetByKind(w.kind) : undefined;
+              return def ? (
+                <WidgetFrame
+                  key={id}
+                  id={id}
+                  def={def}
+                  size={size}
+                  onOpenSettings={() => {
+                    onOpen(id);
+                  }}
+                />
+              ) : null;
+            })}
+          </div>
+        </GlassStage>
+      </div>
+    </section>
   );
 }

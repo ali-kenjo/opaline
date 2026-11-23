@@ -127,21 +127,24 @@ export function ComponentsDemo({ dark, value }: { dark: boolean; value: number }
         <h3 className={styles.heading}>Add widget</h3>
         <p className={styles.body}>The widget picker arrives in Phase 5.</p>
       </Sheet>
-      {snack ? (
-        <Snackbar
-          message="Widget removed"
-          action={{
-            label: "Undo",
-            onClick: () => {
+      {/* A transformed box holds the (fixed) snackbar here, so it doesn't cover the page. */}
+      <div style={{ position: "relative", height: 72, transform: "translateZ(0)" }}>
+        {snack ? (
+          <Snackbar
+            message="Widget removed"
+            action={{
+              label: "Undo",
+              onClick: () => {
+                setSnack(false);
+              },
+            }}
+            duration={600000}
+            onDismiss={() => {
               setSnack(false);
-            },
-          }}
-          duration={600000}
-          onDismiss={() => {
-            setSnack(false);
-          }}
-        />
-      ) : null}
+            }}
+          />
+        ) : null}
+      </div>
     </section>
   );
 }

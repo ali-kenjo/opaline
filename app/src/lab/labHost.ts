@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import type { Value } from "../layer/protocol";
 import type { StoredSettings } from "../widgets/host";
+import { moreMocks } from "./labMocks";
 
 const n = (v: number): Value => ({ kind: "num", v });
 const ns = (v: number[]): Value => ({ kind: "nums", v });
@@ -39,6 +40,7 @@ export function mockValues(load: number): Record<string, Value> {
       timezone: t("Europe/Berlin"),
       weekStart: n(1),
     }),
+    ...moreMocks(load),
   };
 }
 
@@ -100,6 +102,24 @@ export const LAB_SETTINGS: StoredSettings = {
         fields: ["load", "temp"],
       },
     },
+    memory: { kind: "memory" },
+    gpu: { kind: "gpu" },
+    storage: { kind: "storage", content: { fields: ["percent", "free", "activity", "temp"] } },
+    fans: { kind: "fans" },
+    network: {
+      kind: "network",
+      content: { heroStyle: "number", fields: ["down", "up", "wifi", "latency", "today"] },
+    },
+    battery: {
+      kind: "battery",
+      content: { fields: ["percent", "state", "time", "rate", "health"] },
+    },
+    processes: { kind: "processes" },
+    media: { kind: "media" },
+    weather: { kind: "weather" },
+    calendar: { kind: "calendar" },
+    visualizer: { kind: "visualizer" },
+    docker: { kind: "docker" },
     "clock-clear": {
       kind: "clock",
       style: {
@@ -116,20 +136,54 @@ export const LAB_SETTINGS: StoredSettings = {
   },
 };
 
-/** Where each Lab instance sits (size class). */
-export const LAB_LAYOUT: readonly { id: string; size: "1x1" | "2x1" | "4x1" | "S" | "M" | "L" }[] =
-  [
-    { id: "clock-m", size: "M" },
-    { id: "cpu-s", size: "S" },
-    { id: "cpu-1x1", size: "1x1" },
-    { id: "clock-2x1", size: "2x1" },
-    { id: "cpu-m", size: "M" },
-    { id: "cpu-4x1", size: "4x1" },
-    { id: "cpu-custom", size: "S" },
-    { id: "clock-clear", size: "S" },
-    { id: "cpu-l", size: "L" },
-    { id: "clock-analog", size: "M" },
-  ];
+type LabSize = "1x1" | "2x1" | "4x1" | "S" | "M" | "L";
+
+export interface LabStage {
+  id: string;
+  title: string;
+  height: number;
+  items: readonly { id: string; size: LabSize }[];
+}
+
+/** Lab stages and where each instance sits (size class). */
+export const LAB_STAGES: readonly LabStage[] = [
+  {
+    id: "widgets",
+    title: "Widgets",
+    height: 1250,
+    items: [
+      { id: "clock-m", size: "M" },
+      { id: "cpu-s", size: "S" },
+      { id: "cpu-1x1", size: "1x1" },
+      { id: "clock-2x1", size: "2x1" },
+      { id: "cpu-m", size: "M" },
+      { id: "cpu-4x1", size: "4x1" },
+      { id: "cpu-custom", size: "S" },
+      { id: "clock-clear", size: "S" },
+      { id: "cpu-l", size: "L" },
+      { id: "clock-analog", size: "M" },
+    ],
+  },
+  {
+    id: "more-widgets",
+    title: "More widgets",
+    height: 1400,
+    items: [
+      { id: "memory", size: "S" },
+      { id: "gpu", size: "S" },
+      { id: "storage", size: "S" },
+      { id: "fans", size: "S" },
+      { id: "network", size: "M" },
+      { id: "battery", size: "M" },
+      { id: "processes", size: "M" },
+      { id: "media", size: "M" },
+      { id: "weather", size: "L" },
+      { id: "calendar", size: "M" },
+      { id: "visualizer", size: "M" },
+      { id: "docker", size: "M" },
+    ],
+  },
+];
 
 /** A fixed moment for screenshots: Monday 23 November 2026, 10:09:30 in Berlin. */
 export const LAB_NOW = new Date("2026-11-23T09:09:30Z");

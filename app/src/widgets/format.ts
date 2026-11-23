@@ -18,7 +18,10 @@ export function map(v: Value | undefined): Record<string, Value> | null {
 }
 
 export function fixed(n: number, decimals: number): string {
-  return n.toLocaleString(undefined, {
+  // No "-0" when a small negative rounds to zero.
+  const f = 10 ** decimals;
+  const r = Math.round(n * f) / f;
+  return (Object.is(r, -0) ? 0 : r).toLocaleString(undefined, {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });

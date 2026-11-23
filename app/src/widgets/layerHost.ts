@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { DEFAULT_SOURCE } from "../design-system/color/scheme";
 import { sourceFromWallpaper } from "../design-system/color/source";
 import type { ColorContext } from "../design-system/style";
-import { attach, command, subscribe } from "../layer/bridge";
+import { attach, command, inTauri, subscribe } from "../layer/bridge";
 import type { ActivityClass, Value } from "../layer/protocol";
 import { useLayer } from "../layer/store";
 import type { StoredSettings, StoredWidget } from "./host";
@@ -19,6 +19,7 @@ export const WALLPAPER_TOPIC = "wallpaper.monitors";
 const subscribed = new Set<string>();
 
 export function subscribeTopics(topics: readonly string[], activity: ActivityClass): void {
+  if (!inTauri) return;
   for (const t of topics) {
     const key = `${t}|${activity}`;
     if (subscribed.has(key)) continue;

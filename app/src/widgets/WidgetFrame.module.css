@@ -113,9 +113,18 @@
   align-items: center;
 }
 
-.stat[data-size="M"] .rows,
-.stat[data-size="4x1"] .rows {
+/* Rows and card buttons share the space beside or under the hero. */
+.side {
   flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--w-gap);
+}
+
+.side:empty {
+  display: none;
 }
 
 .stat[data-size="XL"] .rows {
