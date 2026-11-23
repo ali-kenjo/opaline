@@ -222,6 +222,8 @@ pub enum Command {
     DriveEject { drive: String },
     /// Power off a drive (USB disks) so it can be unplugged safely.
     DrivePowerOff { drive: String },
+    /// Switch the power profile to one listed in `power.profile`.
+    SetPowerProfile { profile: String },
 }
 
 /// How a command ended. `reason` is a stable code the UI translates.

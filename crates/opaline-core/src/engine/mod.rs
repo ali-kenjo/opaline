@@ -11,4 +11,4 @@ pub use provider::{Cost, Probe, Provider, ProviderError, SampleCx, TopicDesc, up
 pub use sampler::{RELEASE_AFTER, Sampler, interval_for};
 pub use status::{Health, ProviderStatus};
 pub use supervise::supervise;
-pub use watch::while_subscribed;
+pub use watch::{while_subscribed, while_subscribed_notified};

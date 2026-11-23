@@ -4,6 +4,7 @@
 use opaline_ipc::{Command, CommandResult};
 
 use crate::providers::udisks::{self, DriveAction};
+use crate::providers::upower;
 
 pub async fn execute(command: Command) -> CommandResult {
     tracing::info!(?command, "command");
@@ -12,6 +13,7 @@ pub async fn execute(command: Command) -> CommandResult {
         Command::DrivePowerOff { drive } => {
             udisks::drive_action(&drive, DriveAction::PowerOff).await
         }
+        Command::SetPowerProfile { profile } => upower::set_profile(&profile).await,
     };
     match result {
         Ok(()) => CommandResult::Ok,
