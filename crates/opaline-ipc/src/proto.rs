@@ -250,6 +250,8 @@ pub enum Command {
     /// The last `seconds` of a numeric series (`cpu.load`, `cpu.perThread#3`); answers with
     /// `{ stepS, values }`.
     History { series: String, seconds: u64 },
+    /// Installed font families (fontconfig) for the font picker; answers with a list of names.
+    ListFonts,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

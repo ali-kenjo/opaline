@@ -1,13 +1,16 @@
 //! Settings: `~/.config/opaline/settings.json`, versioned, written atomically, with core as the
 //! only writer (ARCHITECTURE §3.6). Changes arrive as JSON merge patches and are validated by
-//! deserialising the result before anything is saved. Layouts join in Phase 5.
+//! deserialising the result before anything is saved. Widget style and configs (ADR 0011) live in
+//! `style.rs`. Layouts join in Phase 5.
 
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
 use crate::hub::Hub;
+use crate::style::{Style, WidgetConfig};
 
 pub const VERSION: u32 = 1;
 pub const TOPIC: &str = "settings";
@@ -21,6 +24,12 @@ pub struct Settings {
     pub calendar: Calendar,
     pub privacy: Privacy,
     pub alerts: Vec<crate::alerts::Rule>,
+    /// Global widget style (Settings → Appearance); each widget may override any field.
+    pub style: Style,
+    /// Named styles the user saved ("Night", "Minimal").
+    pub styles: BTreeMap<String, Style>,
+    /// Placed widgets by instance id.
+    pub widgets: BTreeMap<String, WidgetConfig>,
 }
 
 impl Default for Settings {
@@ -32,6 +41,9 @@ impl Default for Settings {
             calendar: Calendar::default(),
             privacy: Privacy::default(),
             alerts: crate::alerts::default_rules(),
+            style: Style::default(),
+            styles: BTreeMap::new(),
+            widgets: BTreeMap::new(),
         }
     }
 }
@@ -144,6 +156,8 @@ impl Settings {
         {
             return Err("subscription-must-be-https-or-webcal".into());
         }
+        self.style.validate()?;
+        crate::style::validate_widgets(&self.widgets, &self.styles)?;
         Ok(())
     }
 }
@@ -191,6 +205,7 @@ pub fn migrate(mut json: serde_json::Value) -> (Settings, bool) {
         obj.insert("version".into(), serde_json::json!(1));
     }
     let writable = version <= u64::from(VERSION);
+    crate::style::sanitize(&mut json);
     let mut settings: Settings = serde_json::from_value(json).unwrap_or_default();
     settings.version = VERSION;
     if settings.validate().is_err() {
@@ -284,6 +299,44 @@ mod tests {
             )
             .is_err()
         );
+    }
+
+    #[test]
+    fn widget_style_patches() {
+        let s = Settings::default();
+        let next = patched(
+            &s,
+            &json!({"style": {"transparency": 70}, "widgets": {"cpu-1": {"kind": "cpu", "style": {"fontFamily": "Inter"}}}}),
+        )
+        .unwrap();
+        assert_eq!(next.style.transparency, Some(70.0));
+        assert_eq!(
+            next.widgets["cpu-1"].style.font_family.as_deref(),
+            Some("Inter")
+        );
+        let reset = patched(
+            &next,
+            &json!({"widgets": {"cpu-1": {"style": {"fontFamily": null}}}}),
+        )
+        .unwrap();
+        assert_eq!(
+            reset.widgets["cpu-1"].style.font_family, None,
+            "null resets a field to inherit"
+        );
+        assert!(patched(&s, &json!({"style": {"blur": 500}})).is_err());
+        let removed = patched(&next, &json!({"widgets": {"cpu-1": null}})).unwrap();
+        assert!(removed.widgets.is_empty());
+    }
+
+    #[test]
+    fn a_bad_style_value_keeps_the_other_settings() {
+        let (s, writable) = migrate(json!({
+            "version": 1, "network": {"billingDay": 9}, "style": {"blur": 999, "rim": 20}
+        }));
+        assert_eq!(s.network.billing_day, 9);
+        assert_eq!(s.style.rim, Some(20.0));
+        assert_eq!(s.style.blur, None);
+        assert!(writable);
     }
 
     #[test]

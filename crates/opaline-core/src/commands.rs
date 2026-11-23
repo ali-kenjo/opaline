@@ -24,6 +24,7 @@ pub async fn execute(hub: &Arc<Hub>, command: Command) -> CommandResult {
                 .await
                 .map(Some)
         }
+        Command::ListFonts => crate::fonts::list().await.map(Some),
         other => run(other).await.map(|()| None),
     };
     match result {
@@ -72,6 +73,7 @@ async fn run(command: Command) -> Result<(), String> {
         Command::StartDockerDesktop => crate::providers::docker::start_desktop().await,
         Command::UpdateSettings { .. }
         | Command::GeocodeSearch { .. }
-        | Command::History { .. } => Err("handled-above".into()),
+        | Command::History { .. }
+        | Command::ListFonts => Err("handled-above".into()),
     }
 }
