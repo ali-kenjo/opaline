@@ -1,12 +1,18 @@
 //! `opaline --diagnose`: a redacted JSON inventory for bug reports (brief §5.9).
 //!
-//! Phase 0 covers the system, the session and the displays. Phase 1 adds every provider's
-//! probe result.
+//! System, session and displays, then every provider: its probe (what exists here, with
+//! redacted details), its health and cost after a short run, and each topic's availability.
+//! Topic *values* are left out on purpose: they can be personal (SSIDs, calendar entries,
+//! song titles, process names).
 
+use std::collections::BTreeMap;
+
+use opaline_ipc::{Availability, Value};
 use serde::Serialize;
 use zbus::Connection;
 
 use crate::displays;
+use crate::engine::{Cost, Health};
 
 /// Shell helper bus name (ARCHITECTURE §4).
 pub const HELPER_BUS_NAME: &str = "io.github.ali_kenjo.Opaline.Shell1";
@@ -18,6 +24,33 @@ pub struct Report {
     pub session: Session,
     pub displays: Result<Vec<Display>, String>,
     pub desktop_integration: DesktopIntegration,
+    pub providers: BTreeMap<String, ProviderReport>,
+    /// Topic → `ok`, `no-data`, `unavailable: <reason>`, `asleep` or `needs-permission: <fix>`.
+    pub topics: BTreeMap<String, String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ProviderReport {
+    pub cost: Option<Cost>,
+    pub health: Health,
+    pub sample_us: Option<u64>,
+    /// Probe facts (polled providers): sensor sources, device counts, drivers.
+    pub details: BTreeMap<String, String>,
+}
+
+/// A topic's availability without its value.
+pub fn status(value: Option<&Value>) -> String {
+    match value {
+        None => "no-data".into(),
+        Some(Value::Missing(Availability::Unavailable { reason })) => {
+            format!("unavailable: {reason}")
+        }
+        Some(Value::Missing(Availability::Asleep)) => "asleep".into(),
+        Some(Value::Missing(Availability::NeedsPermission { fix })) => {
+            format!("needs-permission: {fix}")
+        }
+        Some(_) => "ok".into(),
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -101,6 +134,36 @@ pub async fn collect() -> Report {
         Err(_) => (None, None),
     };
 
+    let probes: BTreeMap<String, BTreeMap<String, String>> = tokio::task::spawn_blocking(|| {
+        crate::providers::polled()
+            .into_iter()
+            .map(|mut p| (p.id().to_owned(), p.probe().details.into_iter().collect()))
+            .collect()
+    })
+    .await
+    .unwrap_or_default();
+    let (hub, topics) = crate::dump::run_engine(None, |_| {}).await;
+    let topics = topics
+        .iter()
+        .map(|t| (t.0.clone(), status(hub.latest(t).as_ref())))
+        .collect();
+    let providers = hub
+        .provider_statuses()
+        .into_iter()
+        .map(|(id, s)| {
+            let details = probes.get(&id).cloned().unwrap_or_default();
+            (
+                id,
+                ProviderReport {
+                    cost: s.cost,
+                    health: s.health,
+                    sample_us: s.sample_us,
+                    details,
+                },
+            )
+        })
+        .collect();
+
     Report {
         opaline_version: env!("CARGO_PKG_VERSION"),
         os: Os {
@@ -119,6 +182,8 @@ pub async fn collect() -> Report {
         },
         displays,
         desktop_integration: DesktopIntegration { helper_running },
+        providers,
+        topics,
     }
 }
 
@@ -143,6 +208,20 @@ async fn helper_running(conn: &Connection) -> Option<bool> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn statuses_hide_values() {
+        assert_eq!(status(None), "no-data");
+        assert_eq!(status(Some(&Value::from("my-home-wifi"))), "ok");
+        assert_eq!(
+            status(Some(&Value::unavailable("no-battery"))),
+            "unavailable: no-battery"
+        );
+        assert_eq!(
+            status(Some(&Value::Missing(Availability::Asleep))),
+            "asleep"
+        );
+    }
 
     #[test]
     fn reads_pretty_name() {

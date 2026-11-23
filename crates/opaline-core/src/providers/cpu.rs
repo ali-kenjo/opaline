@@ -263,6 +263,7 @@ pub struct Cpu {
     prev_throttle: Option<(u64, u64)>,
     info: Value,
     max_mhz: Option<f64>,
+    threads: usize,
 }
 
 impl std::fmt::Debug for Cpu {
@@ -394,6 +395,7 @@ impl Cpu {
             prev_throttle: None,
             info,
             max_mhz,
+            threads: cpuinfo.threads.max(cpus.len()),
             root,
         }
     }
@@ -464,7 +466,7 @@ impl Provider for Cpu {
 
     fn probe(&mut self) -> Probe {
         let mut probe = Probe::default()
-            .detail("threads", self.prev.len().saturating_sub(1).to_string())
+            .detail("threads", self.threads.to_string())
             .detail("cpufreqPolicies", self.freq.len().to_string());
         for topic in [LOAD, PER_THREAD, INFO, LOADAVG, UPTIME] {
             probe = probe.available(topic);
