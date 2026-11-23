@@ -1,0 +1,16 @@
+[package]
+name = "opaline-privileged"
+description = "Opaline's optional read-only system service: CPU energy counters (RAPL)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+tokio = { version = "1", features = ["rt", "time", "macros", "sync"] }
+zbus = { version = "6", default-features = false, features = ["tokio", "service", "proxy"] }
+
+[lints]
+workspace = true

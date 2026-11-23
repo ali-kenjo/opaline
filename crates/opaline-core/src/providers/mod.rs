@@ -17,6 +17,7 @@ pub mod processes;
 pub mod props;
 pub mod psi;
 pub mod public_ip;
+pub mod rapl;
 pub mod storage;
 pub mod udisks;
 pub mod upower;
@@ -76,6 +77,8 @@ pub const ASYNC_TOPICS: &[&str] = &[
     calendar::EVENTS,
     wallpaper::MONITORS,
     wallpaper::SOURCE,
+    rapl::POWER,
+    rapl::PACKAGE_W,
 ];
 
 type Task = Pin<Box<dyn Future<Output = ()> + Send>>;
@@ -103,6 +106,7 @@ pub async fn run_async(hub: Arc<Hub>) {
         task!("public-ip", public_ip::run),
         task!("calendar", calendar::run),
         task!("wallpaper", wallpaper::run),
+        task!("cpu-power", rapl::run),
     ];
     futures_util::future::join_all(tasks).await;
 }

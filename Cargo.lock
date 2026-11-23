@@ -3253,6 +3253,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "opaline-privileged"
+version = "0.1.0"
+dependencies = [
+ "tokio",
+ "zbus",
+]
+
+[[package]]
 name = "openssl-probe"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"

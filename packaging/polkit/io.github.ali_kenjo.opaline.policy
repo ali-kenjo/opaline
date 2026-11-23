@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Installed to /usr/share/polkit-1/actions/. -->
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<policyconfig>
+  <vendor>Opaline</vendor>
+  <vendor_url>https://github.com/ali-kenjo/opaline</vendor_url>
+  <action id="io.github.ali_kenjo.opaline.read-sensors">
+    <description>Read CPU power sensors</description>
+    <description xml:lang="de">CPU-Leistungssensoren lesen</description>
+    <description xml:lang="ar">قراءة مستشعرات طاقة المعالج</description>
+    <message>Opaline wants to read the CPU energy counters</message>
+    <message xml:lang="de">Opaline möchte die Energiezähler der CPU lesen</message>
+    <message xml:lang="ar">يريد Opaline قراءة عدادات طاقة المعالج</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+  </action>
+</policyconfig>
