@@ -99,6 +99,14 @@ class HeroHistory {
   }
 }
 
+function safeExtra(def: WidgetDef, ctx: ReadCtx): readonly string[] {
+  try {
+    return def.extraTopics?.(ctx) ?? [];
+  } catch {
+    return [];
+  }
+}
+
 function safeActions(def: WidgetDef, ctx: ReadCtx): readonly WidgetAction[] {
   try {
     return def.actions?.(ctx) ?? [];
@@ -173,8 +181,9 @@ export function WidgetFrame({
         return [];
       }
     });
-    return [...new Set([...baseTopics, ...fieldTopics])].sort();
-  }, [baseTopics, base, shown, content]);
+    const extra = safeExtra(def, baseCtx);
+    return [...new Set([...baseTopics, ...fieldTopics, ...extra])].sort();
+  }, [baseTopics, base, shown, content, def]);
   const activity = activityFor(content, def);
   useEffect(() => {
     host.subscribe(topics, activity);

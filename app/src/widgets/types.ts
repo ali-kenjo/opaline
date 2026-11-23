@@ -143,6 +143,8 @@ export interface WidgetDef {
   heroStyles?: readonly HeroStyle[];
   /** Topics always needed (besides the visible fields'). */
   topics?: readonly string[];
+  /** More topics that depend on the base topics and content (the chosen GPU's state). */
+  extraTopics?: (ctx: ReadCtx) => readonly string[];
   /** Widget-specific options. */
   options?: readonly ContentOption[];
   /** Whether the widget can show anything (else the reason). */

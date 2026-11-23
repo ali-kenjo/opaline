@@ -1,0 +1,71 @@
+.weather {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--w-gap);
+}
+
+.now {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.big {
+  font-family: var(--w-num-font);
+  font-size: calc(40px * var(--w-scale));
+  font-weight: max(var(--w-weight), 300);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.weather[data-size="1x1"] .big,
+.weather[data-size="2x1"] .big {
+  font-size: calc(26px * var(--w-scale));
+}
+
+.cond {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.condText {
+  font-size: calc(14px * var(--w-scale));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sub {
+  color: rgb(var(--md-on-surface-variant));
+  font-size: calc(12px * var(--w-scale));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 4px;
+  text-align: center;
+  font-size: calc(12px * var(--w-scale));
+}
+
+.strip > div {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+}
+
+.strip .sub {
+  font-size: calc(11px * var(--w-scale));
+}
+
+.temp {
+  font-family: var(--w-num-font);
+  font-variant-numeric: var(--w-nums);
+}

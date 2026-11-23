@@ -1,0 +1,143 @@
+.media {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.media[data-size="L"],
+.media[data-size="XL"] {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.art {
+  flex: none;
+  aspect-ratio: 1;
+  height: 100%;
+  max-height: 100%;
+  object-fit: cover;
+  background: rgb(var(--md-primary-container));
+  border-radius: calc(var(--w-radius) * 0.5);
+}
+
+.media[data-size="L"] .art,
+.media[data-size="XL"] .art {
+  height: auto;
+  width: 100%;
+  max-height: 55%;
+  align-self: center;
+  width: auto;
+}
+
+.circle {
+  border-radius: 50%;
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  font-size: calc(15px * var(--w-scale));
+  font-weight: max(var(--w-weight), 500);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.artist {
+  color: rgb(var(--md-on-surface-variant));
+  font-size: calc(13px * var(--w-scale));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.progress {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  font-size: calc(11px * var(--w-scale));
+  font-family: var(--w-num-font);
+  font-variant-numeric: var(--w-nums);
+  color: rgb(var(--md-on-surface-variant));
+}
+
+.track {
+  position: relative;
+  height: 6px;
+  border-radius: 3px;
+  background: rgb(var(--md-on-surface) / 0.12);
+  cursor: pointer;
+  border: none;
+  padding: 0;
+}
+
+.fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 3px;
+  background: var(--hero, rgb(var(--md-primary)));
+}
+
+.controls {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.control {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 18px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.control:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.control:hover:not(:disabled) {
+  background: rgb(var(--md-on-surface) / 0.08);
+}
+
+.play {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: rgb(var(--md-primary));
+  color: rgb(var(--md-on-primary));
+}
+
+.play:hover:not(:disabled) {
+  background: rgb(var(--md-primary) / 0.9);
+}
+
+.idle {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  gap: 6px;
+  color: rgb(var(--md-on-surface-variant));
+  font-size: calc(13px * var(--w-scale));
+}
+
+.viz {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: block;
+}
