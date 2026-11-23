@@ -157,11 +157,9 @@ share of `libLLVM` grew from 15 to 21.7 MB each. The PSS budget therefore moves 
 | - | - |
 | WebGL2 works in the Tauri webview | ✅ The Lab inside the real layer windows (debug build, `OPALINE_LAYER_PAGE='lab.html?still'`), both monitors, WebKitGTK: compositor `webgl2`, read-back inside a card `[43,25,55,255]` (opaque dusk tint), empty space `[0,0,0,0]` (transparent), **0 frames** drawn in an idle second |
 | Lab screenshots baselined | ✅ 5 WebKit baselines in `app/e2e/lab.spec.ts-snapshots/` (tolerance 3 % of pixels, colour threshold 0.25) |
-| 🧑 Your visual sign-off | waiting |
+| 🧑 Your visual sign-off | ✅ 2026-11-23, with one requirement: every widget fully customizable (style and content) → ADR 0011, Phase 3 task 3.0 |
 
 **Not done yet / moved**
 - The Lab's widget × size matrix fills in with Phase 3; for now it shows the card states, glass and components.
 - Positions come from measuring the DOM after layout; Phase 5 feeds the layout springs into the compositor directly.
 
-**Needs you**
-1. Look at the Lab and tell me what you think (see "How to look at the Lab" below in the chat).

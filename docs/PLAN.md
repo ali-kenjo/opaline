@@ -87,8 +87,14 @@ checks pass. 🧑 You start Docker Desktop once (or allow me to) for the Docker 
 
 ## Phase 3: Widgets
 
+**3.0 Customization first (ADR 0011):** global and per-widget style (color, surface/transparency, fonts incl. system
+fonts, icons, motion, state) resolved defaults → global → widget; editable content per widget (fields shown, order,
+labels, hero, units, decimals, sources, thresholds) from each widget's `settingsSchema`; one generic settings sheet
+built from the schema; `style`/`widgets` in `settings.json`; core lists installed fonts; Lab style panel.
+
 One commit per widget (or small group), each with all sizes, detail view, settings sheet, alerts, loading /
-unavailable / asleep states, Full + Dimmed, light + dark, hover, focus ring, context menu, Lab entries.
+unavailable / asleep states, Full + Dimmed, light + dark, hover, focus ring, context menu, Lab entries, and every
+style and content option of ADR 0011.
 
 Order (shared pieces first): Clock → CPU → Memory → GPU → Storage → Network → Battery & Power → Processes →
 Fans → Now Playing → Visualizer → Weather → Calendar → Docker.
