@@ -124,3 +124,44 @@ share of `libLLVM` grew from 15 to 21.7 MB each. The PSS budget therefore moves 
 1. Optional: install the privileged helper to try CPU power (`sudo` copy of three files and the binary; I'll give you
    the exact commands, or it waits for the `.deb` in Phase 8).
 2. Optional: play some music for a minute, so I can check the visualizer levels and the media widget's data live.
+
+## Phase 2: Design system and Widget Lab (2026-11-23)
+
+**Done** (one commit per task; 32 Vitest tests in 6 files, 9 Playwright WebKit tests)
+- **Design doc and tokens (2.1):** `docs/DESIGN.md`; `design-system/tokens/` as TS and CSS custom properties (4 pt
+  spacing, 84 px cell / 12 px gap, radius 28 for S and 32 from M up, elevation, state layers, type scale).
+- **Color (2.2):** `@material/material-color-utilities` 0.4 schemes from the wallpaper, the GNOME accent or a custom
+  color, all six variants and the contrast level, mapped to M3 roles as CSS variables; palette changes cross-fade on
+  the shared scheduler; HCT ramps for thermal, load and health.
+- **Shapes (2.3):** TypeScript port of androidx `graphics-shapes` (RoundedPolygon, CornerRounding, Morph) and all 35
+  `MaterialShapes`; tests on the geometry (cubic counts, exact curve bounds, morph end states); attribution in THIRD_PARTY.md.
+- **Motion (2.4):** spring values checked in androidx `ExpressiveMotionTokens` (spatial fast/default/slow 800/0.6,
+  380/0.8, 200/0.8; effects 3800/1600/800 at damping 1); an exact damped-oscillator solver that retargets with the
+  velocity kept; one rAF scheduler that requests no frames while nothing moves; odometer numbers; reduced motion.
+- **Glass compositor (2.5):** one WebGL2 canvas per window, one instanced pass: analytic rounded-rect and polygon SDFs,
+  the blurred wallpaper sampled at the surface's screen position, tint, refraction, specular rim, a drop shadow that deepens when lifted, grain;
+  draws only when something changed. CSS fallback without WebGL2; opaque mode; adaptive legibility (tint raised until
+  text keeps 4.5 : 1 over the 8 × 8 luminance grid).
+- **Type and icons (2.6):** Roboto Flex, Inter and Noto Sans Arabic from fontsource, bundled; Material Symbols Rounded
+  subset to the 119 icons we use (5.4 MB → 130 KB, FILL/wght/GRAD/opsz axes kept), rebuilt with `pnpm icons`.
+- **Components (2.7):** button, switch, slider, ring, sparkline, heat strip, wavy progress, the M3 Expressive loading
+  indicator (shape morph sequence), card with its states, pill, context menu, sheet, snackbar, toolbar.
+- **Widget Lab (2.8):** `lab.html`, built only with `LAB=1`; procedural wallpapers (dusk, forest, snow), theme,
+  variant, glass slider, opaque; card states, components, type specimen (incl. RTL). URL parameters pin the state for
+  screenshots. Playwright baselines: glass on dusk/snow (dark), forest (light), dusk opaque, the component set; plus
+  "an idle Lab requests no frames" and accessible names/states.
+
+**Acceptance (brief §10, P2)**
+
+| Check | Result |
+| - | - |
+| WebGL2 works in the Tauri webview | ✅ The Lab inside the real layer windows (debug build, `OPALINE_LAYER_PAGE='lab.html?still'`), both monitors, WebKitGTK: compositor `webgl2`, read-back inside a card `[43,25,55,255]` (opaque dusk tint), empty space `[0,0,0,0]` (transparent), **0 frames** drawn in an idle second |
+| Lab screenshots baselined | ✅ 5 WebKit baselines in `app/e2e/lab.spec.ts-snapshots/` (tolerance 3 % of pixels, colour threshold 0.25) |
+| 🧑 Your visual sign-off | waiting |
+
+**Not done yet / moved**
+- The Lab's widget × size matrix fills in with Phase 3; for now it shows the card states, glass and components.
+- Positions come from measuring the DOM after layout; Phase 5 feeds the layout springs into the compositor directly.
+
+**Needs you**
+1. Look at the Lab and tell me what you think (see "How to look at the Lab" below in the chat).

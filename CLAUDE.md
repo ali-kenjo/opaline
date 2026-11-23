@@ -20,6 +20,11 @@ cargo test -p opaline-core -- --ignored nvml   # on NVIDIA machines: NVML holds 
 scripts/measure-budget.sh 60                   # CPU/RAM of all Opaline processes vs. the budgets
 cargo test --workspace && cargo clippy --workspace --all-targets -- -D warnings && cargo fmt --all --check
 cd app && pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e
+cd app && LAB=1 pnpm exec vite build && pnpm exec vite preview  # Widget Lab at http://localhost:4173/lab.html
+cd app && LAB=1 pnpm tauri build --debug --no-bundle && OPALINE_LAYER_PAGE='lab.html?still' ../target/debug/opaline
+                                               # the Lab in the real layer windows; reports key="lab-glass" to the layer log
+cd app && pnpm exec playwright test --update-snapshots  # re-record the Lab baselines (look at the diff first)
+cd app && pnpm icons                           # re-subset Material Symbols after adding to icons/codepoints.ts
 ```
 
 Logs: `~/.local/state/opaline/logs/opaline-{core,layer}.<date>.log` and journald (`journalctl --user -t opaline-core`).
@@ -39,7 +44,9 @@ A plain `cargo build -p opaline` produces a binary that loads the frontend from 
 - `crates/opaline-privileged`: the root helper (RAPL only); its D-Bus/polkit files are in `packaging/`.
 - `app/src-tauri`: the `opaline` binary. `core_mode.rs` (tray, D-Bus, IPC server, layer supervisor), `layer/`
   (windows per monitor, IPC client, bridge to the webviews), `instant.rs`.
-- `app/src`: React frontend. `layer/` is the widget layer page (`layer.html`).
+- `app/src`: React frontend. `layer/` is the widget layer page (`layer.html`); `design-system/` (tokens, color,
+  shapes, motion, icons, glass compositor, components; see `docs/DESIGN.md`); `lab/` is the Widget Lab (`lab.html`,
+  only built with `LAB=1`).
 
 ## Conventions
 
@@ -78,3 +85,7 @@ A plain `cargo build -p opaline` produces a binary that loads the frontend from 
 - Mutter's ScreenCast D-Bus API + `pipewiresrc` gives silent screenshots for visual checks (X11 `import` of the layer
   windows returns black).
 - The NVIDIA dGPU on this laptop never runtime-suspends (RTD3 not supported, and it drives the HDMI monitor): ADR 0003.
+- **material-color-utilities** imports without file extensions: Vitest needs it in `server.deps.inline`.
+- **Canvas 2D can't resolve `var(--…)` colors**: resolve them through `getComputedStyle` first (Sparkline).
+- The Lab sets `window.__labScheduler`; the e2e test reads its frame counter to prove an idle page draws nothing.
+  Animations must go through `design-system/motion` `scheduler`, never their own `requestAnimationFrame` loop.
