@@ -19,6 +19,7 @@ pub mod json;
 pub mod logging;
 pub mod paths;
 pub mod providers;
+pub mod shortcuts;
 pub mod store;
 pub mod style;
 pub mod sysfs;

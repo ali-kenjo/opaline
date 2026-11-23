@@ -110,6 +110,11 @@ pub fn run(request: Option<AppRequest>) -> ExitCode {
         hub.clone(),
         requests_tx.clone(),
     ));
+    rt.spawn(opaline_core::shortcuts::run(
+        bus.clone(),
+        hub.clone(),
+        requests_tx.clone(),
+    ));
 
     let (stop_tx, stop_rx) = watch::channel(false);
     let (layer_done_tx, layer_done_rx) = std::sync::mpsc::channel::<()>();
