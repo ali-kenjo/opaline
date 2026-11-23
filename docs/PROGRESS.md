@@ -26,7 +26,8 @@
 **Spike results**
 - **A, WebGL2 + transparency:** WebGL2 context works in both layer windows (Tauri/WebKitGTK 2.52, X11 backend),
   premultiplied alpha, max texture 16384, first frame 24–30 ms (debug build, includes `gl.finish`). WebKit masks
-  the GPU name. *Visual check of the transparent glass card pending (you).*
+  the GPU name. The transparent glass card is visible on the desktop (you confirmed it, 2026-11-23, after the fix
+  below).
 - **B, RAM/CPU:** sharing one web process across windows. Release, two monitors, windows drawing: **278 MB**
   (budget 220, **58 MB over**) and **0.13 %** idle CPU (budget 0.5 %). See ADR 0009. *(The first figure, 209 MB, was
   measured while the bug below kept the webviews from drawing.)*
