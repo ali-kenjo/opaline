@@ -45,13 +45,22 @@ export class Layer {
     );
 
     this._connect(global.display, "window-created", (_d, win) => this._adopt(win));
-    this._connect(global.window_manager, "map", (_wm, actor) => {
-      const win = actor?.get_meta_window?.();
-      if (win && this.owns(win)) this._place(win);
-    });
+    this._signals.push([
+      global.window_manager,
+      global.window_manager.connect_after("map", (_wm, actor) => {
+        const win = actor?.get_meta_window?.();
+        if (!win || !this.owns(win)) return;
+        this._place(win);
+        GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+          if (!this._destroyed && this.owns(win)) this._place(win);
+          return GLib.SOURCE_REMOVE;
+        });
+      }),
+    ]);
     this._connect(Main.layoutManager, "monitors-changed", () => this.placeAll());
     this._connect(global.display, "workareas-changed", () => this.placeAll());
     this._placing = false;
+    this._placeGuard = new WeakMap();
   }
 
   /** The layer's windows (Meta.Window), for stacking. */
@@ -177,7 +186,7 @@ export class Layer {
         this.onWindowsChanged?.();
       }),
       win.connect("position-changed", () => {
-        if (!this._placing) this._place(win);
+        if (!this._placing) this._placeGuarded(win);
       }),
       // Show Desktop and friends minimize everything; the layer belongs to the desktop.
       win.connect("notify::minimized", () => {
@@ -205,6 +214,19 @@ export class Layer {
     return manager.get_monitor_for_connector(connector);
   }
 
+  _placeGuarded(win) {
+    const now = GLib.get_monotonic_time();
+    const state = this._placeGuard.get(win) ?? { since: now, count: 0 };
+    if (now - state.since > 1_000_000) {
+      state.since = now;
+      state.count = 0;
+    }
+    if (state.count >= 6) return;
+    state.count += 1;
+    this._placeGuard.set(win, state);
+    this._place(win);
+  }
+
   _place(win) {
     if (this._placing) return;
     const index = this._monitorIndex(win);
@@ -218,6 +240,10 @@ export class Layer {
     try {
       if (!onMonitor) win.move_to_monitor(index);
       win.move_resize_frame(true, a.x, a.y, a.width, a.height);
+      const after = win.get_frame_rect();
+      console.log(
+        `Opaline: placed ${win.get_title()} on monitor ${index} target=(${a.x},${a.y} ${a.width}x${a.height}) actual=(${after.x},${after.y} ${after.width}x${after.height})`,
+      );
     } finally {
       this._placing = false;
     }
