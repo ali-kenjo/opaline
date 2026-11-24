@@ -45,8 +45,13 @@ export class Layer {
     );
 
     this._connect(global.display, "window-created", (_d, win) => this._adopt(win));
+    this._connect(global.window_manager, "map", (_wm, actor) => {
+      const win = actor?.get_meta_window?.();
+      if (win && this.owns(win)) this._place(win);
+    });
     this._connect(Main.layoutManager, "monitors-changed", () => this.placeAll());
     this._connect(global.display, "workareas-changed", () => this.placeAll());
+    this._placing = false;
   }
 
   /** The layer's windows (Meta.Window), for stacking. */
@@ -171,6 +176,9 @@ export class Layer {
         this._place(win);
         this.onWindowsChanged?.();
       }),
+      win.connect("position-changed", () => {
+        if (!this._placing) this._place(win);
+      }),
       // Show Desktop and friends minimize everything; the layer belongs to the desktop.
       win.connect("notify::minimized", () => {
         if (win.minimized) win.unminimize();
@@ -198,12 +206,25 @@ export class Layer {
   }
 
   _place(win) {
+    if (this._placing) return;
     const index = this._monitorIndex(win);
     if (index < 0 || index >= global.display.get_n_monitors()) return;
-    const g = global.display.get_monitor_geometry(index);
+    const ws = global.workspace_manager.get_active_workspace();
+    const a = ws.get_work_area_for_monitor(index);
     const r = win.get_frame_rect();
-    if (r.x === g.x && r.y === g.y && r.width === g.width && r.height === g.height) return;
-    win.move_resize_frame(false, g.x, g.y, g.width, g.height);
+    const onMonitor = win.get_monitor() === index;
+    if (onMonitor && r.x === a.x && r.y === a.y && r.width === a.width && r.height === a.height) return;
+    this._placing = true;
+    try {
+      if (!onMonitor) win.move_to_monitor(index);
+      win.move_resize_frame(true, a.x, a.y, a.width, a.height);
+    } finally {
+      this._placing = false;
+    }
+  }
+
+  monitorIndexOf(win) {
+    return this._monitorIndex(win);
   }
 
   placeAll() {

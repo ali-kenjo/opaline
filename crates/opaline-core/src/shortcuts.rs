@@ -87,10 +87,16 @@ fn session_handle(results: &HashMap<String, OwnedVariant>) -> Option<String> {
 
 /// One portal session: create, bind, then forward activations until `stop` resolves.
 async fn session(
-    conn: &Connection,
     requests: &mpsc::UnboundedSender<AppRequest>,
     stop: impl std::future::Future<Output = ()>,
 ) -> Result<(), String> {
+    // Use a dedicated bus connection so `Registry.Register` is always the first call to
+    // `org.freedesktop.portal.Desktop` on this sender (other providers talk to the Settings
+    // portal on core's main bus, which would otherwise lock the sender's app ID to empty).
+    let conn = Connection::session()
+        .await
+        .map_err(|e| format!("session bus: {e}"))?;
+    let conn = &conn;
     // Tell the portal who we are (a host app has no sandbox app ID), so GNOME can remember the
     // user's answer and list the shortcuts under Opaline in Settings.
     let none: HashMap<&str, Variant<'_>> = HashMap::new();
@@ -194,7 +200,7 @@ async fn session(
 }
 
 /// Holds the portal shortcuts while the backend is Instant, for as long as core runs.
-pub async fn run(conn: Connection, hub: Arc<Hub>, requests: mpsc::UnboundedSender<AppRequest>) {
+pub async fn run(hub: Arc<Hub>, requests: mpsc::UnboundedSender<AppRequest>) {
     let mut backend = hub.watch_backend();
     loop {
         let current = *backend.borrow_and_update();
@@ -203,7 +209,7 @@ pub async fn run(conn: Connection, hub: Arc<Hub>, requests: mpsc::UnboundedSende
             let stop = async move {
                 let _ = watch.wait_for(|b| *b != BackendKind::Instant).await;
             };
-            if let Err(error) = session(&conn, &requests, stop).await {
+            if let Err(error) = session(&requests, stop).await {
                 // No portal, an old portal, or the user said no: the tray and the app grid
                 // still offer Peek and Edit.
                 tracing::warn!(%error, "global shortcuts unavailable");

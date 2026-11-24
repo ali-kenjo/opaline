@@ -68,6 +68,10 @@ pub fn run(request: Option<AppRequest>) -> ExitCode {
     let backend = rt.block_on(opaline_core::desktop::initial_backend(&bus));
     tracing::info!(?backend, "desktop integration");
     let hub = Hub::new(backend, monitors);
+    if backend == BackendKind::Native {
+        let areas = rt.block_on(opaline_core::desktop::read_work_areas(&bus));
+        hub.set_work_areas(areas);
+    }
     rt.spawn(app_service::sync_backend(
         bus.clone(),
         hub.watch_backend(),
@@ -123,7 +127,6 @@ pub fn run(request: Option<AppRequest>) -> ExitCode {
         requests_tx.clone(),
     ));
     rt.spawn(opaline_core::shortcuts::run(
-        bus.clone(),
         hub.clone(),
         requests_tx.clone(),
     ));

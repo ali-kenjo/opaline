@@ -76,6 +76,10 @@ pub struct MonitorInfo {
     pub scale: f64,
     pub primary: bool,
     pub builtin: bool,
+    /// Work area `(x, y, width, height)` in logical pixels when supplied by the backend
+    /// (Native mode queries the shell helper's `GetWorkAreas`).
+    #[serde(default)]
+    pub work_area: Option<(i32, i32, u32, u32)>,
 }
 
 impl MonitorInfo {
@@ -375,6 +379,7 @@ mod tests {
             scale: 1.25,
             primary: true,
             builtin: true,
+            work_area: Some((0, 32, 1536, 765)),
         }
     }
 

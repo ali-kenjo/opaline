@@ -4,6 +4,7 @@
 //! passes the helper's signals on: desktop focus (Automatic appearance), covered monitors
 //! (sampling), shortcuts (Peek/Edit), and raises the layer for Peek/Edit.
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, OnceLock};
 
@@ -30,7 +31,10 @@ pub trait Shell1 {
     fn api_version(&self) -> zbus::Result<u32>;
     #[zbus(property)]
     fn desktop_focused(&self) -> zbus::Result<bool>;
+    fn get_work_areas(&self) -> zbus::Result<Vec<(String, i32, i32, i32, i32)>>;
     fn set_raised(&self, raised: bool) -> zbus::Result<()>;
+    #[zbus(signal)]
+    fn work_areas_changed(&self) -> zbus::Result<()>;
     #[zbus(signal)]
     fn desktop_focus_changed(&self, focused: bool) -> zbus::Result<()>;
     #[zbus(signal)]
@@ -152,6 +156,25 @@ pub async fn initial_backend(conn: &Connection) -> BackendKind {
     }
 }
 
+/// Reads per-connector work areas from the helper (for Native mode at startup and on change).
+pub async fn read_work_areas(conn: &Connection) -> HashMap<String, (i32, i32, u32, u32)> {
+    let Ok(shell) = Shell1Proxy::new(conn).await else {
+        return HashMap::new();
+    };
+    parse_work_areas(shell.get_work_areas().await.unwrap_or_default())
+}
+
+fn parse_work_areas(
+    raw: Vec<(String, i32, i32, i32, i32)>,
+) -> HashMap<String, (i32, i32, u32, u32)> {
+    raw.into_iter()
+        .filter_map(|(connector, x, y, w, h)| {
+            let (w, h) = (u32::try_from(w).ok()?, u32::try_from(h).ok()?);
+            (w > 0 && h > 0).then_some((connector, (x, y, w, h)))
+        })
+        .collect()
+}
+
 /// Watches the helper for as long as core runs and keeps the hub's backend in step.
 pub async fn run(conn: Connection, hub: Arc<Hub>, requests: mpsc::UnboundedSender<AppRequest>) {
     let _ = BUS.set(conn.clone());
@@ -178,6 +201,7 @@ pub async fn run(conn: Connection, hub: Arc<Hub>, requests: mpsc::UnboundedSende
             Some(native_session(&conn, &hub, &requests))
         } else {
             hub.clear_covered();
+            hub.clear_work_areas();
             hub.set_backend(BackendKind::Instant);
             None
         };
@@ -240,14 +264,18 @@ async fn native_session(
         return;
     }
     tracing::info!(version, "desktop integration helper found; Native mode");
+    if let Ok(raw) = shell.get_work_areas().await {
+        hub.set_work_areas(parse_work_areas(raw));
+    }
     hub.set_backend(BackendKind::Native);
     if let Ok(focused) = shell.desktop_focused().await {
         hub.emit(CoreEvent::DesktopFocusChanged { focused });
     }
-    let (Ok(mut focus), Ok(mut covered), Ok(mut shortcuts)) = (
+    let (Ok(mut focus), Ok(mut covered), Ok(mut shortcuts), Ok(mut work_areas)) = (
         shell.receive_desktop_focus_changed().await,
         shell.receive_layer_covered().await,
         shell.receive_shortcut_activated().await,
+        shell.receive_work_areas_changed().await,
     ) else {
         tracing::warn!("could not subscribe to the helper's signals");
         return;
@@ -262,6 +290,11 @@ async fn native_session(
             Some(s) = covered.next() => {
                 if let Ok(a) = s.args() {
                     hub.set_covered(&a.connector, a.covered);
+                }
+            }
+            Some(_) = work_areas.next() => {
+                if let Ok(raw) = shell.get_work_areas().await {
+                    hub.set_work_areas(parse_work_areas(raw));
                 }
             }
             Some(s) = shortcuts.next() => {

@@ -16,6 +16,7 @@ export interface Monitor {
   scale: number;
   primary: boolean;
   builtin: boolean;
+  work_area?: [number, number, number, number] | null;
 }
 
 export type Availability =

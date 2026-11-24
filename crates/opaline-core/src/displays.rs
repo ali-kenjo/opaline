@@ -130,6 +130,7 @@ fn monitors_from_state(state: &CurrentState) -> Vec<MonitorInfo> {
                 scale: *scale,
                 primary: *primary,
                 builtin: bool_prop(mon_props, "is-builtin"),
+                work_area: None,
             });
         }
     }

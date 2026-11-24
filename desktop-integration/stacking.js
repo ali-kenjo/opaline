@@ -89,19 +89,23 @@ export class Stacking {
     const ws = global.workspace_manager.get_active_workspace();
     const n = global.display.get_n_monitors();
     const covered = new Array(n).fill(false);
-    for (const win of ws.list_windows()) {
-      if (!this._isOther(win)) continue;
-      const full = win.is_fullscreen() || win.is_maximized();
-      if (full) {
-        const m = win.get_monitor();
-        if (m >= 0 && m < n) covered[m] = true;
+    // While Peek or Edit raises the layer above all windows, nothing covers it.
+    if (!this._raised) {
+      for (const win of ws.list_windows()) {
+        if (!this._isOther(win)) continue;
+        const full = win.is_fullscreen() || win.is_maximized();
+        if (full) {
+          const m = win.get_monitor();
+          if (m >= 0 && m < n) covered[m] = true;
+        }
       }
     }
     for (const win of this._layer.windows) {
       const connector = this._layer.connectorOf(win);
-      const m = win.get_monitor();
-      if (!connector || m < 0) continue;
-      const now = covered[m] ?? false;
+      const m = this._layer.monitorIndexOf(win);
+      const idx = m >= 0 ? m : win.get_monitor();
+      if (!connector || idx < 0) continue;
+      const now = covered[idx] ?? false;
       if (this._covered.get(connector) !== now) {
         this._covered.set(connector, now);
         this._service.emitCovered(connector, now);
@@ -121,6 +125,7 @@ export class Stacking {
       }
     }
     if (raised) {
+      this._updateCovered();
       const first = this._layer.windows[0];
       first?.activate(global.get_current_time());
     } else {

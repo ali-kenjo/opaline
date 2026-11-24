@@ -27,10 +27,6 @@ const DEFAULT_WIDGETS = {
   "d-network": { kind: "network" },
 } as const;
 
-/** Top bar height in Native mode, where the window covers the whole monitor (Phase 5 uses the
- * real work area from the helper). */
-const NATIVE_TOP = 32;
-
 interface Placed {
   id: string;
   kind: string;
@@ -200,10 +196,9 @@ export function LayerApp() {
 
   const width = geometry?.width ?? window.innerWidth;
   const height = geometry?.height ?? window.innerHeight;
-  const top = backend === "native" ? NATIVE_TOP : 0;
   const placed = useMemo(
-    () => (isHome ? columnLayout(widgets, width, height, top) : []),
-    [isHome, widgets, width, height, top],
+    () => (isHome ? columnLayout(widgets, width, height, 0) : []),
+    [isHome, widgets, width, height],
   );
 
   // Clicks reach the layer only on widgets, except in Peek or with the settings sheet open.

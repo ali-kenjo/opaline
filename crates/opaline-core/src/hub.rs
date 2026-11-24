@@ -62,6 +62,8 @@ pub struct Hub {
     /// Connectors whose layer window is covered by a maximized or fullscreen window (Native
     /// mode reports this). When every monitor is covered, subscriptions count as Covered.
     covered: Mutex<HashSet<String>>,
+    /// Per-connector work areas `(x, y, width, height)` reported by the Native shell helper.
+    work_areas: Mutex<HashMap<String, (i32, i32, u32, u32)>>,
     history: crate::history::Shared,
     /// False when settings.json comes from a newer Opaline (or is broken): never overwrite it.
     settings_writable: std::sync::atomic::AtomicBool,
@@ -85,6 +87,7 @@ impl Hub {
             settings: watch::channel(Arc::new(Settings::default())).0,
             locked: std::sync::atomic::AtomicBool::new(false),
             covered: Mutex::new(HashSet::new()),
+            work_areas: Mutex::new(HashMap::new()),
             history: crate::history::Shared::default(),
             settings_writable: std::sync::atomic::AtomicBool::new(true),
         })
@@ -144,7 +147,14 @@ impl Hub {
         self.monitors.borrow().clone()
     }
 
-    pub fn set_monitors(&self, monitors: Vec<MonitorInfo>) {
+    pub fn set_monitors(&self, mut monitors: Vec<MonitorInfo>) {
+        let areas = lock(&self.work_areas);
+        for m in &mut monitors {
+            if let Some(&area) = areas.get(&m.connector) {
+                m.work_area = Some(area);
+            }
+        }
+        drop(areas);
         let changed = self.monitors.send_if_modified(|current| {
             if *current == monitors {
                 false
@@ -156,6 +166,36 @@ impl Hub {
         if changed {
             self.emit(CoreEvent::MonitorsChanged { monitors });
         }
+    }
+
+    /// Updates per-connector work areas from the Native shell helper and notifies the layer
+    /// when any monitor's work area changed.
+    pub fn set_work_areas(&self, areas: HashMap<String, (i32, i32, u32, u32)>) {
+        *lock(&self.work_areas) = areas;
+        let current = self.monitors();
+        self.set_monitors(current);
+    }
+
+    /// Clears Native work areas when switching back to Instant mode.
+    pub fn clear_work_areas(&self) {
+        let had = {
+            let mut areas = lock(&self.work_areas);
+            let had = !areas.is_empty();
+            areas.clear();
+            had
+        };
+        if had {
+            let mut monitors = self.monitors();
+            for m in &mut monitors {
+                m.work_area = None;
+            }
+            self.set_monitors(monitors);
+        }
+    }
+
+    /// Connectors currently marked covered, for replaying to a freshly connected layer.
+    pub fn covered_connectors(&self) -> Vec<String> {
+        lock(&self.covered).iter().cloned().collect()
     }
 
     pub fn backend(&self) -> BackendKind {
@@ -454,6 +494,7 @@ mod tests {
             scale: 1.0,
             primary: connector == "eDP-1",
             builtin: connector == "eDP-1",
+            work_area: None,
         };
         let hub = Hub::new(
             BackendKind::Native,

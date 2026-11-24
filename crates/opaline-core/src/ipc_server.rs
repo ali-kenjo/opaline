@@ -105,6 +105,14 @@ struct Subscriptions {
     topics: HashMap<Topic, ActivityClass>,
 }
 
+/// Essential UI state topics delivered even while covered or locked, so a layer that starts
+/// behind maximized windows still loads its widget list, wallpaper and palette before Peek.
+const ALWAYS_PUSH: [&str; 3] = [
+    crate::store::TOPIC,
+    "wallpaper.monitors",
+    "appearance.settings",
+];
+
 impl Subscriptions {
     /// Subscribes, or changes the class of an existing subscription. Returns whether the topic
     /// is new for this client.
@@ -129,9 +137,12 @@ impl Subscriptions {
         }
     }
 
-    /// Covered and idle subscribers get history and alerts, but nothing is pushed to them
-    /// (brief §5.4).
+    /// Covered and idle subscribers get history and alerts, but live sensor updates aren't
+    /// pushed to them (brief §5.4). Essential UI state is always delivered.
     fn pushes(&self, topic: &Topic) -> bool {
+        if ALWAYS_PUSH.contains(&topic.as_str()) {
+            return self.topics.contains_key(topic);
+        }
         !self.hub.locked()
             && !self.hub.all_covered()
             && self
@@ -189,6 +200,7 @@ async fn handle_client(hub: Arc<Hub>, stream: UnixStream) -> Result<(), ClientEr
     let mut updates = hub.updates();
     let mut events = hub.events();
     let mut spectrum = hub.spectrum();
+    let mut state_changes = hub.watch_subscriptions();
     let welcome = ServerMsg::Welcome(Welcome {
         protocol: PROTOCOL_VERSION,
         core_version: env!("CARGO_PKG_VERSION").to_owned(),
@@ -196,6 +208,13 @@ async fn handle_client(hub: Arc<Hub>, stream: UnixStream) -> Result<(), ClientEr
         monitors: hub.monitors(),
     });
     send(&mut writer, &welcome, &mut scratch).await?;
+    for connector in hub.covered_connectors() {
+        let ev = ServerMsg::Event(opaline_ipc::CoreEvent::LayerCovered {
+            connector,
+            covered: true,
+        });
+        send(&mut writer, &ev, &mut scratch).await?;
+    }
 
     // `read_frame` isn't cancel-safe, so reading happens on its own task.
     let (incoming_tx, mut incoming) = mpsc::channel::<Result<ClientMsg, opaline_ipc::IpcError>>(32);
@@ -220,6 +239,7 @@ async fn handle_client(hub: Arc<Hub>, stream: UnixStream) -> Result<(), ClientEr
     };
     // Commands run on their own tasks; their results come back through this channel.
     let (results_tx, mut results) = mpsc::channel::<(u32, opaline_ipc::CommandResult)>(16);
+    let mut was_blocked = hub.locked() || hub.all_covered();
     let result = loop {
         tokio::select! {
             msg = incoming.recv() => match msg {
@@ -294,6 +314,35 @@ async fn handle_client(hub: Arc<Hub>, stream: UnixStream) -> Result<(), ClientEr
                 Ok(event) => send(&mut writer, &ServerMsg::Event(event), &mut scratch).await?,
                 Err(broadcast::error::RecvError::Lagged(_)) => {}
                 Err(broadcast::error::RecvError::Closed) => break Ok(()),
+            },
+            changed = state_changes.changed() => match changed {
+                Ok(()) => {
+                    let blocked = hub.locked() || hub.all_covered();
+                    if was_blocked && !blocked {
+                        // Catch up topics that updated while covered or locked.
+                        let catchup: Vec<_> = subs
+                            .topics
+                            .keys()
+                            .filter(|t| subs.pushes(t))
+                            .filter_map(|t| {
+                                hub.latest(t).map(|value| opaline_ipc::TopicUpdate {
+                                    topic: t.clone(),
+                                    value,
+                                })
+                            })
+                            .collect();
+                        if !catchup.is_empty() {
+                            let msg = ServerMsg::Update(opaline_ipc::UpdateBatch {
+                                seq: 0,
+                                at_ms: crate::hub::now_ms(),
+                                updates: catchup,
+                            });
+                            send(&mut writer, &msg, &mut scratch).await?;
+                        }
+                    }
+                    was_blocked = blocked;
+                }
+                Err(_) => break Ok(()),
             },
         }
     };
@@ -451,5 +500,87 @@ mod tests {
         let mut good = UnixStream::connect(&path).await.unwrap();
         hello(&mut good, PROTOCOL_VERSION).await;
         assert!(matches!(recv(&mut good).await, ServerMsg::Welcome(_)));
+    }
+
+    #[tokio::test]
+    async fn essential_topics_push_while_covered_and_sensors_catch_up_on_uncover() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("opaline").join("ipc.sock");
+        let listener = bind(&path).await.unwrap();
+        let monitor = opaline_ipc::MonitorInfo {
+            key: "V-P-S:eDP-1".into(),
+            connector: "eDP-1".into(),
+            vendor: "V".into(),
+            product: "P".into(),
+            serial: "S".into(),
+            x: 0,
+            y: 0,
+            width: 1536,
+            height: 864,
+            scale: 1.25,
+            primary: true,
+            builtin: true,
+            work_area: Some((0, 32, 1536, 765)),
+        };
+        let hub = Hub::new(BackendKind::Native, vec![monitor]);
+        hub.set_covered("eDP-1", true);
+        hub.publish(vec![
+            TopicUpdate {
+                topic: Topic::new(crate::store::TOPIC),
+                value: Value::from("ok"),
+            },
+            TopicUpdate {
+                topic: Topic::new("cpu.load"),
+                value: Value::Num(42.0),
+            },
+        ]);
+        tokio::spawn(serve(hub.clone(), listener));
+
+        let mut stream = UnixStream::connect(&path).await.unwrap();
+        hello(&mut stream, PROTOCOL_VERSION).await;
+        assert!(matches!(recv(&mut stream).await, ServerMsg::Welcome(_)));
+        assert_eq!(
+            recv(&mut stream).await,
+            ServerMsg::Event(CoreEvent::LayerCovered {
+                connector: "eDP-1".into(),
+                covered: true,
+            })
+        );
+
+        let mut scratch = Vec::new();
+        for t in [crate::store::TOPIC, "cpu.load"] {
+            let sub = ClientMsg::Subscribe {
+                topic: Topic::new(t),
+                class: ActivityClass::Ambient,
+            };
+            write_message(&mut stream, &sub, &mut scratch)
+                .await
+                .unwrap();
+        }
+        // `settings` arrives immediately even though the monitor is covered.
+        match recv(&mut stream).await {
+            ServerMsg::Update(batch) => {
+                assert_eq!(batch.updates.len(), 1);
+                assert_eq!(batch.updates[0].topic.as_str(), crate::store::TOPIC);
+            }
+            other => panic!("expected settings update, got {other:?}"),
+        }
+
+        // Uncovering replays `cpu.load` in a catch-up batch.
+        hub.set_covered("eDP-1", false);
+        let mut saw_cpu = false;
+        for _ in 0..3 {
+            match recv(&mut stream).await {
+                ServerMsg::Update(batch)
+                    if batch.updates.iter().any(|u| u.topic.as_str() == "cpu.load") =>
+                {
+                    saw_cpu = true;
+                    break;
+                }
+                ServerMsg::Event(CoreEvent::LayerCovered { covered: false, .. }) => {}
+                other => panic!("unexpected message on uncover: {other:?}"),
+            }
+        }
+        assert!(saw_cpu, "uncovering must catch up subscribed sensor topics");
     }
 }

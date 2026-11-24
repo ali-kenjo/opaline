@@ -31,10 +31,10 @@ fn label_for(connector: &str) -> String {
 
 /// Where a layer window goes, in logical pixels.
 ///
-/// Instant mode covers the monitor's **work area** (without the top bar and the dock): Mutter
-/// constrains normal X11 windows that overlap panels and moved a full-monitor window onto
-/// the wrong monitor in the Phase 0 spike. The widget grid only uses the work area anyway.
-/// Native mode covers the whole monitor; the helper places it.
+/// Both modes cover the monitor's **work area** (without the top bar and the dock): Mutter
+/// constrains normal windows away from struts, and the widget grid only uses the work area
+/// anyway (ADR 0008). Native mode gets work areas from the shell helper; Instant mode reads
+/// them from GDK/X11 `_GTK_WORKAREAS_D*`.
 fn target_geometry(
     app: &AppHandle,
     monitor: &MonitorInfo,
@@ -45,6 +45,15 @@ fn target_geometry(
         LogicalSize::new(f64::from(monitor.width), f64::from(monitor.height)),
     );
     if backend == BackendKind::Native {
+        if let Some((x, y, w, h)) = monitor.work_area
+            && w > 0
+            && h > 0
+        {
+            return (
+                LogicalPosition::new(f64::from(x), f64::from(y)),
+                LogicalSize::new(f64::from(w), f64::from(h)),
+            );
+        }
         return full;
     }
     let work_area = app.available_monitors().ok().and_then(|monitors| {
