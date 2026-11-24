@@ -1,6 +1,7 @@
 //! Memory: usage, swap, zswap and pressure (brief §6 "Memory").
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
+use std::time::Duration;
 
 use opaline_ipc::{Availability, TopicUpdate, Value};
 
@@ -14,6 +15,7 @@ pub const SWAP: &str = "memory.swap";
 pub const SWAP_PERCENT: &str = "memory.swapPercent";
 pub const ZSWAP: &str = "memory.zswap";
 pub const PRESSURE: &str = "memory.pressure";
+pub const INFO: &str = "memory.info";
 
 const TOPICS: &[TopicDesc] = &[
     TopicDesc::new(USAGE),
@@ -22,7 +24,176 @@ const TOPICS: &[TopicDesc] = &[
     TopicDesc::new(SWAP_PERCENT),
     TopicDesc::new(ZSWAP),
     TopicDesc::new(PRESSURE),
+    TopicDesc::every(INFO, Duration::from_secs(60)),
 ];
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+struct DimmRaw {
+    size_b: Option<u64>,
+    mem_type: Option<String>,
+    form_factor: Option<String>,
+    speed_mts: Option<u64>,
+    configured_speed_mts: Option<u64>,
+    manufacturer: Option<String>,
+    part_number: Option<String>,
+    locator: Option<String>,
+}
+
+fn clean_dmi_str(raw: &str) -> Option<String> {
+    let s = raw.trim();
+    if s.is_empty()
+        || s.eq_ignore_ascii_case("Not Specified")
+        || s.eq_ignore_ascii_case("Unknown")
+        || s.eq_ignore_ascii_case("None")
+        || s.eq_ignore_ascii_case("To Be Filled By O.E.M.")
+    {
+        return None;
+    }
+    Some(s.to_owned())
+}
+
+fn format_stick_size(bytes: u64) -> String {
+    const GIB: u64 = 1024 * 1024 * 1024;
+    const MIB: u64 = 1024 * 1024;
+    if bytes >= GIB && bytes.is_multiple_of(GIB) {
+        format!("{} GB", bytes / GIB)
+    } else if bytes >= GIB {
+        format!("{:.1} GB", bytes as f64 / GIB as f64)
+    } else {
+        format!("{} MB", bytes / MIB)
+    }
+}
+
+/// Parses systemd-udevd's world-readable `/run/udev/data/+dmi:id` SMBIOS memory properties
+/// (`MEMORY_ARRAY_*` and `MEMORY_DEVICE_<n>_*`), requiring no root privileges.
+pub fn parse_udev_dmi_memory(text: &str) -> Option<Value> {
+    let mut slots_total: Option<u64> = None;
+    let mut max_capacity_b: Option<u64> = None;
+    let mut devices: BTreeMap<u32, DimmRaw> = BTreeMap::new();
+
+    for line in text.lines() {
+        let Some(rest) = line.strip_prefix("E:") else {
+            continue;
+        };
+        let Some((key, val)) = rest.split_once('=') else {
+            continue;
+        };
+        match key {
+            "MEMORY_ARRAY_NUM_DEVICES" => {
+                slots_total = val.trim().parse().ok();
+            }
+            "MEMORY_ARRAY_MAX_CAPACITY" => {
+                max_capacity_b = val.trim().parse().ok().filter(|&v| v > 0);
+            }
+            _ => {
+                if let Some(after) = key.strip_prefix("MEMORY_DEVICE_")
+                    && let Some((idx_s, field)) = after.split_once('_')
+                    && let Ok(idx) = idx_s.parse::<u32>()
+                {
+                    let dev = devices.entry(idx).or_default();
+                    match field {
+                        "SIZE" => dev.size_b = val.trim().parse().ok().filter(|&v| v > 0),
+                        "TYPE" => dev.mem_type = clean_dmi_str(val),
+                        "FORM_FACTOR" => dev.form_factor = clean_dmi_str(val),
+                        "SPEED_MTS" => dev.speed_mts = val.trim().parse().ok().filter(|&v| v > 0),
+                        "CONFIGURED_SPEED_MTS" => {
+                            dev.configured_speed_mts = val.trim().parse().ok().filter(|&v| v > 0);
+                        }
+                        "MANUFACTURER" => dev.manufacturer = clean_dmi_str(val),
+                        "PART_NUMBER" => dev.part_number = clean_dmi_str(val),
+                        "LOCATOR" => dev.locator = clean_dmi_str(val),
+                        _ => {}
+                    }
+                }
+            }
+        }
+    }
+
+    if slots_total.is_none() && devices.is_empty() {
+        return None;
+    }
+
+    let populated: Vec<&DimmRaw> = devices.values().filter(|d| d.size_b.is_some()).collect();
+    let slots_used = populated.len() as u64;
+    let total = slots_total.unwrap_or(devices.len() as u64).max(slots_used);
+
+    let configured_speed = populated
+        .iter()
+        .filter_map(|d| d.configured_speed_mts)
+        .max();
+    let rated_speed = populated.iter().filter_map(|d| d.speed_mts).max();
+    let speed_mts = configured_speed.or(rated_speed);
+
+    let mem_type = populated.iter().find_map(|d| d.mem_type.clone());
+    let form_factor = populated.iter().find_map(|d| d.form_factor.clone());
+
+    let unique_str = |extract: fn(&DimmRaw) -> Option<&str>| -> Option<String> {
+        let mut seen = Vec::new();
+        for d in &populated {
+            if let Some(v) = extract(d)
+                && !seen.iter().any(|x: &String| x == v)
+            {
+                seen.push(v.to_owned());
+            }
+        }
+        (!seen.is_empty()).then(|| seen.join(", "))
+    };
+    let manufacturer = unique_str(|d| d.manufacturer.as_deref());
+    let part_number = unique_str(|d| d.part_number.as_deref());
+
+    let sizes: Vec<u64> = populated.iter().filter_map(|d| d.size_b).collect();
+    let sticks = if sizes.is_empty() {
+        None
+    } else if sizes.iter().all(|&s| s == sizes[0]) {
+        Some(format!("{} × {}", sizes.len(), format_stick_size(sizes[0])))
+    } else {
+        Some(
+            sizes
+                .iter()
+                .map(|&s| format_stick_size(s))
+                .collect::<Vec<_>>()
+                .join(" + "),
+        )
+    };
+
+    let modules = Value::List(
+        populated
+            .iter()
+            .map(|d| {
+                Value::map([
+                    ("sizeB", Value::from(d.size_b.map(|v| v as f64))),
+                    ("type", Value::from(d.mem_type.clone())),
+                    ("formFactor", Value::from(d.form_factor.clone())),
+                    ("speedMTs", Value::from(d.speed_mts.map(|v| v as f64))),
+                    (
+                        "configuredSpeedMTs",
+                        Value::from(d.configured_speed_mts.map(|v| v as f64)),
+                    ),
+                    ("manufacturer", Value::from(d.manufacturer.clone())),
+                    ("partNumber", Value::from(d.part_number.clone())),
+                    ("locator", Value::from(d.locator.clone())),
+                ])
+            })
+            .collect(),
+    );
+
+    Some(Value::map([
+        ("slotsUsed", Value::Num(slots_used as f64)),
+        ("slotsTotal", Value::Num(total as f64)),
+        ("speedMTs", Value::from(speed_mts.map(|v| v as f64))),
+        ("ratedSpeedMTs", Value::from(rated_speed.map(|v| v as f64))),
+        ("type", Value::from(mem_type)),
+        ("formFactor", Value::from(form_factor)),
+        ("sticks", Value::from(sticks)),
+        ("manufacturer", Value::from(manufacturer)),
+        ("partNumber", Value::from(part_number)),
+        (
+            "maxCapacityB",
+            Value::from(max_capacity_b.map(|v| v as f64)),
+        ),
+        ("modules", modules),
+    ]))
+}
 
 /// `/proc/meminfo` as a map from field name to bytes.
 pub fn parse_meminfo(text: &str) -> HashMap<&str, u64> {
@@ -91,6 +262,7 @@ fn percent(part: u64, whole: u64) -> f64 {
 pub struct Memory {
     meminfo: Option<HotFile>,
     pressure: Option<HotFile>,
+    dmi_info: Option<Value>,
     root: Root,
 }
 
@@ -104,9 +276,14 @@ impl std::fmt::Debug for Memory {
 
 impl Memory {
     pub fn new(root: Root) -> Self {
+        let dmi_info = root
+            .read("/run/udev/data/+dmi:id")
+            .ok()
+            .and_then(|raw| parse_udev_dmi_memory(&raw));
         Self {
             meminfo: root.open("/proc/meminfo").ok(),
             pressure: root.open("/proc/pressure/memory").ok(),
+            dmi_info,
             root,
         }
     }
@@ -161,6 +338,16 @@ impl Provider for Memory {
                 ZSWAP,
                 Availability::Unavailable {
                     reason: "zswap-disabled".into(),
+                },
+            )
+        };
+        probe = if self.dmi_info.is_some() {
+            probe.available(INFO)
+        } else {
+            probe.missing(
+                INFO,
+                Availability::Unavailable {
+                    reason: "no-dmi-memory-info".into(),
                 },
             )
         };
@@ -257,6 +444,14 @@ impl Provider for Memory {
                 .map_or_else(|| Value::unavailable("psi-disabled"), |p| p.to_value());
             out.push(update(PRESSURE, value));
         }
+        if cx.is_due(INFO) {
+            out.push(update(
+                INFO,
+                self.dmi_info
+                    .clone()
+                    .unwrap_or_else(|| Value::unavailable("no-dmi-memory-info")),
+            ));
+        }
         Ok(out)
     }
 }
@@ -326,5 +521,39 @@ mod tests {
         let u = usage(&info).unwrap();
         assert_eq!(u.available, 400 * 1024);
         assert_eq!(u.used, 600 * 1024);
+    }
+
+    #[test]
+    fn parses_udev_dmi_memory_slots_and_speed() {
+        let sample = "\
+E:MEMORY_ARRAY_NUM_DEVICES=2
+E:MEMORY_ARRAY_MAX_CAPACITY=34359738368
+E:MEMORY_DEVICE_0_SIZE=8589934592
+E:MEMORY_DEVICE_0_FORM_FACTOR=SODIMM
+E:MEMORY_DEVICE_0_TYPE=DDR4
+E:MEMORY_DEVICE_0_SPEED_MTS=3200
+E:MEMORY_DEVICE_0_CONFIGURED_SPEED_MTS=2933
+E:MEMORY_DEVICE_0_MANUFACTURER=SK Hynix
+E:MEMORY_DEVICE_0_PART_NUMBER=HMA81GS6DJR8N-XN
+E:MEMORY_DEVICE_1_SIZE=8589934592
+E:MEMORY_DEVICE_1_FORM_FACTOR=SODIMM
+E:MEMORY_DEVICE_1_TYPE=DDR4
+E:MEMORY_DEVICE_1_SPEED_MTS=3200
+E:MEMORY_DEVICE_1_CONFIGURED_SPEED_MTS=2933
+E:MEMORY_DEVICE_1_MANUFACTURER=SK Hynix
+E:MEMORY_DEVICE_1_PART_NUMBER=HMA81GS6DJR8N-XN
+";
+        let v = parse_udev_dmi_memory(sample).unwrap();
+        let Value::Map(m) = v else { panic!() };
+        assert_eq!(m["slotsUsed"], Value::Num(2.0));
+        assert_eq!(m["slotsTotal"], Value::Num(2.0));
+        assert_eq!(m["speedMTs"], Value::Num(2933.0));
+        assert_eq!(m["ratedSpeedMTs"], Value::Num(3200.0));
+        assert_eq!(m["type"], Value::from("DDR4"));
+        assert_eq!(m["formFactor"], Value::from("SODIMM"));
+        assert_eq!(m["sticks"], Value::from("2 × 8 GB"));
+        assert_eq!(m["manufacturer"], Value::from("SK Hynix"));
+        assert_eq!(m["partNumber"], Value::from("HMA81GS6DJR8N-XN"));
+        assert_eq!(parse_udev_dmi_memory("E:ID_VENDOR=HP\n"), None);
     }
 }

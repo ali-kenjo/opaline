@@ -51,6 +51,8 @@ pub enum Surface {
     Opaque,
     /// A solid custom color (`surfaceColor`), still with the chosen transparency.
     Color,
+    /// Completely transparent / frameless: widget content floats directly on the wallpaper.
+    Clear,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

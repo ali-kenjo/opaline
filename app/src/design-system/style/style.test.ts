@@ -70,7 +70,9 @@ describe("style", () => {
       roles,
     );
     expect(colored.tint).toEqual([255, 0, 0]);
-    expect(colored.alpha).toBeCloseTo(0.12);
+    expect(colored.alpha).toBeCloseTo(0);
+    const clear = glassOptions({ ...BUILTIN_STYLE, surface: "clear" }, roles);
+    expect(clear.frameless).toBe(true);
     const white = glassOptions({ ...BUILTIN_STYLE, textColor: "#ffffff" }, roles);
     expect(white.textLuminance).toBeCloseTo(1);
   });

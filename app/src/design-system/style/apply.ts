@@ -28,9 +28,11 @@ export function hexToRgba(hex: string): [number, number, number, number] {
   return [v(0), v(2), v(4), n.length === 8 ? v(6) / 255 : 1];
 }
 
-/** Transparency 0 (solid) … 100 (clearest) to the glass's base tint alpha. */
+/** Transparency 0 (solid) … 100 (completely clear) to the glass's base tint alpha. */
 export function transparencyAlpha(t: number): number {
-  return 0.12 + (1 - Math.min(100, Math.max(0, t)) / 100) * 0.88;
+  const c = Math.min(100, Math.max(0, t));
+  if (c <= 60) return 1 - (c / 60) * 0.528;
+  return 0.472 * (1 - (c - 60) / 40);
 }
 
 export interface ColorContext {
@@ -147,6 +149,7 @@ export function glassOptions(style: ResolvedStyle, roles: Roles): Omit<GlassOpti
   return {
     tint,
     alpha: style.surface === "opaque" ? 1 : transparencyAlpha(style.transparency),
+    frameless: style.surface === "clear",
     legibility: style.legibility,
     textLuminance: luminance(text[0], text[1], text[2]),
     look,

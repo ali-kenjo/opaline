@@ -361,3 +361,110 @@
   right: 24px;
   z-index: 40;
 }
+
+.widgetPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.widgetPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid rgb(var(--md-outline-variant) / 0.55);
+  background: rgb(var(--md-surface-container-high));
+  color: rgb(var(--md-on-surface));
+  font: 500 13px/1.2 var(--font-ui);
+  cursor: pointer;
+}
+
+.widgetPill:hover {
+  border-color: rgb(var(--md-primary));
+}
+
+.widgetPillActive {
+  background: rgb(var(--md-primary));
+  color: rgb(var(--md-on-primary));
+  border-color: transparent;
+}
+
+.widgetPillSub {
+  font-size: 11px;
+  opacity: 0.72;
+}
+
+.editorBox {
+  background: rgb(var(--md-surface-container-high));
+  border: 1px solid rgb(var(--md-outline-variant) / 0.4);
+  border-radius: 18px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.editorSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fieldChecklist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: rgb(var(--md-surface-container));
+}
+
+.fieldRowOff {
+  opacity: 0.68;
+}
+
+.fieldName {
+  flex: 1;
+  font: 500 13.5px/1.2 var(--font-ui);
+}
+
+.fieldOrder {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.miniBtn {
+  border: 0;
+  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: rgb(var(--md-on-surface-variant));
+  cursor: pointer;
+}
+
+.miniBtn:hover:not(:disabled) {
+  background: rgb(var(--md-surface-container-highest));
+  color: rgb(var(--md-on-surface));
+}
+
+.miniBtn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}

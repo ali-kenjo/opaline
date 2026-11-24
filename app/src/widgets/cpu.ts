@@ -23,6 +23,16 @@ const POWER = "cpu.packagePower";
 const PRESSURE = "cpu.pressure";
 const THROTTLE = "cpu.throttle";
 const LOADAVG = "system.loadavg";
+const UPTIME = "system.uptime";
+
+function formatUptime(sec: number): string {
+  const d = Math.floor(sec / 86400);
+  const h = Math.floor((sec % 86400) / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  if (d > 0) return `${String(d)} d ${String(h)} h`;
+  if (h > 0) return `${String(h)} h ${String(m).padStart(2, "0")} m`;
+  return `${String(m)} min`;
+}
 
 const tempUnit = (c: ReadCtx) => c.content.opt<TempUnit>("tempUnit");
 const freqUnit = (c: ReadCtx) => c.content.opt<FreqUnit>("freqUnit");
@@ -188,7 +198,7 @@ export const cpu: WidgetDef = {
     },
     {
       id: "model",
-      label: "Model",
+      label: "CPU model",
       icon: "memory",
       topics: [INFO],
       hero: false,
@@ -205,6 +215,47 @@ export const cpu: WidgetDef = {
       },
     },
     {
+      id: "cache",
+      label: "Cache",
+      icon: "layers",
+      topics: [INFO],
+      hero: false,
+      read: (c) => {
+        const v = text(map(c.get(INFO))?.cache);
+        return v ? { text: v } : null;
+      },
+    },
+    {
+      id: "freqRange",
+      label: "Clock range",
+      icon: "bolt",
+      topics: [INFO],
+      hero: false,
+      read: (c) => {
+        const min = infoNum(c, "minMHz");
+        const max = infoNum(c, "maxMHz");
+        if (max === null) return null;
+        const u = freqUnit(c);
+        return {
+          text:
+            min !== null
+              ? `${frequency(min, u, 1)} – ${frequency(max, u, 1)}`
+              : frequency(max, u, 1),
+        };
+      },
+    },
+    {
+      id: "driver",
+      label: "Scaling driver",
+      icon: "developer_board",
+      topics: [INFO],
+      hero: false,
+      read: (c) => {
+        const d = text(map(c.get(INFO))?.driver);
+        return d ? { text: d } : null;
+      },
+    },
+    {
       id: "governor",
       label: "Governor",
       icon: "tune",
@@ -213,6 +264,29 @@ export const cpu: WidgetDef = {
       read: (c) => {
         const g = text(map(c.get(INFO))?.governor);
         return g ? { text: g } : null;
+      },
+    },
+    {
+      id: "arch",
+      label: "Architecture",
+      icon: "info",
+      topics: [INFO],
+      hero: false,
+      read: (c) => {
+        const a = text(map(c.get(INFO))?.arch);
+        const v = text(map(c.get(INFO))?.vendor);
+        return a ? { text: v ? `${v} · ${a}` : a } : null;
+      },
+    },
+    {
+      id: "uptime",
+      label: "Uptime",
+      icon: "schedule",
+      topics: [UPTIME],
+      hero: false,
+      read: (c) => {
+        const s = num(c.get(UPTIME));
+        return s === null ? null : { text: formatUptime(s), value: s };
       },
     },
   ],

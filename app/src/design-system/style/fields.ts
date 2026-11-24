@@ -140,6 +140,7 @@ export const STYLE_FIELDS: readonly StyleField[] = [
     options: [
       { value: "glass", label: "Glass" },
       { value: "tinted", label: "Tinted glass" },
+      { value: "clear", label: "Transparent (frameless)" },
       { value: "opaque", label: "Solid" },
       { value: "color", label: "Custom color" },
     ],
@@ -170,7 +171,7 @@ export const STYLE_FIELDS: readonly StyleField[] = [
     step: 1,
     unit: "%",
     ends: ["Solid", "Clear"],
-    when: (s) => s.surface !== "opaque",
+    when: (s) => s.surface !== "opaque" && s.surface !== "clear",
   },
   {
     key: "blur",
@@ -181,7 +182,7 @@ export const STYLE_FIELDS: readonly StyleField[] = [
     max: 100,
     step: 1,
     unit: "%",
-    when: (s) => s.surface !== "opaque",
+    when: (s) => s.surface !== "opaque" && s.surface !== "clear",
   },
   {
     key: "refraction",
@@ -192,7 +193,7 @@ export const STYLE_FIELDS: readonly StyleField[] = [
     max: 100,
     step: 1,
     unit: "%",
-    when: (s) => s.surface !== "opaque",
+    when: (s) => s.surface !== "opaque" && s.surface !== "clear",
   },
   {
     key: "rim",
@@ -203,6 +204,7 @@ export const STYLE_FIELDS: readonly StyleField[] = [
     max: 100,
     step: 1,
     unit: "%",
+    when: (s) => s.surface !== "clear",
   },
   {
     key: "grain",
@@ -213,6 +215,7 @@ export const STYLE_FIELDS: readonly StyleField[] = [
     max: 100,
     step: 1,
     unit: "%",
+    when: (s) => s.surface !== "clear",
   },
   {
     key: "shadow",
@@ -223,6 +226,7 @@ export const STYLE_FIELDS: readonly StyleField[] = [
     max: 100,
     step: 1,
     unit: "%",
+    when: (s) => s.surface !== "clear",
   },
   {
     key: "borderWidth",

@@ -21,7 +21,7 @@ export interface StatLayoutProps {
 }
 
 /** How many rows fit beside / under the hero per size class. */
-const ROWS: Record<SizeClass, number> = { "1x1": 0, "2x1": 0, "4x1": 2, S: 2, M: 4, L: 8, XL: 12 };
+const ROWS: Record<SizeClass, number> = { "1x1": 0, "2x1": 0, "4x1": 2, S: 3, M: 6, L: 10, XL: 16 };
 const RING: Record<SizeClass, number> = {
   "1x1": 0,
   "2x1": 0,

@@ -476,6 +476,8 @@ fn attach_crash_recovery(window: &tauri::WebviewWindow) {
     let reloads = Arc::new(Mutex::new((Instant::now(), 0u32)));
     if let Err(error) = window.with_webview(move |platform| {
         let webview = platform.inner();
+        // Suppress WebKitGTK's default browser menu (Back/Forward/Stop/Reload) on the desktop layer.
+        webview.connect_context_menu(|_, _, _, _| true);
         webview.connect_web_process_terminated(move |wv, reason| {
             let attempt = {
                 let mut state = lock(&reloads);
@@ -554,7 +556,11 @@ fn to_int(v: f64) -> i32 {
     v.round().clamp(f64::from(i32::MIN), f64::from(i32::MAX)) as i32
 }
 
-/// Sets the input shape of the window's GDK surface to the union of `rects`.
+/// Sets the input shape of the window to the union of `rects`.
+///
+/// Applies the region on the `GtkWindow` widget (not only its `GdkWindow`) so GTK3 Wayland
+/// commits `wl_surface.set_input_region` and preserves it across realizes, resizes, and
+/// configures; `queue_draw` forces a commit even when the layer is static.
 pub fn set_input_region(window: &tauri::WebviewWindow, rects: &[Rect]) {
     let target = window.clone();
     let rects = rects.to_vec();
@@ -565,10 +571,6 @@ pub fn set_input_region(window: &tauri::WebviewWindow, rects: &[Rect]) {
                 tracing::warn!(%error, "no GTK window for the input region");
                 return;
             }
-        };
-        let Some(gdk_window) = gtk_window.window() else {
-            tracing::debug!("GTK window not realized yet; input region skipped");
-            return;
         };
         let region = gtk::cairo::Region::create();
         for r in &rects {
@@ -583,7 +585,11 @@ pub fn set_input_region(window: &tauri::WebviewWindow, rects: &[Rect]) {
                 return;
             }
         }
-        gdk_window.input_shape_combine_region(&region, 0, 0);
+        gtk_window.input_shape_combine_region(Some(&region));
+        if let Some(gdk_window) = gtk_window.window() {
+            gdk_window.input_shape_combine_region(&region, 0, 0);
+        }
+        gtk_window.queue_draw();
     });
     if let Err(error) = result {
         tracing::warn!(%error, "could not schedule the input region update");

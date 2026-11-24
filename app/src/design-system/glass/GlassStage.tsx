@@ -30,6 +30,8 @@ export interface GlassOptions {
   tint?: readonly [number, number, number] | undefined;
   /** Base tint alpha 0–1 (the widget's transparency); default: from the stage's slider. */
   alpha?: number | undefined;
+  /** Frameless transparent mode: skip drawing the glass background card completely. */
+  frameless?: boolean | undefined;
   /** Adaptive legibility (default on): raise the tint until text keeps 4.5 : 1. */
   legibility?: boolean | undefined;
   /** Luminance of this widget's text, when its colors differ from the stage's. */
@@ -141,6 +143,7 @@ export function GlassStage(props: GlassStageProps) {
     const stageRect = stageRef.current.getBoundingClientRect();
     const raw: { reg: Registration; x: number; y: number; w: number; h: number }[] = [];
     for (const r of regs.current.values()) {
+      if (r.options.frameless) continue;
       const b = r.el.getBoundingClientRect();
       raw.push({
         reg: r,
@@ -306,12 +309,12 @@ export interface GlassProps extends GlassOptions {
 /** A glass surface: drawn by the compositor, or by CSS when WebGL2 is missing. */
 export function Glass(props: GlassProps) {
   const { children, className, style, label, radius, dimmed, lifted } = props;
-  const { tint, alpha, legibility, textLuminance, look, noHover = false } = props;
+  const { tint, alpha, frameless, legibility, textLuminance, look, noHover = false } = props;
   const stage = useContext(Ctx);
   const el = useRef<HTMLDivElement>(null);
   const id = useId();
   // Style objects are new on every render; register again only when their values change.
-  const key = JSON.stringify([tint, alpha, legibility, textLuminance, look]);
+  const key = JSON.stringify([tint, alpha, frameless, legibility, textLuminance, look]);
   const options = useMemo<GlassOptions>(
     () => ({
       radius,
@@ -319,6 +322,7 @@ export function Glass(props: GlassProps) {
       lifted: lifted ?? 0,
       tint,
       alpha,
+      frameless,
       legibility,
       textLuminance,
       look,
@@ -345,7 +349,13 @@ export function Glass(props: GlassProps) {
     stage?.update(id, { hovered: false, pointer: null });
   };
 
-  const fb = stage && !stage.compositor ? stage.fallback : null;
+  const fb = stage && !stage.compositor && !frameless ? stage.fallback : null;
+  const framelessBorder: React.CSSProperties | undefined =
+    frameless && look?.borderWidth && look.borderWidth > 0 && look.borderColor
+      ? {
+          border: `${String(look.borderWidth)}px solid rgb(${String(Math.round(look.borderColor[0] * 255))} ${String(Math.round(look.borderColor[1] * 255))} ${String(Math.round(look.borderColor[2] * 255))} / ${String(look.borderColor[3])})`,
+        }
+      : undefined;
   const fallbackStyle: React.CSSProperties | undefined = fb
     ? {
         ["--glass-tint" as string]: tint ? `${tint[0]} ${tint[1]} ${tint[2]}` : fb.tintCss,
@@ -357,7 +367,7 @@ export function Glass(props: GlassProps) {
             }
           : {}),
       }
-    : undefined;
+    : framelessBorder;
 
   return (
     <div

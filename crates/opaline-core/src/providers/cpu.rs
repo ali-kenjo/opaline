@@ -97,13 +97,25 @@ pub fn parse_uptime(content: &str) -> Option<f64> {
         .filter(|v: &f64| v.is_finite() && *v >= 0.0)
 }
 
-/// Static facts from `/proc/cpuinfo`: model name, logical CPUs, and `cpu MHz` per CPU (the
-/// clock source in VMs without cpufreq).
+/// Static facts from `/proc/cpuinfo`: model name, vendor, cache, logical CPUs, and `cpu MHz`
+/// per CPU (the clock source in VMs without cpufreq).
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct CpuInfo {
     pub model: Option<String>,
+    pub vendor: Option<String>,
+    pub cache_size: Option<String>,
     pub threads: usize,
     pub mhz: Vec<f64>,
+}
+
+fn friendly_vendor(raw: &str) -> String {
+    match raw {
+        "GenuineIntel" => "Intel".into(),
+        "AuthenticAMD" => "AMD".into(),
+        "CentaurHauls" => "VIA".into(),
+        "HygonGenuine" => "Hygon".into(),
+        other => other.into(),
+    }
 }
 
 pub fn parse_cpuinfo(text: &str) -> CpuInfo {
@@ -116,6 +128,12 @@ pub fn parse_cpuinfo(text: &str) -> CpuInfo {
         match key {
             "processor" => info.threads += 1,
             "model name" if info.model.is_none() => info.model = Some(value.to_owned()),
+            "vendor_id" if info.vendor.is_none() && !value.is_empty() => {
+                info.vendor = Some(friendly_vendor(value));
+            }
+            "cache size" if info.cache_size.is_none() && !value.is_empty() => {
+                info.cache_size = Some(value.to_owned());
+            }
             "cpu MHz" => {
                 if let Ok(mhz) = value.parse() {
                     info.mhz.push(mhz);
@@ -125,6 +143,90 @@ pub fn parse_cpuinfo(text: &str) -> CpuInfo {
         }
     }
     info
+}
+
+fn parse_cache_kib(raw: &str) -> Option<u64> {
+    let s = raw.trim();
+    if let Some(n) = s.strip_suffix('K').or_else(|| s.strip_suffix("KB")) {
+        return n.trim().parse::<u64>().ok();
+    }
+    if let Some(n) = s.strip_suffix('M').or_else(|| s.strip_suffix("MB")) {
+        return n.trim().parse::<u64>().ok().map(|v| v * 1024);
+    }
+    if let Some(n) = s.strip_suffix("kB") {
+        return n.trim().parse::<u64>().ok();
+    }
+    s.parse::<u64>().ok()
+}
+
+fn format_cache_kib(kib: u64) -> String {
+    if kib >= 1024 && kib.is_multiple_of(1024) {
+        format!("{} MB", kib / 1024)
+    } else if kib >= 1024 {
+        format!("{:.1} MB", kib as f64 / 1024.0)
+    } else {
+        format!("{kib} KB")
+    }
+}
+
+/// Reads L1/L2/L3 cache sizes from `/sys/devices/system/cpu/cpu0/cache/index*`, falling back to
+/// `/proc/cpuinfo`'s `cache size` for L3 if sysfs cache entries aren't present.
+fn read_cpu_caches(
+    root: &Root,
+    fallback_l3: Option<&str>,
+) -> (
+    Option<String>,
+    Option<String>,
+    Option<String>,
+    Option<String>,
+) {
+    let mut l1_kib = 0u64;
+    let mut l2_kib = 0u64;
+    let mut l3_kib = 0u64;
+    let base = "/sys/devices/system/cpu/cpu0/cache";
+    for idx in root.list(base) {
+        if !idx.starts_with("index") {
+            continue;
+        }
+        let dir = format!("{base}/{idx}");
+        let Some(level) = root.read_u64(format!("{dir}/level")) else {
+            continue;
+        };
+        let Some(size_str) = root.read_trim(format!("{dir}/size")) else {
+            continue;
+        };
+        let Some(kib) = parse_cache_kib(&size_str) else {
+            continue;
+        };
+        match level {
+            1 => l1_kib = l1_kib.saturating_add(kib),
+            2 => l2_kib = l2_kib.max(kib),
+            3 => l3_kib = l3_kib.max(kib),
+            _ => {}
+        }
+    }
+    if l3_kib == 0
+        && let Some(fb) = fallback_l3.and_then(parse_cache_kib)
+    {
+        l3_kib = fb;
+    }
+    let l1 = (l1_kib > 0).then(|| format_cache_kib(l1_kib));
+    let l2 = (l2_kib > 0).then(|| format_cache_kib(l2_kib));
+    let l3 = (l3_kib > 0).then(|| format_cache_kib(l3_kib));
+    let mut parts = Vec::new();
+    if let Some(ref v) = l3 {
+        parts.push(format!("L3 {v}"));
+    }
+    if let Some(ref v) = l2 {
+        parts.push(format!("L2 {v}"));
+    }
+    if parts.is_empty()
+        && let Some(ref v) = l1
+    {
+        parts.push(format!("L1 {v}"));
+    }
+    let summary = (!parts.is_empty()).then(|| parts.join(" · "));
+    (l1, l2, l3, summary)
 }
 
 /// Where the temperatures come from.
@@ -347,8 +449,17 @@ impl Cpu {
             cpuinfo.threads
         };
 
+        let (l1_cache, l2_cache, l3_cache, cache_summary) =
+            read_cpu_caches(&root, cpuinfo.cache_size.as_deref());
+
         let info = Value::map([
             ("model", Value::from(cpuinfo.model.clone())),
+            ("vendor", Value::from(cpuinfo.vendor.clone())),
+            ("arch", Value::from(std::env::consts::ARCH)),
+            ("l1Cache", Value::from(l1_cache)),
+            ("l2Cache", Value::from(l2_cache)),
+            ("l3Cache", Value::from(l3_cache)),
+            ("cache", Value::from(cache_summary)),
             ("cores", Value::Num(physical as f64)),
             (
                 "threads",

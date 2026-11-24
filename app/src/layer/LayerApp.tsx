@@ -335,20 +335,37 @@ function GridItems({
           >
             {body}
             {edit && !isDragging ? (
-              <button
-                type="button"
-                className={styles.removeBadge}
-                aria-label="Remove widget"
-                onPointerDown={(e) => {
-                  e.stopPropagation();
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemoveItem(item);
-                }}
-              >
-                <Icon name="remove" size={16} />
-              </button>
+              <>
+                <button
+                  type="button"
+                  className={styles.removeBadge}
+                  aria-label="Remove widget"
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemoveItem(item);
+                  }}
+                >
+                  <Icon name="remove" size={16} />
+                </button>
+                <button
+                  type="button"
+                  className={styles.settingsBadge}
+                  aria-label="Customize widget"
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (item.type === "stack") onEditStack(item.id);
+                    else onOpenSettings(item.id);
+                  }}
+                >
+                  <Icon name="tune" size={15} />
+                </button>
+              </>
             ) : null}
             {edit && item.type === "stack" && !isDragging ? (
               <button
@@ -724,11 +741,18 @@ export function LayerApp() {
   useEffect(
     () =>
       useLayer.subscribe((next, prev) => {
+        if (prev.peek && !next.peek) {
+          setContextMenu(null);
+          setHovered(false);
+        }
         if (prev.edit && !next.edit) {
           setSelectedId(null);
           setPickerOpen(false);
           setPresetsOpen(false);
           setStackEditId(null);
+          setContextMenu(null);
+          setUndoToast(null);
+          setHovered(false);
           setDrag(null);
           setResize(null);
           setUndoStack([]);
@@ -1250,7 +1274,8 @@ export function LayerApp() {
     [width, height],
   );
 
-  // Input region: full window whenever any overlay, Peek, or Edit mode is open; else exact widget rects.
+  // Input region: full window only while Edit mode, Peek, or an overlay is open;
+  // otherwise empty so every click on the desktop (including over widgets) passes straight through.
   useLayoutEffect(() => {
     if (!inTauri) return;
     const full =
@@ -1262,15 +1287,11 @@ export function LayerApp() {
       stackEditId !== null ||
       contextMenu !== null ||
       undoToast !== null;
-    const rects = full
-      ? [{ x: 0, y: 0, width, height }]
-      : displayedItems.map((it) => cellToPx(g, it.x, it.y, it.w, it.h));
+    const rects = full ? [{ x: 0, y: 0, width, height }] : [];
     setInputRegion(rects).catch((e: unknown) => {
       console.error("input region failed", e);
     });
   }, [
-    displayedItems,
-    g,
     peek,
     edit,
     openSettings,
@@ -1396,7 +1417,13 @@ export function LayerApp() {
 
   return (
     <HostContext.Provider value={host}>
-      <div ref={root} className={styles.layer}>
+      <div
+        ref={root}
+        className={styles.layer}
+        onContextMenu={(e) => {
+          e.preventDefault();
+        }}
+      >
         <GlassStage
           wallpaper={wallpaper}
           wallpaperUrl={typeof entry?.glass === "string" ? entry.glass : null}

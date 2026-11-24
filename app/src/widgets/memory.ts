@@ -1,5 +1,5 @@
-// Memory widget: RAM use, what it's used for, swap, zswap and pressure.
-import { type ByteUnit, bytes, map, missingReason, num, percent } from "./format";
+// Memory widget: RAM use, hardware specs (slots, speed, type, sticks, vendor), swap, zswap and pressure.
+import { type ByteUnit, bytes, fixed, map, missingReason, num, percent, text } from "./format";
 import { BYTE_UNIT, levels } from "./options";
 import type { CardStatus, ReadCtx, Reading, WidgetDef } from "./types";
 
@@ -7,6 +7,7 @@ const USAGE = "memory.usage";
 const SWAP = "memory.swap";
 const ZSWAP = "memory.zswap";
 const PRESSURE = "memory.pressure";
+const INFO = "memory.info";
 
 const unit = (c: ReadCtx) => c.content.opt<ByteUnit>("byteUnit");
 const usage = (c: ReadCtx, key: string) => num(map(c.get(USAGE))?.[key]);
@@ -124,6 +125,90 @@ export const memory: WidgetDef = {
               ramp: "load",
               sub: "waiting for memory, 10 s",
             };
+      },
+    },
+    {
+      id: "slots",
+      label: "RAM slots",
+      icon: "grid_view",
+      topics: [INFO],
+      hero: false,
+      read: (c) => {
+        const info = map(c.get(INFO));
+        const used = num(info?.slotsUsed);
+        const total = num(info?.slotsTotal);
+        if (used === null || total === null) return null;
+        const sticks = text(info?.sticks);
+        return {
+          text: sticks
+            ? `${String(used)} / ${String(total)} · ${sticks}`
+            : `${String(used)} / ${String(total)}`,
+        };
+      },
+    },
+    {
+      id: "speed",
+      label: "RAM speed",
+      icon: "speed",
+      topics: [INFO],
+      hero: false,
+      read: (c) => {
+        const info = map(c.get(INFO));
+        const speed = num(info?.speedMTs);
+        if (speed === null) return null;
+        const rated = num(info?.ratedSpeedMTs);
+        return {
+          text:
+            rated !== null && rated !== speed
+              ? `${fixed(speed, 0)} MT/s (${fixed(rated, 0)} max)`
+              : `${fixed(speed, 0)} MT/s`,
+          value: speed,
+        };
+      },
+    },
+    {
+      id: "type",
+      label: "Memory type",
+      icon: "memory",
+      topics: [INFO],
+      hero: false,
+      read: (c) => {
+        const info = map(c.get(INFO));
+        const parts = [text(info?.type), text(info?.formFactor)].filter(Boolean);
+        return parts.length ? { text: parts.join(" ") } : null;
+      },
+    },
+    {
+      id: "manufacturer",
+      label: "Manufacturer",
+      icon: "info",
+      topics: [INFO],
+      hero: false,
+      read: (c) => {
+        const m = text(map(c.get(INFO))?.manufacturer);
+        return m ? { text: m } : null;
+      },
+    },
+    {
+      id: "maxCapacity",
+      label: "Max capacity",
+      icon: "storage",
+      topics: [INFO],
+      hero: false,
+      read: (c) => {
+        const max = num(map(c.get(INFO))?.maxCapacityB);
+        return max === null ? null : { text: bytes(max, unit(c), 0), value: max };
+      },
+    },
+    {
+      id: "partNumber",
+      label: "Part number",
+      icon: "developer_board",
+      topics: [INFO],
+      hero: false,
+      read: (c) => {
+        const p = text(map(c.get(INFO))?.partNumber);
+        return p ? { text: p } : null;
       },
     },
   ],

@@ -253,6 +253,34 @@ export const storage: WidgetDef = {
         return fs ? { text: fs } : null;
       },
     },
+    {
+      id: "device",
+      label: "Device",
+      icon: "storage",
+      topics: [],
+      hero: false,
+      read: (c) => {
+        const v = volume(c);
+        return v ? { text: v.drive } : null;
+      },
+    },
+    {
+      id: "driveKind",
+      label: "Drive type",
+      icon: "info",
+      topics: [],
+      hero: false,
+      read: (c) => {
+        const v = volume(c);
+        if (!v) return null;
+        const bus = text(v.driveInfo.bus)?.toUpperCase();
+        const rot = v.driveInfo.rotational?.kind === "bool" ? v.driveInfo.rotational.v : null;
+        if (bus === "NVME" || v.drive.startsWith("nvme")) return { text: "NVMe SSD" };
+        if (rot === true) return { text: bus ? `${bus} HDD` : "HDD" };
+        if (rot === false) return { text: bus ? `${bus} SSD` : "SSD" };
+        return bus ? { text: bus } : null;
+      },
+    },
   ],
   options: [
     {

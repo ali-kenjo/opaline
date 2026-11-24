@@ -147,11 +147,29 @@
   z-index: 6;
 }
 
+/* Corner customize badge in Edit mode. */
+.settingsBadge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 2px solid rgb(var(--md-surface));
+  background: rgb(var(--md-primary));
+  color: rgb(var(--md-on-primary));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 6;
+}
+
 /* Stack indicator badge in Edit mode to open the stack editor. */
 .stackBadge {
   position: absolute;
   top: -8px;
-  right: -8px;
+  right: 26px;
   height: 26px;
   padding: 0 8px;
   border-radius: 999px;

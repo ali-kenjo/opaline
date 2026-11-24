@@ -34,6 +34,11 @@
     <control>touch</control>
   </recommends>
   <releases>
+    <release version="1.1.0" date="2026-11-24">
+      <description>
+        <p>Opaline 1.1.0: full desktop click-through outside Edit/Peek mode, speaker-monitor PipeWire capture without triggering the GNOME microphone indicator, transparent frameless surface mode, in-app per-widget customizer and transparency controls, 10 audio visualizer styles with color palettes and glow, and expanded CPU, RAM (slots, speed, DDR type, manufacturer), GPU, and storage hardware info fields.</p>
+      </description>
+    </release>
     <release version="1.0.0" date="2026-11-24">
       <description>
         <p>Opaline 1.0.0: fourteen customizable glass widgets, Native GNOME 50 Wayland and Instant Xwayland desktop integration, Android-style Edit mode with stacks and presets, Settings and Onboarding, verified updates, and English, German, and Arabic (RTL) support.</p>

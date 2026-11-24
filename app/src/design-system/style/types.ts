@@ -5,7 +5,7 @@ import type { Variant } from "../color/scheme";
 export type ColorSource = "wallpaper" | "accent" | "custom";
 export type Theme = "auto" | "light" | "dark";
 export type HeroColor = "ramp" | "accent" | "custom";
-export type SurfaceKind = "glass" | "tinted" | "opaque" | "color";
+export type SurfaceKind = "glass" | "tinted" | "opaque" | "color" | "clear";
 export type Density = "compact" | "comfortable" | "spacious";
 export type MotionSpeed = "slow" | "default" | "fast";
 export type AppearanceState = "full" | "dimmed" | "automatic";

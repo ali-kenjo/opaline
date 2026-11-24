@@ -22,6 +22,7 @@ import {
 import { useShellTheme } from "../shell/useShellTheme";
 import styles from "./Settings.module.css";
 import { AboutSection, AlertsSection, BackupSection, DiagnosticsSection } from "./SettingsSections";
+import { WidgetCustomizer } from "./WidgetCustomizer";
 
 type SectionId =
   | "appearance"
@@ -387,25 +388,208 @@ export function SettingsApp() {
               </div>
 
               <div className={styles.card}>
-                <h2 className={styles.cardTitle}>Glass &amp; desktop state</h2>
+                <h2 className={styles.cardTitle}>Glass, transparency &amp; surface</h2>
                 <div className={styles.row}>
                   <div className={styles.rowText}>
-                    <span className={styles.rowLabel}>
-                      Glass tint ({settings.appearance.glass})
+                    <span className={styles.rowLabel}>Background style</span>
+                    <span className={styles.rowHint}>
+                      Choose frosted glass, transparent frameless floating widgets, solid, or custom
+                      color.
                     </span>
-                    <span className={styles.rowHint}>0 = Clear glass · 100 = Deeply tinted</span>
                   </div>
-                  <div style={{ width: 220 }}>
-                    <Slider
-                      value={settings.appearance.glass}
-                      min={0}
-                      max={100}
-                      label="Glass tint"
-                      onChange={(v) => {
-                        void applyPatch({ appearance: { glass: Math.round(v) } });
+                  <select
+                    className={styles.select}
+                    value={settings.style.surface ?? "glass"}
+                    onChange={(e) => {
+                      void applyPatch({ style: { surface: e.target.value } });
+                    }}
+                  >
+                    <option value="glass">Glass</option>
+                    <option value="tinted">Tinted glass</option>
+                    <option value="clear">Transparent (frameless)</option>
+                    <option value="opaque">Solid</option>
+                    <option value="color">Custom color</option>
+                  </select>
+                </div>
+
+                {settings.style.surface === "color" ? (
+                  <div className={styles.row}>
+                    <span className={styles.rowLabel}>Custom background color</span>
+                    <input
+                      type="color"
+                      value={settings.style.surfaceColor ?? "#1e1b2e"}
+                      onChange={(e) => {
+                        void applyPatch({ style: { surfaceColor: e.target.value } });
                       }}
                     />
                   </div>
+                ) : null}
+
+                {settings.style.surface !== "opaque" && settings.style.surface !== "clear" ? (
+                  <>
+                    <div className={styles.row}>
+                      <div className={styles.rowText}>
+                        <span className={styles.rowLabel}>
+                          Transparency ({Math.round(settings.style.transparency ?? 60)}%)
+                        </span>
+                        <span className={styles.rowHint}>
+                          0% = solid tint · 100% = crystal clear glass
+                        </span>
+                      </div>
+                      <div style={{ width: 220 }}>
+                        <Slider
+                          value={settings.style.transparency ?? 60}
+                          min={0}
+                          max={100}
+                          label="Transparency"
+                          onChange={(v) => {
+                            const t = Math.round(v);
+                            void applyPatch({
+                              style: { transparency: t },
+                              appearance: { glass: Math.max(0, Math.min(100, 100 - t)) },
+                            });
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className={styles.row}>
+                      <div className={styles.rowText}>
+                        <span className={styles.rowLabel}>
+                          Extra blur ({Math.round(settings.style.blur ?? 0)}%)
+                        </span>
+                        <span className={styles.rowHint}>
+                          Softens the wallpaper behind glass widgets.
+                        </span>
+                      </div>
+                      <div style={{ width: 220 }}>
+                        <Slider
+                          value={settings.style.blur ?? 0}
+                          min={0}
+                          max={100}
+                          label="Extra blur"
+                          onChange={(v) => {
+                            void applyPatch({ style: { blur: Math.round(v) } });
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className={styles.row}>
+                      <span className={styles.rowLabel}>
+                        Edge highlight ({Math.round(settings.style.rim ?? 50)}%)
+                      </span>
+                      <div style={{ width: 220 }}>
+                        <Slider
+                          value={settings.style.rim ?? 50}
+                          min={0}
+                          max={100}
+                          label="Edge highlight"
+                          onChange={(v) => {
+                            void applyPatch({ style: { rim: Math.round(v) } });
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className={styles.row}>
+                      <span className={styles.rowLabel}>
+                        Shadow ({Math.round(settings.style.shadow ?? 50)}%)
+                      </span>
+                      <div style={{ width: 220 }}>
+                        <Slider
+                          value={settings.style.shadow ?? 50}
+                          min={0}
+                          max={100}
+                          label="Shadow"
+                          onChange={(v) => {
+                            void applyPatch({ style: { shadow: Math.round(v) } });
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </>
+                ) : null}
+
+                <div className={styles.row}>
+                  <span className={styles.rowLabel}>
+                    Border ({(settings.style.borderWidth ?? 0).toFixed(1)} px)
+                  </span>
+                  <div style={{ width: 220 }}>
+                    <Slider
+                      value={settings.style.borderWidth ?? 0}
+                      min={0}
+                      max={4}
+                      step={0.5}
+                      label="Border width"
+                      onChange={(v) => {
+                        void applyPatch({ style: { borderWidth: Math.round(v * 2) / 2 } });
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {(settings.style.borderWidth ?? 0) > 0 ? (
+                  <div className={styles.row}>
+                    <span className={styles.rowLabel}>Border color</span>
+                    <input
+                      type="color"
+                      value={settings.style.borderColor ?? "#ffffff"}
+                      onChange={(e) => {
+                        void applyPatch({ style: { borderColor: e.target.value } });
+                      }}
+                    />
+                  </div>
+                ) : null}
+
+                <div className={styles.row}>
+                  <span className={styles.rowLabel}>
+                    Text size ({Math.round((settings.style.textScale ?? 1) * 100)}%)
+                  </span>
+                  <div style={{ width: 220 }}>
+                    <Slider
+                      value={settings.style.textScale ?? 1}
+                      min={0.75}
+                      max={1.5}
+                      step={0.05}
+                      label="Text size"
+                      onChange={(v) => {
+                        void applyPatch({ style: { textScale: Math.round(v * 20) / 20 } });
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className={styles.row}>
+                  <div className={styles.rowText}>
+                    <span className={styles.rowLabel}>Text shadow</span>
+                    <span className={styles.rowHint}>
+                      Improves legibility on clear or frameless widgets.
+                    </span>
+                  </div>
+                  <Switch
+                    checked={settings.style.textShadow ?? false}
+                    label="Text shadow"
+                    onChange={(v) => {
+                      void applyPatch({ style: { textShadow: v } });
+                    }}
+                  />
+                </div>
+
+                <div className={styles.row}>
+                  <div className={styles.rowText}>
+                    <span className={styles.rowLabel}>Keep text readable (auto-tint)</span>
+                    <span className={styles.rowHint}>
+                      Turn off to let high transparency stay clear even on bright wallpapers.
+                    </span>
+                  </div>
+                  <Switch
+                    checked={settings.style.legibility ?? true}
+                    label="Adaptive legibility"
+                    onChange={(v) => {
+                      void applyPatch({ style: { legibility: v } });
+                    }}
+                  />
                 </div>
 
                 <div className={styles.row}>
@@ -441,7 +625,10 @@ export function SettingsApp() {
                         type="button"
                         className={`${styles.segBtn} ${settings.appearance.density === d ? styles.segActive : ""}`}
                         onClick={() => {
-                          void applyPatch({ appearance: { density: d } });
+                          void applyPatch({
+                            appearance: { density: d },
+                            style: { density: d },
+                          });
                         }}
                       >
                         {d[0]?.toUpperCase()}
@@ -580,6 +767,8 @@ export function SettingsApp() {
 
           {section === "widgets" ? (
             <>
+              <WidgetCustomizer state={state} refresh={refresh} notify={notify} />
+
               <div className={styles.card}>
                 <h2 className={styles.cardTitle}>Weather</h2>
                 <div className={styles.row}>

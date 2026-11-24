@@ -25,6 +25,8 @@ interface GpuInfo {
   name: string;
   discrete: boolean;
   driver: string;
+  pci: string;
+  vendor: string;
 }
 
 function gpus(v: Value | undefined): GpuInfo[] {
@@ -40,6 +42,8 @@ function gpus(v: Value | undefined): GpuInfo[] {
             name: text(g.v.name) ?? `GPU ${String(index)}`,
             discrete: g.v.discrete?.kind === "bool" && g.v.discrete.v,
             driver: text(g.v.driver) ?? "",
+            pci: text(g.v.pci) ?? "",
+            vendor: text(g.v.vendor) ?? "",
           },
         ];
   });
@@ -251,7 +255,7 @@ export const gpu: WidgetDef = {
     },
     {
       id: "name",
-      label: "Model",
+      label: "GPU model",
       icon: "developer_board",
       topics: [],
       hero: false,
@@ -259,6 +263,42 @@ export const gpu: WidgetDef = {
         const i = gpuIndex(c);
         const info = gpus(c.get(LIST)).find((x) => x.index === i);
         return info ? { text: info.name.replace(/\[|\]/g, "") } : null;
+      },
+    },
+    {
+      id: "driver",
+      label: "Driver",
+      icon: "tune",
+      topics: [],
+      hero: false,
+      read: (c) => {
+        const i = gpuIndex(c);
+        const info = gpus(c.get(LIST)).find((x) => x.index === i);
+        return info?.driver ? { text: info.driver } : null;
+      },
+    },
+    {
+      id: "gpuType",
+      label: "Type",
+      icon: "info",
+      topics: [],
+      hero: false,
+      read: (c) => {
+        const i = gpuIndex(c);
+        const info = gpus(c.get(LIST)).find((x) => x.index === i);
+        return info ? { text: info.discrete ? "Discrete" : "Integrated" } : null;
+      },
+    },
+    {
+      id: "pci",
+      label: "PCI slot",
+      icon: "dns",
+      topics: [],
+      hero: false,
+      read: (c) => {
+        const i = gpuIndex(c);
+        const info = gpus(c.get(LIST)).find((x) => x.index === i);
+        return info?.pci ? { text: info.pci } : null;
       },
     },
   ],

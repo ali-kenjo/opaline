@@ -38,6 +38,18 @@ export function moreMocks(load: number): Record<string, Value> {
     "memory.swap": m({ totalB: n(4.29 * GB), usedB: n(0.8 * GB), percent: n(18.6) }),
     "memory.zswap": missing("zswap-disabled"),
     "memory.pressure": m({ some10: n(0.4), some60: n(0.2), some300: n(0.1) }),
+    "memory.info": m({
+      slotsUsed: n(2),
+      slotsTotal: n(2),
+      speedMTs: n(2933),
+      ratedSpeedMTs: n(3200),
+      type: t("DDR4"),
+      formFactor: t("SODIMM"),
+      sticks: t("2 × 8 GB"),
+      manufacturer: t("SK Hynix"),
+      partNumber: t("HMA81GS6DJR8N-XN"),
+      maxCapacityB: n(32 * 1024 ** 3),
+    }),
 
     "gpu.list": l([
       m({ index: n(0), name: t("UHD Graphics 630"), discrete: b(false), driver: t("i915") }),

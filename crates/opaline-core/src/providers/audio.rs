@@ -216,7 +216,11 @@ fn capture_loop(
     let core = context.connect_rc(None).map_err(|e| e.to_string())?;
     let props = pw::properties::properties! {
         *pw::keys::MEDIA_TYPE => "Audio",
-        *pw::keys::MEDIA_CATEGORY => "Capture",
+        *pw::keys::MEDIA_CATEGORY => "Monitor",
+        // Keep `Stream/Input/Audio/Monitor` so WirePlumber still links to the default sink's
+        // monitor ports (following default-sink changes) while `pipewire-pulse` does not expose
+        // it as a PulseAudio `source-output` (which would falsely light up GNOME's mic indicator).
+        *pw::keys::MEDIA_CLASS => "Stream/Input/Audio/Monitor",
         *pw::keys::MEDIA_ROLE => "Music",
         *pw::keys::APP_NAME => "Opaline",
         *pw::keys::NODE_NAME => "opaline-visualizer",
