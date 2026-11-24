@@ -24,6 +24,8 @@ function base(): LayerState {
     values: {},
     geometry: null,
     desktopFocused: null,
+    covered: false,
+    peek: false,
     peekRequests: 0,
     editRequests: 0,
     updatesPaused: false,
@@ -69,5 +71,21 @@ describe("layer reducer", () => {
       event: { event: "monitors-changed", monitors: [moved] },
     });
     expect(next.monitor).toEqual(moved);
+  });
+
+  it("tracks covered state only for its own monitor and syncs Peek", () => {
+    const state = { ...base(), monitor: edp };
+    const other = reduce(state, {
+      kind: "core-event",
+      event: { event: "layer-covered", connector: "HDMI-2", covered: true },
+    });
+    expect(other).toEqual({});
+    const own = reduce(state, {
+      kind: "core-event",
+      event: { event: "layer-covered", connector: "eDP-1", covered: true },
+    });
+    expect(own.covered).toBe(true);
+    const peeking = reduce(state, { kind: "peek", active: true });
+    expect(peeking.peek).toBe(true);
   });
 });

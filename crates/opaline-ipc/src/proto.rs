@@ -228,6 +228,11 @@ pub enum CoreEvent {
     BackendChanged {
         backend: BackendKind,
     },
+    /// Native mode: one monitor's layer is covered by a maximized/fullscreen window (or uncovered).
+    LayerCovered {
+        connector: String,
+        covered: bool,
+    },
 }
 
 /// An action the layer asks core to perform. Core validates every one against its own current
@@ -418,6 +423,10 @@ mod tests {
                 monitors: vec![monitor()],
             }),
             ServerMsg::Event(CoreEvent::UpdatesPaused { paused: true }),
+            ServerMsg::Event(CoreEvent::LayerCovered {
+                connector: "eDP-1".into(),
+                covered: true,
+            }),
             ServerMsg::CommandResult {
                 id: 7,
                 result: CommandResult::Err {

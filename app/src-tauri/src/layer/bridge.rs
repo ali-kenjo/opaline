@@ -56,6 +56,10 @@ pub enum LayerEvent {
         seq: u32,
         levels: Vec<u8>,
     },
+    /// Peek mode across every layer window (kept in sync when any window dismisses it).
+    Peek {
+        active: bool,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -80,6 +84,8 @@ struct Inner {
     /// Latest value of every topic, replayed to a window that attaches after the topic was
     /// subscribed (core sends the latest value only once, to the first subscriber).
     latest: HashMap<Topic, TopicUpdate>,
+    /// Shared Peek state across all monitor windows.
+    peek: bool,
 }
 
 pub struct Bridge {
@@ -109,6 +115,7 @@ impl Bridge {
                 pending: HashMap::new(),
                 geometry: HashMap::new(),
                 latest: HashMap::new(),
+                peek: false,
             }),
             outgoing,
             next_command: AtomicU32::new(1),
@@ -159,6 +166,40 @@ impl Bridge {
         inner.monitors_by_label = monitors;
         let known = &inner.monitors_by_label;
         inner.channels.retain(|label, _| known.contains_key(label));
+    }
+
+    /// Snapshot of every known `(window label, monitor)`, for re-placement on work-area changes.
+    pub fn window_monitors(&self) -> Vec<(String, MonitorInfo)> {
+        self.lock()
+            .monitors_by_label
+            .iter()
+            .map(|(l, m)| (l.clone(), m.clone()))
+            .collect()
+    }
+
+    /// Toggles Peek across every layer window and returns the new state.
+    pub fn toggle_peek(&self) -> bool {
+        let active = {
+            let mut inner = self.lock();
+            inner.peek = !inner.peek;
+            inner.peek
+        };
+        self.broadcast(&LayerEvent::Peek { active });
+        active
+    }
+
+    /// Sets Peek across every layer window; returns whether the state changed.
+    pub fn set_peek(&self, active: bool) -> bool {
+        let changed = {
+            let mut inner = self.lock();
+            let differs = inner.peek != active;
+            inner.peek = active;
+            differs
+        };
+        if changed {
+            self.broadcast(&LayerEvent::Peek { active });
+        }
+        changed
     }
 
     pub fn broadcast(&self, event: &LayerEvent) {
@@ -257,6 +298,9 @@ impl Bridge {
         if let Some(rect) = inner.geometry.get(&label) {
             Self::send(&label, &channel, Self::geometry_event(*rect));
         }
+        if inner.peek {
+            Self::send(&label, &channel, LayerEvent::Peek { active: true });
+        }
         if !inner.latest.is_empty() {
             let updates: Vec<TopicUpdate> = inner.latest.values().cloned().collect();
             Self::send(
@@ -319,6 +363,20 @@ pub async fn layer_command(
     Ok(bridge.command(command).await)
 }
 
+/// Applies raised stacking for Peek/Edit in either backend.
+pub fn apply_raised(app: &AppHandle, bridge: &Bridge, backend: BackendKind, raised: bool) {
+    match backend {
+        BackendKind::Instant => super::windows::set_raised_instant(app, raised),
+        BackendKind::Native => {
+            let id = bridge.next_command.fetch_add(1, Ordering::Relaxed);
+            let _ = bridge.outgoing.send(ClientMsg::Command {
+                id,
+                command: Command::SetRaised { raised },
+            });
+        }
+    }
+}
+
 /// Peek/Edit: raise the layer above all windows, or lower it again. Instant mode does it here;
 /// Native mode tells core, which asks the shell helper.
 #[tauri::command]
@@ -334,6 +392,26 @@ pub async fn layer_set_raised(
             Ok(CommandResult::Ok)
         }
         BackendKind::Native => Ok(bridge.command(Command::SetRaised { raised }).await),
+    }
+}
+
+/// Turns Peek on or off across every monitor window and updates stacking.
+#[tauri::command]
+pub async fn layer_set_peek(
+    app: AppHandle,
+    active: bool,
+    backend: State<'_, BackendKind>,
+    bridge: State<'_, std::sync::Arc<Bridge>>,
+) -> Result<CommandResult, ()> {
+    if !bridge.set_peek(active) {
+        return Ok(CommandResult::Ok);
+    }
+    match *backend {
+        BackendKind::Instant => {
+            super::windows::set_raised_instant(&app, active);
+            Ok(CommandResult::Ok)
+        }
+        BackendKind::Native => Ok(bridge.command(Command::SetRaised { raised: active }).await),
     }
 }
 

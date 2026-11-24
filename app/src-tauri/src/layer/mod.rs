@@ -36,6 +36,7 @@ pub fn run(backend: Backend) -> ExitCode {
             bridge::layer_subscribe,
             bridge::layer_command,
             bridge::layer_set_raised,
+            bridge::layer_set_peek,
             assets::layer_asset,
             bridge::layer_set_input_region,
             bridge::layer_report,
@@ -43,6 +44,9 @@ pub fn run(backend: Backend) -> ExitCode {
         .setup(move |app| {
             let handle = app.handle().clone();
             let bridge = app.state::<Arc<Bridge>>().inner().clone();
+            if backend == Backend::Instant {
+                windows::watch_work_areas(&handle);
+            }
             tauri::async_runtime::spawn(client::run(handle, bridge, outgoing_rx));
             Ok(())
         })

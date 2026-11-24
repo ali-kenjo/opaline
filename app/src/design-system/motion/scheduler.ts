@@ -29,6 +29,8 @@ export class Scheduler {
   private readonly frameCallbacks = new Set<FrameCallback>();
   private frame: number | null = null;
   private last: number | null = null;
+  private paused = false;
+  private pending = false;
   /** Frames rendered since creation (for tests and the Lab's frame meter). */
   frames = 0;
 
@@ -36,6 +38,24 @@ export class Scheduler {
 
   get running(): boolean {
     return this.frame !== null;
+  }
+
+  /** Pauses all rendering while a layer window is covered (brief §5.4); unpausing flushes any
+   * frame requested while covered. */
+  setPaused(paused: boolean): void {
+    if (paused === this.paused) return;
+    this.paused = paused;
+    if (paused) {
+      if (this.frame !== null) {
+        this.clock.cancel(this.frame);
+        this.frame = null;
+        this.last = null;
+        this.pending = true;
+      }
+    } else if (this.pending || this.animators.size > 0) {
+      this.pending = false;
+      this.wake();
+    }
   }
 
   /** Runs `animator` until it reports it's done. */
@@ -60,6 +80,10 @@ export class Scheduler {
   }
 
   private wake(): void {
+    if (this.paused) {
+      this.pending = true;
+      return;
+    }
     this.frame ??= this.clock.request(this.tick);
   }
 

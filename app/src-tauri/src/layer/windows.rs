@@ -7,6 +7,7 @@ use std::time::{Duration, Instant};
 use gtk::prelude::*;
 use opaline_ipc::{BackendKind, MonitorInfo};
 use tauri::{AppHandle, LogicalPosition, LogicalSize, Manager, WebviewUrl, WebviewWindowBuilder};
+use webkit2gtk::WebViewExt;
 
 use super::bridge::{Bridge, Rect};
 
@@ -89,7 +90,12 @@ pub fn place(
     );
     // In Native mode the helper positions the window; Wayland clients can't anyway.
     if backend == BackendKind::Instant {
-        pin(app, window, (to_int(position.x), to_int(position.y)));
+        pin(
+            app,
+            window,
+            (to_int(position.x), to_int(position.y)),
+            (to_int(size.width), to_int(size.height)),
+        );
     }
     tracing::info!(
         label = window.label(),
@@ -108,43 +114,80 @@ pub struct Pins(Mutex<HashMap<String, Arc<Mutex<Pin>>>>);
 #[derive(Debug)]
 pub struct Pin {
     target: (i32, i32),
+    size: (i32, i32),
     burst_start: Instant,
     corrections: u32,
+    iconify_burst: Instant,
+    deiconifies: u32,
 }
 
 /// More corrections than this per second means something else is moving the window on
 /// purpose; we stop fighting and log it.
 const MAX_CORRECTIONS_PER_SECOND: u32 = 4;
+/// Maximum web-process crash reloads per minute before giving up (ADR 0009).
+const MAX_RELOADS_PER_MINUTE: u32 = 5;
 
 fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
     m.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
-/// Moves the window to `target` and keeps it there.
+fn apply_geometry_hints(gtk_window: &gtk::ApplicationWindow, (w, h): (i32, i32)) {
+    let geometry = gtk::gdk::Geometry::new(
+        w,
+        h,
+        w,
+        h,
+        0,
+        0,
+        0,
+        0,
+        0.0,
+        0.0,
+        gtk::gdk::Gravity::NorthWest,
+    );
+    gtk_window.set_geometry_hints(
+        None::<&gtk::Widget>,
+        Some(&geometry),
+        gtk::gdk::WindowHints::USER_POS
+            | gtk::gdk::WindowHints::POS
+            | gtk::gdk::WindowHints::MIN_SIZE
+            | gtk::gdk::WindowHints::MAX_SIZE,
+    );
+}
+
+/// Moves the window to `target` and keeps it there (and recovers if Show Desktop minimizes it).
 ///
 /// Mutter places a newly mapped X11 window on the monitor under the pointer and ignores the
 /// position GTK requested before mapping (seen in the Phase 0 spike: the eDP-1 window landed on
 /// HDMI-2). A move after mapping is honoured, so we watch `configure-event` and move the GDK
 /// surface back whenever it isn't where it belongs, the same way DING keeps its window in
 /// place. `gtk_window_move` isn't used because GTK skips it when it thinks nothing changed.
-fn pin(app: &AppHandle, window: &tauri::WebviewWindow, target: (i32, i32)) {
+fn pin(app: &AppHandle, window: &tauri::WebviewWindow, target: (i32, i32), size: (i32, i32)) {
     let pins = app.state::<Pins>();
     let (entry, is_new) = {
         let mut map = lock(&pins.0);
         match map.get(window.label()) {
             Some(pin) => (pin.clone(), false),
             None => {
+                let now = Instant::now();
                 let pin = Arc::new(Mutex::new(Pin {
                     target,
-                    burst_start: Instant::now(),
+                    size,
+                    burst_start: now,
                     corrections: 0,
+                    iconify_burst: now,
+                    deiconifies: 0,
                 }));
                 map.insert(window.label().to_owned(), pin.clone());
                 (pin, true)
             }
         }
     };
-    lock(&entry).target = target;
+    {
+        let mut p = lock(&entry);
+        p.target = target;
+        p.size = size;
+    }
 
     let tauri_window = window.clone();
     let label = window.label().to_owned();
@@ -153,9 +196,14 @@ fn pin(app: &AppHandle, window: &tauri::WebviewWindow, target: (i32, i32)) {
             tracing::warn!(label, "no GTK window to place");
             return;
         };
+        let (target, size) = {
+            let p = lock(&entry);
+            (p.target, p.size)
+        };
+        apply_geometry_hints(&gtk_window, size);
         if is_new {
             let pin = entry.clone();
-            let label = label.clone();
+            let label_pos = label.clone();
             gtk_window.connect_configure_event(move |w, event| {
                 let (x, y) = event.position();
                 let mut pin = lock(&pin);
@@ -166,25 +214,82 @@ fn pin(app: &AppHandle, window: &tauri::WebviewWindow, target: (i32, i32)) {
                     }
                     if pin.corrections < MAX_CORRECTIONS_PER_SECOND {
                         pin.corrections += 1;
-                        tracing::debug!(label, from = ?(x, y), to = ?pin.target, "moving layer window back");
+                        tracing::debug!(label = label_pos, from = ?(x, y), to = ?pin.target, "moving layer window back");
                         if let Some(gdk_window) = w.window() {
                             gdk_window.move_(pin.target.0, pin.target.1);
                         }
                     } else if pin.corrections == MAX_CORRECTIONS_PER_SECOND {
                         pin.corrections += 1;
-                        tracing::warn!(label, "layer window keeps being moved; not fighting it");
+                        tracing::warn!(label = label_pos, "layer window keeps being moved; not fighting it");
                     }
                 }
                 false // let GTK handle the event too
             });
+            // Show Desktop minimizes X11 windows; undo it so widgets stay on the desktop.
+            let pin = entry.clone();
+            let label_state = label.clone();
+            gtk_window.connect_window_state_event(move |w, event| {
+                if event
+                    .new_window_state()
+                    .contains(gtk::gdk::WindowState::ICONIFIED)
+                {
+                    let mut pin = lock(&pin);
+                    if pin.iconify_burst.elapsed() > Duration::from_secs(1) {
+                        pin.iconify_burst = Instant::now();
+                        pin.deiconifies = 0;
+                    }
+                    if pin.deiconifies < MAX_CORRECTIONS_PER_SECOND {
+                        pin.deiconifies += 1;
+                        tracing::debug!(label = label_state, "undoing layer minimize (Show Desktop)");
+                        w.deiconify();
+                    }
+                }
+                gtk::glib::Propagation::Proceed
+            });
         }
         if let Some(gdk_window) = gtk_window.window() {
-            let target = lock(&entry).target;
-            gdk_window.move_(target.0, target.1);
+            gdk_window.move_resize(target.0, target.1, size.0, size.1);
         }
     });
     if let Err(error) = result {
         tracing::warn!(%error, "could not schedule layer window placement");
+    }
+}
+
+/// Watches GDK monitor work-area changes (`_GTK_WORKAREAS_D*` / `_NET_WORKAREA`) in Instant
+/// mode so dock auto-hide or top-bar changes re-place the layer windows (ADR 0008).
+pub fn watch_work_areas(app: &AppHandle) {
+    let handle = app.clone();
+    if let Err(error) = app.run_on_main_thread(move || {
+        let Some(display) = gtk::gdk::Display::default() else {
+            return;
+        };
+        let attach_monitor = |monitor: &gtk::gdk::Monitor, app: AppHandle| {
+            monitor.connect_workarea_notify(move |_| {
+                re_place_all(&app, BackendKind::Instant);
+            });
+        };
+        for i in 0..display.n_monitors() {
+            if let Some(monitor) = display.monitor(i) {
+                attach_monitor(&monitor, handle.clone());
+            }
+        }
+        let handle_added = handle.clone();
+        display.connect_monitor_added(move |_, monitor| {
+            attach_monitor(monitor, handle_added.clone());
+            re_place_all(&handle_added, BackendKind::Instant);
+        });
+    }) {
+        tracing::warn!(%error, "could not watch Instant-mode work areas");
+    }
+}
+
+fn re_place_all(app: &AppHandle, backend: BackendKind) {
+    let monitors = app.state::<Arc<Bridge>>().window_monitors();
+    for (label, monitor) in monitors {
+        if let Some(window) = app.get_webview_window(&label) {
+            place(app, &window, &monitor, backend);
+        }
     }
 }
 
@@ -313,10 +418,16 @@ fn create(
             match backend {
                 BackendKind::Instant => {
                     show_at(&window, position, size);
-                    pin(app, &window, (to_int(position.x), to_int(position.y)));
+                    pin(
+                        app,
+                        &window,
+                        (to_int(position.x), to_int(position.y)),
+                        (to_int(size.width), to_int(size.height)),
+                    );
                 }
                 BackendKind::Native => show_plain(&window),
             }
+            attach_crash_recovery(&window);
             // Click-through until the frontend reports where its widgets are.
             set_input_region(&window, &[]);
         }
@@ -338,27 +449,7 @@ fn show_at(window: &tauri::WebviewWindow, position: LogicalPosition<f64>, size: 
             tracing::warn!(label = target.label(), "no GTK window to show");
             return;
         };
-        let geometry = gtk::gdk::Geometry::new(
-            w,
-            h,
-            w,
-            h,
-            0,
-            0,
-            0,
-            0,
-            0.0,
-            0.0,
-            gtk::gdk::Gravity::NorthWest,
-        );
-        gtk_window.set_geometry_hints(
-            None::<&gtk::Widget>,
-            Some(&geometry),
-            gtk::gdk::WindowHints::USER_POS
-                | gtk::gdk::WindowHints::POS
-                | gtk::gdk::WindowHints::MIN_SIZE
-                | gtk::gdk::WindowHints::MAX_SIZE,
-        );
+        apply_geometry_hints(&gtk_window, (w, h));
         gtk_window.move_(x, y);
         // `show_all`, not `show`: the window was created hidden, so its children (Tauri's box and the
         // webview) are unmapped too. `show` alone maps an empty toplevel and nothing is ever drawn.
@@ -366,6 +457,46 @@ fn show_at(window: &tauri::WebviewWindow, position: LogicalPosition<f64>, size: 
     });
     if let Err(error) = result {
         tracing::warn!(%error, "could not schedule showing the layer window");
+    }
+}
+
+/// Reloads a layer window if the shared WebKit web process crashes or hits its memory limit
+/// (ADR 0009), capped so a deterministic crash can't spin.
+fn attach_crash_recovery(window: &tauri::WebviewWindow) {
+    let label = window.label().to_owned();
+    let reloads = Arc::new(Mutex::new((Instant::now(), 0u32)));
+    if let Err(error) = window.with_webview(move |platform| {
+        let webview = platform.inner();
+        webview.connect_web_process_terminated(move |wv, reason| {
+            let attempt = {
+                let mut state = lock(&reloads);
+                if state.0.elapsed() > Duration::from_secs(60) {
+                    *state = (Instant::now(), 0);
+                }
+                if state.1 >= MAX_RELOADS_PER_MINUTE {
+                    tracing::error!(
+                        label,
+                        ?reason,
+                        "shared web process keeps terminating; not reloading"
+                    );
+                    return;
+                }
+                state.1 += 1;
+                state.1
+            };
+            tracing::warn!(
+                label,
+                ?reason,
+                attempt,
+                "shared web process terminated; reloading layer window"
+            );
+            let wv = wv.clone();
+            gtk::glib::timeout_add_local_once(Duration::from_millis(500), move || {
+                wv.reload();
+            });
+        });
+    }) {
+        tracing::warn!(%error, "could not attach web-process crash recovery");
     }
 }
 

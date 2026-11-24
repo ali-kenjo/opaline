@@ -3,7 +3,8 @@
 //! The first core owns the name. Any later `opaline` invocation finds the name taken, forwards
 //! its request (Edit, Peek, Settings, Quit) to the running core and exits.
 
-use tokio::sync::mpsc;
+use opaline_ipc::BackendKind;
+use tokio::sync::{mpsc, watch};
 use zbus::fdo::{RequestNameFlags, RequestNameReply};
 use zbus::{Connection, connection, interface, proxy};
 
@@ -21,7 +22,7 @@ pub enum AppRequest {
 
 struct AppService {
     requests: mpsc::UnboundedSender<AppRequest>,
-    backend: String,
+    backend: watch::Receiver<BackendKind>,
     layer: LayerLaunch,
 }
 
@@ -61,7 +62,11 @@ impl AppService {
 
     #[zbus(property)]
     fn backend_mode(&self) -> String {
-        self.backend.clone()
+        match *self.backend.borrow() {
+            BackendKind::Native => "native",
+            BackendKind::Instant => "instant",
+        }
+        .to_owned()
     }
 
     #[zbus(property)]
@@ -99,12 +104,12 @@ pub enum Claim {
 /// Serves the interface and asks for the bus name without queueing.
 pub async fn claim(
     requests: mpsc::UnboundedSender<AppRequest>,
-    backend: &str,
+    backend: watch::Receiver<BackendKind>,
     layer: LayerLaunch,
 ) -> zbus::Result<Claim> {
     let service = AppService {
         requests,
-        backend: backend.to_owned(),
+        backend,
         layer,
     };
     let conn = connection::Builder::session()
@@ -123,6 +128,34 @@ pub async fn claim(
             Ok(Claim::AlreadyRunning)
         }
         Err(error) => Err(error),
+    }
+}
+
+/// Keeps the `BackendMode` D-Bus property in sync as core switches between Instant and Native.
+pub async fn sync_backend(
+    conn: Connection,
+    mut hub_backend: watch::Receiver<BackendKind>,
+    tx: watch::Sender<BackendKind>,
+) {
+    loop {
+        let current = *hub_backend.borrow_and_update();
+        if tx.send(current).is_err() {
+            return;
+        }
+        if let Ok(iface) = conn
+            .object_server()
+            .interface::<_, AppService>(OBJECT_PATH)
+            .await
+        {
+            let _ = iface
+                .get()
+                .await
+                .backend_mode_changed(iface.signal_emitter())
+                .await;
+        }
+        if hub_backend.changed().await.is_err() {
+            return;
+        }
     }
 }
 

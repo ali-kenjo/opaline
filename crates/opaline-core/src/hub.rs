@@ -191,19 +191,27 @@ impl Hub {
         };
         if changed {
             self.bump();
+            self.emit(CoreEvent::LayerCovered {
+                connector: connector.to_owned(),
+                covered,
+            });
         }
     }
 
     /// Forget coverage (the helper went away; Instant mode can't tell).
     pub fn clear_covered(&self) {
-        let changed = {
+        let cleared: Vec<String> = {
             let mut set = lock(&self.covered);
-            let had = !set.is_empty();
-            set.clear();
-            had
+            set.drain().collect()
         };
-        if changed {
+        if !cleared.is_empty() {
             self.bump();
+            for connector in cleared {
+                self.emit(CoreEvent::LayerCovered {
+                    connector,
+                    covered: false,
+                });
+            }
         }
     }
 
@@ -429,6 +437,66 @@ mod tests {
         assert_eq!(hub.interests()[0].1, ActivityClass::Idle);
         hub.set_locked(false);
         assert_eq!(hub.interest("cpu.load"), Some(ActivityClass::Interactive));
+    }
+
+    #[test]
+    fn covered_tracks_per_monitor_and_all_covered() {
+        let monitor = |connector: &str| MonitorInfo {
+            key: format!("V-P-S:{connector}"),
+            connector: connector.into(),
+            vendor: "V".into(),
+            product: "P".into(),
+            serial: "S".into(),
+            x: 0,
+            y: 0,
+            width: 1920,
+            height: 1080,
+            scale: 1.0,
+            primary: connector == "eDP-1",
+            builtin: connector == "eDP-1",
+        };
+        let hub = Hub::new(
+            BackendKind::Native,
+            vec![monitor("eDP-1"), monitor("HDMI-2")],
+        );
+        let topic = Topic::new("cpu.load");
+        hub.subscribe(&topic, ActivityClass::Interactive);
+        let mut events = hub.events();
+
+        hub.set_covered("eDP-1", true);
+        assert!(!hub.all_covered());
+        assert_eq!(hub.interest("cpu.load"), Some(ActivityClass::Interactive));
+        assert_eq!(
+            events.try_recv().unwrap(),
+            CoreEvent::LayerCovered {
+                connector: "eDP-1".into(),
+                covered: true,
+            }
+        );
+
+        hub.set_covered("HDMI-2", true);
+        assert!(hub.all_covered());
+        assert_eq!(hub.interest("cpu.load"), Some(ActivityClass::Covered));
+        assert_eq!(
+            events.try_recv().unwrap(),
+            CoreEvent::LayerCovered {
+                connector: "HDMI-2".into(),
+                covered: true,
+            }
+        );
+
+        hub.clear_covered();
+        assert!(!hub.all_covered());
+        assert_eq!(hub.interest("cpu.load"), Some(ActivityClass::Interactive));
+        let cleared = [events.try_recv().unwrap(), events.try_recv().unwrap()];
+        assert!(cleared.contains(&CoreEvent::LayerCovered {
+            connector: "eDP-1".into(),
+            covered: false,
+        }));
+        assert!(cleared.contains(&CoreEvent::LayerCovered {
+            connector: "HDMI-2".into(),
+            covered: false,
+        }));
     }
 
     #[test]

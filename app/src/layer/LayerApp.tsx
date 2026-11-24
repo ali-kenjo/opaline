@@ -5,7 +5,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { cssVariables } from "../design-system/color/scheme";
 import { GlassStage } from "../design-system/glass";
-import { applyPalette } from "../design-system/motion";
+import { applyPalette, scheduler } from "../design-system/motion";
 import { resolveStyle, rolesFor, sanitizeStyle } from "../design-system/style";
 import { grid, sizes, spanPx, type SizeClass } from "../design-system/tokens/tokens";
 import { luminance as lum } from "../design-system/glass/legibility";
@@ -98,9 +98,12 @@ function useImage(url: string | null): HTMLImageElement | null {
   return url ? img : null;
 }
 
-async function setRaised(raised: boolean): Promise<void> {
-  if (!inTauri) return;
-  await invoke("layer_set_raised", { raised });
+async function setPeekActive(active: boolean): Promise<void> {
+  if (!inTauri) {
+    useLayer.setState({ peek: active });
+    return;
+  }
+  await invoke("layer_set_peek", { active });
 }
 
 export function LayerApp() {
@@ -108,9 +111,10 @@ export function LayerApp() {
   const monitor = useLayer((s) => s.monitor);
   const geometry = useLayer((s) => s.geometry);
   const desktopFocused = useLayer((s) => s.desktopFocused);
+  const covered = useLayer((s) => s.covered);
+  const peek = useLayer((s) => s.peek);
   const wallpapers = useLayer((s) => s.values[WALLPAPER_TOPIC]);
   const host = useCoreHost(monitor?.key ?? null);
-  const [peek, setPeek] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
@@ -159,26 +163,25 @@ export function LayerApp() {
     }
   }, [connected, isHome, settingsLoaded, widgets, host]);
 
-  // Peek toggles once per request (a store subscription, so React's double render in
-  // development can't toggle it twice); Esc or a click on the backdrop ends it.
-  useEffect(
-    () =>
-      useLayer.subscribe((next, prev) => {
-        if (next.peekRequests !== prev.peekRequests) setPeek((p) => !p);
-      }),
-    [],
-  );
+  // Peek is synced across all monitors by the layer bridge; Esc or backdrop closes it everywhere.
   useEffect(() => {
-    void setRaised(peek);
     if (!peek) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setPeek(false);
+      if (e.key === "Escape") void setPeekActive(false);
     };
     window.addEventListener("keydown", onKey);
     return () => {
       window.removeEventListener("keydown", onKey);
     };
   }, [peek]);
+
+  // Native mode: pause the rAF scheduler while this monitor's layer is covered and not peeking.
+  useEffect(() => {
+    scheduler.setPaused(covered && !peek);
+    return () => {
+      scheduler.setPaused(false);
+    };
+  }, [covered, peek]);
 
   useEffect(() => {
     const on = () => {
@@ -270,7 +273,7 @@ export function LayerApp() {
                 tabIndex={-1}
                 aria-label="Close Peek"
                 onClick={() => {
-                  setPeek(false);
+                  void setPeekActive(false);
                 }}
               />
             ) : null}

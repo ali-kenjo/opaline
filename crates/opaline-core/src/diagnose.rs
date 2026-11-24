@@ -84,7 +84,9 @@ pub struct Display {
 
 #[derive(Debug, Serialize)]
 pub struct DesktopIntegration {
+    pub helper_installed: bool,
     pub helper_running: Option<bool>,
+    pub helper_api_version: Option<u32>,
 }
 
 /// Reads `/etc/os-release`'s `PRETTY_NAME`.
@@ -129,9 +131,17 @@ pub async fn collect() -> Report {
         Err(e) => Err(format!("no session bus: {e}")),
     };
 
-    let (gnome_shell, helper_running) = match &conn {
-        Ok(conn) => (shell_version(conn).await, helper_running(conn).await),
-        Err(_) => (None, None),
+    let (gnome_shell, helper_running, helper_api_version) = match &conn {
+        Ok(conn) => {
+            let running = helper_running(conn).await;
+            let version = if running == Some(true) {
+                helper_api_version(conn).await
+            } else {
+                None
+            };
+            (shell_version(conn).await, running, version)
+        }
+        Err(_) => (None, None, None),
     };
 
     let probes: BTreeMap<String, BTreeMap<String, String>> = tokio::task::spawn_blocking(|| {
@@ -181,7 +191,11 @@ pub async fn collect() -> Report {
             gnome_shell,
         },
         displays,
-        desktop_integration: DesktopIntegration { helper_running },
+        desktop_integration: DesktopIntegration {
+            helper_installed: crate::desktop::helper_installed().is_some(),
+            helper_running,
+            helper_api_version,
+        },
         providers,
         topics,
     }
@@ -203,6 +217,11 @@ async fn helper_running(conn: &Connection) -> Option<bool> {
     let dbus = zbus::fdo::DBusProxy::new(conn).await.ok()?;
     let name = zbus::names::BusName::try_from(HELPER_BUS_NAME).ok()?;
     dbus.name_has_owner(name).await.ok()
+}
+
+async fn helper_api_version(conn: &Connection) -> Option<u32> {
+    let shell = crate::desktop::Shell1Proxy::new(conn).await.ok()?;
+    shell.api_version().await.ok()
 }
 
 #[cfg(test)]

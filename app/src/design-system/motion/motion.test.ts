@@ -106,4 +106,20 @@ describe("scheduler", () => {
     while (frame());
     expect(rendered).toBe(1);
   });
+
+  it("renders nothing while paused and flushes once uncovered", () => {
+    const { clock, frame, pending } = fakeClock();
+    const sch = new Scheduler(clock);
+    let rendered = 0;
+    sch.onFrame(() => rendered++);
+    sch.setPaused(true);
+    sch.invalidate();
+    expect(pending()).toBe(0);
+    expect(frame()).toBe(false);
+    expect(rendered).toBe(0);
+    sch.setPaused(false);
+    expect(pending()).toBe(1);
+    while (frame());
+    expect(rendered).toBe(1);
+  });
 });

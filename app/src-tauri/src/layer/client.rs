@@ -182,8 +182,15 @@ fn handle(app: &AppHandle, bridge: &Bridge, msg: ServerMsg, backend: opaline_ipc
             updates: batch.updates,
         }),
         ServerMsg::Event(event) => {
-            if let CoreEvent::MonitorsChanged { monitors } = &event {
-                windows::sync(app, bridge, monitors, backend);
+            match &event {
+                CoreEvent::MonitorsChanged { monitors } => {
+                    windows::sync(app, bridge, monitors, backend);
+                }
+                CoreEvent::PeekRequested => {
+                    let active = bridge.toggle_peek();
+                    super::bridge::apply_raised(app, bridge, backend, active);
+                }
+                _ => {}
             }
             bridge.broadcast(&LayerEvent::CoreEvent { event });
         }

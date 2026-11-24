@@ -16,6 +16,10 @@ export interface LayerState {
   geometry: { x: number; y: number; width: number; height: number } | null;
   /** Native mode: the desktop has focus (Automatic appearance). Null until core says. */
   desktopFocused: boolean | null;
+  /** Native mode: this monitor's layer is covered by a maximized/fullscreen window. */
+  covered: boolean;
+  /** Shared Peek state across every monitor window. */
+  peek: boolean;
   /** Peek requests counted, so every request toggles once. */
   peekRequests: number;
   editRequests: number;
@@ -48,6 +52,8 @@ export function reduce(state: LayerState, event: LayerEvent): Partial<LayerState
       return {};
     case "geometry":
       return { geometry: { x: event.x, y: event.y, width: event.width, height: event.height } };
+    case "peek":
+      return { peek: event.active };
     case "core-event":
       switch (event.event.event) {
         case "updates-paused":
@@ -67,6 +73,10 @@ export function reduce(state: LayerState, event: LayerEvent): Partial<LayerState
           return state.connection.state === "connected"
             ? { connection: { ...state.connection, backend: event.event.backend } }
             : {};
+        case "layer-covered":
+          return state.monitor?.connector === event.event.connector
+            ? { covered: event.event.covered }
+            : {};
         case "alert-opened":
           // Detail views arrive with Phase 5.
           return {};
@@ -81,6 +91,8 @@ export const useLayer = create<LayerState>()((set) => ({
   updatesPaused: false,
   geometry: null,
   desktopFocused: null,
+  covered: false,
+  peek: false,
   peekRequests: 0,
   editRequests: 0,
   apply: (event) => {

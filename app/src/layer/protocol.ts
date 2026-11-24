@@ -44,7 +44,8 @@ export type CoreEvent =
   | { event: "updates-paused"; paused: boolean }
   | { event: "alert-opened"; rule: string }
   | { event: "desktop-focus-changed"; focused: boolean }
-  | { event: "backend-changed"; backend: BackendKind };
+  | { event: "backend-changed"; backend: BackendKind }
+  | { event: "layer-covered"; connector: string; covered: boolean };
 
 export type Command =
   | { cmd: "drive-eject"; drive: string }
@@ -74,4 +75,5 @@ export type LayerEvent =
   | { kind: "update"; seq: number; atMs: number; updates: TopicUpdate[] }
   | { kind: "spectrum"; seq: number; levels: number[] }
   | { kind: "geometry"; x: number; y: number; width: number; height: number }
+  | { kind: "peek"; active: boolean }
   | { kind: "core-event"; event: CoreEvent };

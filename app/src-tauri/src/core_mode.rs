@@ -22,8 +22,15 @@ pub fn run(request: Option<AppRequest>) -> ExitCode {
     };
 
     let (requests_tx, requests_rx) = mpsc::unbounded_channel();
+    let (backend_prop_tx, backend_prop_rx) = watch::channel(BackendKind::Instant);
     let started = rt.block_on(async {
-        match app_service::claim(requests_tx.clone(), "instant", instant::layer_launch()).await {
+        match app_service::claim(
+            requests_tx.clone(),
+            backend_prop_rx,
+            instant::layer_launch(),
+        )
+        .await
+        {
             Ok(Claim::Primary(conn)) => Ok(Some(conn)),
             Ok(Claim::AlreadyRunning) => {
                 // A second launch (app grid, desktop action, CLI) talks to the running core.
@@ -61,6 +68,11 @@ pub fn run(request: Option<AppRequest>) -> ExitCode {
     let backend = rt.block_on(opaline_core::desktop::initial_backend(&bus));
     tracing::info!(?backend, "desktop integration");
     let hub = Hub::new(backend, monitors);
+    rt.spawn(app_service::sync_backend(
+        bus.clone(),
+        hub.watch_backend(),
+        backend_prop_tx,
+    ));
     let (settings, writable) = opaline_core::store::load();
     hub.init_settings(settings, writable);
 
