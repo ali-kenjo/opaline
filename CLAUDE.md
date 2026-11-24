@@ -1,7 +1,7 @@
 # Opaline: notes for Claude
 
 Desktop widgets for Ubuntu 26.04 / GNOME 50. The brief is `OPALINE_BUILD_PROMPT.md`; the plan is `docs/PLAN.md`;
-where we are is `docs/PROGRESS.md`. Read those three before working. Decisions live in `docs/adr/`.
+where we are is `docs/PROGRESS.md`; the latest handoff is `docs/HANDOFF.md`. Read those before working. Decisions live in `docs/adr/`.
 
 ## Commands
 
@@ -28,6 +28,7 @@ cd app && pnpm exec playwright test --update-snapshots=all  # re-record the Lab 
 cd app && pnpm icons                           # re-subset Material Symbols after adding to icons/codepoints.ts
 cd app && pnpm lint:helper                     # ESLint + schema check for the GNOME Shell helper
 scripts/install-helper-dev.sh [--remove]       # helper into ~/.local for this user (no sudo); needs a re-login
+scripts/capture-monitor.py eDP-1 /tmp/shot     # silent screenshot of one monitor (Mutter ScreenCast) → /tmp/shot.N.png
 ./target/debug/opaline --peek                  # toggle Peek (raises the layer, so screenshots can see it)
 ```
 

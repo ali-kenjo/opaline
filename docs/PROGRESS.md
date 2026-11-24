@@ -222,3 +222,16 @@ share of `libLLVM` grew from 15 to 21.7 MB each. The PSS budget therefore moves 
 asleep / needs-setup state can be shown in the Lab (card states, GPU asleep, no battery, weather without a location,
 Docker Desktop stopped) and was seen live where this laptop has it.
 
+
+## Phase 4: Layer and desktop integration (in progress, 2026-11-24)
+
+See `docs/HANDOFF.md` for the full state. In short:
+- **Done:** shell helper (`desktop-integration/`), core Native/Instant selection with live switching and helper
+  signals, portal shortcuts in Instant mode, real widgets on the desktop, Peek, Automatic appearance, input regions,
+  `layer_asset` for WebGL wallpapers, latest-value replay for late windows. Verified in Instant mode with screen
+  captures.
+- **Fixed on the real desktop:** a grey veil over the whole window in WebKitGTK's GPU mode (a composited child, the
+  Peek hint, stretched across the window), cross-origin wallpaper loading, cards 40 px too big outside the Lab,
+  one-row and S layouts, an Instant layer restart at start-up, late-attaching windows missing data.
+- **Waiting:** the helper is installed for the user; Native mode needs a re-login, then the acceptance checks in both
+  modes, scale tests, monitor changes and the Native RAM measurement.
