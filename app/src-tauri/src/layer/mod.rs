@@ -1,6 +1,6 @@
 //! `opaline --layer`: one transparent webview window per monitor, fed by core over IPC.
 
-mod assets;
+pub(crate) mod assets;
 mod bridge;
 mod client;
 mod windows;

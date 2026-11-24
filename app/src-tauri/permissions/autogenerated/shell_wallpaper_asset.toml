@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-shell-wallpaper-asset"
+description = "Enables the shell_wallpaper_asset command without any pre-configured scope."
+commands.allow = ["shell_wallpaper_asset"]
+
+[[permission]]
+identifier = "deny-shell-wallpaper-asset"
+description = "Denies the shell_wallpaper_asset command without any pre-configured scope."
+commands.deny = ["shell_wallpaper_asset"]

@@ -78,9 +78,11 @@ pub fn run(request: Option<AppRequest>) -> ExitCode {
         backend_prop_tx,
     ));
     let (settings, writable) = opaline_core::store::load();
+    let needs_onboarding = !settings.onboarding_done;
     hub.init_settings(settings, writable);
     let (layouts, layouts_writable) = opaline_core::layouts::load();
     hub.init_layouts(layouts, layouts_writable);
+    hub.set_request_sender(requests_tx.clone());
 
     let listener = match rt.block_on(ipc_server::bind_default()) {
         Ok(listener) => listener,
@@ -132,6 +134,7 @@ pub fn run(request: Option<AppRequest>) -> ExitCode {
         hub.clone(),
         requests_tx.clone(),
     ));
+    rt.spawn(opaline_core::updates::run_daily_check(hub.clone()));
 
     let (stop_tx, stop_rx) = watch::channel(false);
     let (layer_done_tx, layer_done_rx) = std::sync::mpsc::channel::<()>();
@@ -141,12 +144,40 @@ pub fn run(request: Option<AppRequest>) -> ExitCode {
         let _ = layer_done_tx.send(());
     });
 
+    let initial_request = request.or(if needs_onboarding {
+        Some(AppRequest::OpenOnboarding)
+    } else {
+        None
+    });
+
     let app = tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![
+            crate::shell::shell_get_state,
+            crate::shell::shell_update_settings,
+            crate::shell::shell_reset_settings,
+            crate::shell::shell_update_layouts,
+            crate::shell::shell_set_autostart,
+            crate::shell::shell_set_helper_enabled,
+            crate::shell::shell_set_shortcuts,
+            crate::shell::shell_export_backup,
+            crate::shell::shell_import_backup,
+            crate::shell::shell_diagnostics,
+            crate::shell::shell_check_updates,
+            crate::shell::shell_install_update,
+            crate::shell::shell_trigger_action,
+            crate::shell::shell_geocode,
+            crate::shell::shell_list_fonts,
+            crate::shell::shell_wallpaper_asset,
+            crate::shell::shell_close,
+        ])
         .setup({
             let hub = hub.clone();
             move |app| {
                 build_tray(app.handle())?;
                 app.manage(hub.clone());
+                if let Some(req) = initial_request {
+                    handle_request(app.handle(), &hub, req);
+                }
                 tauri::async_runtime::spawn(handle_requests(
                     app.handle().clone(),
                     hub,
@@ -212,7 +243,7 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
                 "quit" => handle_request(app, &hub, AppRequest::Quit),
                 PAUSE_ID => {
                     let paused = pause.is_checked().unwrap_or(false);
-                    hub.emit(CoreEvent::UpdatesPaused { paused });
+                    hub.set_paused(paused);
                 }
                 _ => {}
             }
@@ -239,8 +270,8 @@ fn handle_request(app: &AppHandle, hub: &Hub, request: AppRequest) {
     match request {
         AppRequest::Peek => hub.emit(CoreEvent::PeekRequested),
         AppRequest::Edit => hub.emit(CoreEvent::EditRequested),
-        // The Settings window is built in Phase 6 (docs/PLAN.md 6.2).
-        AppRequest::OpenSettings => tracing::info!("Settings window arrives in Phase 6"),
+        AppRequest::OpenSettings => crate::shell::open_settings(app),
+        AppRequest::OpenOnboarding => crate::shell::open_onboarding(app),
         AppRequest::Quit => app.exit(0),
     }
 }

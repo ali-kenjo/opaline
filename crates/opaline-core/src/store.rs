@@ -19,6 +19,10 @@ pub const TOPIC: &str = "settings";
 #[serde(default, rename_all = "camelCase")]
 pub struct Settings {
     pub version: u32,
+    pub onboarding_done: bool,
+    pub appearance: AppearancePrefs,
+    pub layout: LayoutPrefs,
+    pub performance: PerformancePrefs,
     pub weather: Weather,
     pub network: Network,
     pub calendar: Calendar,
@@ -36,6 +40,10 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             version: VERSION,
+            onboarding_done: false,
+            appearance: AppearancePrefs::default(),
+            layout: LayoutPrefs::default(),
+            performance: PerformancePrefs::default(),
             weather: Weather::default(),
             network: Network::default(),
             calendar: Calendar::default(),
@@ -44,6 +52,81 @@ impl Default for Settings {
             style: Style::default(),
             styles: BTreeMap::new(),
             widgets: BTreeMap::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum AppearanceState {
+    #[default]
+    Automatic,
+    Full,
+    Dimmed,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum Density {
+    Compact,
+    #[default]
+    Comfortable,
+    Spacious,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct AppearancePrefs {
+    pub state: AppearanceState,
+    /// Clear (0) … Tinted (100), brief §4.2 default 45.
+    pub glass: u32,
+    pub density: Density,
+}
+
+impl Default for AppearancePrefs {
+    fn default() -> Self {
+        Self {
+            state: AppearanceState::Automatic,
+            glass: 45,
+            density: Density::Comfortable,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct LayoutPrefs {
+    /// Safe margin around each monitor's work area in logical pixels (12..=64, default 24).
+    pub margin_px: u32,
+}
+
+impl Default for LayoutPrefs {
+    fn default() -> Self {
+        Self { margin_px: 24 }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum PerformanceMode {
+    Eco,
+    #[default]
+    Balanced,
+    Realtime,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct PerformancePrefs {
+    pub mode: PerformanceMode,
+    pub pause_on_battery: bool,
+}
+
+impl Default for PerformancePrefs {
+    fn default() -> Self {
+        Self {
+            mode: PerformanceMode::Balanced,
+            pause_on_battery: false,
         }
     }
 }
@@ -156,6 +239,12 @@ impl Settings {
         {
             return Err("subscription-must-be-https-or-webcal".into());
         }
+        if self.appearance.glass > 100 {
+            return Err("glass-out-of-range".into());
+        }
+        if !(12..=64).contains(&self.layout.margin_px) {
+            return Err("margin-out-of-range".into());
+        }
         self.style.validate()?;
         crate::style::validate_widgets(&self.widgets, &self.styles)?;
         Ok(())
@@ -205,8 +294,13 @@ pub fn migrate(mut json: serde_json::Value) -> (Settings, bool) {
         obj.insert("version".into(), serde_json::json!(1));
     }
     let writable = version <= u64::from(VERSION);
+    let has_onboarding = json.get("onboardingDone").is_some();
     crate::style::sanitize(&mut json);
     let mut settings: Settings = serde_json::from_value(json).unwrap_or_default();
+    if !has_onboarding && !settings.widgets.is_empty() {
+        // Upgraded from Phase 4/5 where widgets were already configured.
+        settings.onboarding_done = true;
+    }
     settings.version = VERSION;
     if settings.validate().is_err() {
         tracing::warn!("stored settings failed validation; using defaults for this run");
@@ -244,6 +338,25 @@ fn save(settings: &Settings) -> Result<(), String> {
 /// Applies a patch from a command: validates, saves, and publishes the new settings.
 pub async fn update(hub: &Arc<Hub>, patch: serde_json::Value) -> Result<(), String> {
     let next = patched(&hub.settings(), &patch)?;
+    if !hub.settings_writable() {
+        return Err("settings-file-is-newer".into());
+    }
+    let to_save = next.clone();
+    tokio::task::spawn_blocking(move || save(&to_save))
+        .await
+        .map_err(|e| e.to_string())??;
+    hub.set_settings(next);
+    Ok(())
+}
+
+/// Replaces the entire settings object (used by backup import and reset-to-defaults).
+pub async fn replace(hub: &Arc<Hub>, raw: serde_json::Value) -> Result<(), String> {
+    let next: Settings =
+        serde_json::from_value(raw).map_err(|e| format!("invalid-settings: {e}"))?;
+    if next.version != VERSION {
+        return Err("version-is-read-only".into());
+    }
+    next.validate()?;
     if !hub.settings_writable() {
         return Err("settings-file-is-newer".into());
     }

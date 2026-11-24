@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-shell-export-backup"
+description = "Enables the shell_export_backup command without any pre-configured scope."
+commands.allow = ["shell_export_backup"]
+
+[[permission]]
+identifier = "deny-shell-export-backup"
+description = "Denies the shell_export_backup command without any pre-configured scope."
+commands.deny = ["shell_export_backup"]

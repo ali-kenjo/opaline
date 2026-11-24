@@ -61,6 +61,10 @@ pub async fn execute(hub: &Arc<Hub>, command: Command) -> CommandResult {
         Command::SetRaised { raised } => {
             crate::desktop::set_raised(hub, raised).await.map(|()| None)
         }
+        Command::OpenSettings => {
+            hub.request(crate::app_service::AppRequest::OpenSettings);
+            Ok(None)
+        }
         other => run(other).await.map(|()| None),
     };
     match result {
@@ -112,6 +116,7 @@ async fn run(command: Command) -> Result<(), String> {
         | Command::GeocodeSearch { .. }
         | Command::History { .. }
         | Command::ListFonts
-        | Command::SetRaised { .. } => Err("handled-above".into()),
+        | Command::SetRaised { .. }
+        | Command::OpenSettings => Err("handled-above".into()),
     }
 }

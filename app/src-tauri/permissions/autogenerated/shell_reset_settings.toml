@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-shell-reset-settings"
+description = "Enables the shell_reset_settings command without any pre-configured scope."
+commands.allow = ["shell_reset_settings"]
+
+[[permission]]
+identifier = "deny-shell-reset-settings"
+description = "Denies the shell_reset_settings command without any pre-configured scope."
+commands.deny = ["shell_reset_settings"]

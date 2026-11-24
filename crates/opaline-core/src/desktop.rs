@@ -107,17 +107,22 @@ pub fn parse_string_list(text: &str) -> Vec<String> {
         .collect()
 }
 
-/// Adds the helper to `enabled-extensions`; `Ok(false)` if it was already there.
-async fn add_to_enabled_extensions() -> std::io::Result<bool> {
+/// Adds or removes the helper from `org.gnome.shell enabled-extensions`.
+async fn set_in_enabled_extensions(enable: bool) -> std::io::Result<bool> {
     let out = tokio::process::Command::new("gsettings")
         .args(["get", "org.gnome.shell", "enabled-extensions"])
         .output()
         .await?;
     let mut list = parse_string_list(&String::from_utf8_lossy(&out.stdout));
-    if list.iter().any(|u| u == HELPER_UUID) {
+    let has = list.iter().any(|u| u == HELPER_UUID);
+    if enable == has {
         return Ok(false);
     }
-    list.push(HELPER_UUID.to_owned());
+    if enable {
+        list.push(HELPER_UUID.to_owned());
+    } else {
+        list.retain(|u| u != HELPER_UUID);
+    }
     let value = format!(
         "[{}]",
         list.iter()
@@ -130,6 +135,77 @@ async fn add_to_enabled_extensions() -> std::io::Result<bool> {
         .status()
         .await?;
     Ok(status.success())
+}
+
+async fn add_to_enabled_extensions() -> std::io::Result<bool> {
+    set_in_enabled_extensions(true).await
+}
+
+/// Live desktop integration status shown in Settings → Desktop integration and Onboarding.
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DesktopStatus {
+    pub backend: BackendKind,
+    pub helper_installed: bool,
+    pub helper_enabled: bool,
+    pub helper_running: bool,
+    pub helper_api_version: Option<u32>,
+    pub helper_path: Option<String>,
+}
+
+/// Inspects current desktop integration state for Settings / Onboarding.
+pub async fn status(hub: &Hub) -> DesktopStatus {
+    let path = helper_installed();
+    let helper_installed = path.is_some();
+    let helper_enabled = match tokio::process::Command::new("gsettings")
+        .args(["get", "org.gnome.shell", "enabled-extensions"])
+        .output()
+        .await
+    {
+        Ok(out) => parse_string_list(&String::from_utf8_lossy(&out.stdout))
+            .iter()
+            .any(|u| u == HELPER_UUID),
+        Err(_) => false,
+    };
+    let (helper_running, helper_api_version) = match BUS.get() {
+        Some(conn) => match Shell1Proxy::new(conn).await {
+            Ok(shell) => match shell.api_version().await {
+                Ok(v) => (true, Some(v)),
+                Err(_) => (false, None),
+            },
+            Err(_) => (false, None),
+        },
+        None => (false, None),
+    };
+    DesktopStatus {
+        backend: hub.backend(),
+        helper_installed,
+        helper_enabled,
+        helper_running,
+        helper_api_version,
+        helper_path: path.map(|p| p.display().to_string()),
+    }
+}
+
+/// Enables or disables the GNOME Shell desktop-integration helper via `org.gnome.Shell.Extensions`
+/// with `gsettings enabled-extensions` fallback (brief §5.2).
+pub async fn set_helper_enabled(enabled: bool) -> Result<(), String> {
+    if let Some(conn) = BUS.get()
+        && let Ok(proxy) = ShellExtensionsProxy::new(conn).await
+    {
+        let ok = if enabled {
+            proxy.enable_extension(HELPER_UUID).await.unwrap_or(false)
+        } else {
+            proxy.disable_extension(HELPER_UUID).await.unwrap_or(false)
+        };
+        if ok {
+            return Ok(());
+        }
+    }
+    set_in_enabled_extensions(enabled)
+        .await
+        .map(|_| ())
+        .map_err(|e| format!("gsettings-failed: {e}"))
 }
 
 /// The session bus connection `run` uses, for commands (SetRaised) that reach the helper.

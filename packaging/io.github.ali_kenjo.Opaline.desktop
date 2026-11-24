@@ -1,0 +1,30 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Opaline
+GenericName=Desktop Widgets
+Comment=Glass widgets for your Ubuntu desktop
+Exec=opaline
+Icon=io.github.ali_kenjo.Opaline
+Terminal=false
+Categories=Utility;DesktopSettings;
+Keywords=widgets;system;monitor;desktop;glass;clock;weather;
+StartupNotify=false
+SingleMainWindow=true
+Actions=Peek;Edit;Settings;Quit;
+
+[Desktop Action Peek]
+Name=Peek at widgets
+Exec=opaline --peek
+
+[Desktop Action Edit]
+Name=Edit widgets
+Exec=opaline --edit
+
+[Desktop Action Settings]
+Name=Settings
+Exec=opaline --settings
+
+[Desktop Action Quit]
+Name=Quit Opaline
+Exec=opaline --quit

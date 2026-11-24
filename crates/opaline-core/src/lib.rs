@@ -4,6 +4,8 @@
 
 pub mod alerts;
 pub mod app_service;
+pub mod autostart;
+pub mod backup;
 pub mod commands;
 pub mod desktop;
 pub mod diagnose;
@@ -24,3 +26,4 @@ pub mod shortcuts;
 pub mod store;
 pub mod style;
 pub mod sysfs;
+pub mod updates;

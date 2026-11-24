@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-shell-trigger-action"
+description = "Enables the shell_trigger_action command without any pre-configured scope."
+commands.allow = ["shell_trigger_action"]
+
+[[permission]]
+identifier = "deny-shell-trigger-action"
+description = "Denies the shell_trigger_action command without any pre-configured scope."
+commands.deny = ["shell_trigger_action"]

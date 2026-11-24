@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-shell-import-backup"
+description = "Enables the shell_import_backup command without any pre-configured scope."
+commands.allow = ["shell_import_backup"]
+
+[[permission]]
+identifier = "deny-shell-import-backup"
+description = "Denies the shell_import_backup command without any pre-configured scope."
+commands.deny = ["shell_import_backup"]

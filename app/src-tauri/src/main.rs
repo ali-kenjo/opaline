@@ -4,6 +4,7 @@ mod core_mode;
 mod instant;
 mod layer;
 mod runtime;
+mod shell;
 
 use std::process::ExitCode;
 
@@ -46,6 +47,10 @@ struct Cli {
     #[arg(long, group = "request")]
     settings: bool,
 
+    /// Ask the running Opaline to open the first-run Onboarding flow.
+    #[arg(long, group = "request")]
+    onboarding: bool,
+
     /// Ask the running Opaline to quit.
     #[arg(long, group = "request")]
     quit: bool,
@@ -65,6 +70,8 @@ impl Cli {
             Some(AppRequest::Edit)
         } else if self.settings {
             Some(AppRequest::OpenSettings)
+        } else if self.onboarding {
+            Some(AppRequest::OpenOnboarding)
         } else if self.quit {
             Some(AppRequest::Quit)
         } else {

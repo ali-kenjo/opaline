@@ -17,6 +17,7 @@ pub enum AppRequest {
     Peek,
     Edit,
     OpenSettings,
+    OpenOnboarding,
     Quit,
 }
 
@@ -56,6 +57,10 @@ impl AppService {
         self.forward(AppRequest::OpenSettings);
     }
 
+    fn open_onboarding(&self) {
+        self.forward(AppRequest::OpenOnboarding);
+    }
+
     fn quit(&self) {
         self.forward(AppRequest::Quit);
     }
@@ -89,6 +94,7 @@ trait Opaline {
     fn peek(&self) -> zbus::Result<()>;
     fn edit(&self) -> zbus::Result<()>;
     fn open_settings(&self) -> zbus::Result<()>;
+    fn open_onboarding(&self) -> zbus::Result<()>;
     fn quit(&self) -> zbus::Result<()>;
 }
 
@@ -167,6 +173,7 @@ pub async fn forward(request: AppRequest) -> zbus::Result<()> {
         AppRequest::Peek => proxy.peek().await,
         AppRequest::Edit => proxy.edit().await,
         AppRequest::OpenSettings => proxy.open_settings().await,
+        AppRequest::OpenOnboarding => proxy.open_onboarding().await,
         AppRequest::Quit => proxy.quit().await,
     }
 }

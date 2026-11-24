@@ -10,9 +10,11 @@ use opaline_ipc::{
 };
 use tokio::sync::{broadcast, watch};
 
+use crate::app_service::AppRequest;
 use crate::engine::ProviderStatus;
 use crate::layouts::Layouts;
 use crate::store::Settings;
+use crate::updates::UpdateInfo;
 
 /// Capacity of the update/event broadcast channels. A client that falls this far behind skips
 /// ahead to the newest data (it's a live view, not a log).
@@ -70,6 +72,14 @@ pub struct Hub {
     /// False when settings.json comes from a newer Opaline (or is broken): never overwrite it.
     settings_writable: std::sync::atomic::AtomicBool,
     layouts_writable: std::sync::atomic::AtomicBool,
+    /// User toggled "Pause updates" from tray or Settings.
+    paused: std::sync::atomic::AtomicBool,
+    /// True while discharging on battery (synced from `power.onBattery`).
+    on_battery: std::sync::atomic::AtomicBool,
+    /// Most recent GitHub Releases update check result.
+    latest_update: Mutex<Option<UpdateInfo>>,
+    /// Channel back to core's main AppRequest loop (for `Command::OpenSettings`, etc.).
+    requests: Mutex<Option<tokio::sync::mpsc::UnboundedSender<AppRequest>>>,
 }
 
 impl Hub {
@@ -95,12 +105,24 @@ impl Hub {
             history: crate::history::Shared::default(),
             settings_writable: std::sync::atomic::AtomicBool::new(true),
             layouts_writable: std::sync::atomic::AtomicBool::new(true),
+            paused: std::sync::atomic::AtomicBool::new(false),
+            on_battery: std::sync::atomic::AtomicBool::new(false),
+            latest_update: Mutex::new(None),
+            requests: Mutex::new(None),
         })
     }
 
     /// Publishes the values that changed since the last publish, as one batch. Unchanged
     /// values are dropped, so a steady sensor costs nothing downstream.
     pub fn publish(&self, updates: Vec<TopicUpdate>) {
+        for u in &updates {
+            if u.topic.as_str() == "power.onBattery"
+                && let Value::Bool(b) = u.value
+            {
+                self.on_battery
+                    .store(b, std::sync::atomic::Ordering::Relaxed);
+            }
+        }
         let changed: Vec<TopicUpdate> = {
             let mut latest = lock(&self.latest);
             updates
@@ -453,6 +475,50 @@ impl Hub {
 
     pub fn provider_statuses(&self) -> BTreeMap<String, ProviderStatus> {
         lock(&self.providers).clone()
+    }
+
+    pub fn all_latest(&self) -> BTreeMap<String, Value> {
+        lock(&self.latest)
+            .iter()
+            .map(|(k, v)| (k.0.clone(), v.clone()))
+            .collect()
+    }
+
+    pub fn paused(&self) -> bool {
+        self.paused.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    pub fn set_paused(&self, paused: bool) {
+        if self
+            .paused
+            .swap(paused, std::sync::atomic::Ordering::Relaxed)
+            != paused
+        {
+            self.emit(CoreEvent::UpdatesPaused { paused });
+            self.bump();
+        }
+    }
+
+    pub fn on_battery(&self) -> bool {
+        self.on_battery.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    pub fn latest_update(&self) -> Option<UpdateInfo> {
+        lock(&self.latest_update).clone()
+    }
+
+    pub fn set_latest_update(&self, info: Option<UpdateInfo>) {
+        *lock(&self.latest_update) = info;
+    }
+
+    pub fn set_request_sender(&self, tx: tokio::sync::mpsc::UnboundedSender<AppRequest>) {
+        *lock(&self.requests) = Some(tx);
+    }
+
+    pub fn request(&self, req: AppRequest) {
+        if let Some(tx) = lock(&self.requests).as_ref() {
+            let _ = tx.send(req);
+        }
     }
 
     fn bump(&self) {

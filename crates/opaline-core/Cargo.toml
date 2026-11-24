@@ -33,6 +33,10 @@ rustfft = "6"
 bollard = "0.21"
 rrule = "0.14"
 chrono-tz = "0.10"
+sha2 = "0.10"
+ring = "0.17"
+base64 = "0.22"
+hex = "0.4"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "sync", "time", "macros", "fs", "test-util"] }

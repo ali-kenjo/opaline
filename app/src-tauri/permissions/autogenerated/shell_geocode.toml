@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-shell-geocode"
+description = "Enables the shell_geocode command without any pre-configured scope."
+commands.allow = ["shell_geocode"]
+
+[[permission]]
+identifier = "deny-shell-geocode"
+description = "Denies the shell_geocode command without any pre-configured scope."
+commands.deny = ["shell_geocode"]

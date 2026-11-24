@@ -227,6 +227,87 @@ pub async fn run(hub: Arc<Hub>, requests: mpsc::UnboundedSender<AppRequest>) {
     }
 }
 
+/// Current keyboard shortcuts shown in Settings → Shortcuts.
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ShortcutsState {
+    pub backend: BackendKind,
+    pub editable: bool,
+    pub peek: String,
+    pub edit: String,
+}
+
+const HELPER_SCHEMA: &str = "org.gnome.shell.extensions.opaline-desktop";
+
+fn helper_schema_dir() -> Option<std::path::PathBuf> {
+    crate::desktop::helper_installed()
+        .map(|p| p.join("schemas"))
+        .filter(|p| p.join("gschemas.compiled").is_file())
+}
+
+async fn read_helper_binding(key: &str, fallback: &str) -> String {
+    let mut cmd = tokio::process::Command::new("gsettings");
+    if let Some(dir) = helper_schema_dir() {
+        cmd.arg("--schemadir").arg(dir);
+    }
+    let Ok(out) = cmd.args(["get", HELPER_SCHEMA, key]).output().await else {
+        return fallback.to_owned();
+    };
+    if !out.status.success() {
+        return fallback.to_owned();
+    }
+    crate::desktop::parse_string_list(&String::from_utf8_lossy(&out.stdout))
+        .into_iter()
+        .next()
+        .unwrap_or_else(|| fallback.to_owned())
+}
+
+/// Reads the active Peek and Edit shortcuts.
+pub async fn read_state(backend: BackendKind) -> ShortcutsState {
+    let editable = backend == BackendKind::Native && helper_schema_dir().is_some();
+    let (peek, edit) = if editable {
+        (
+            read_helper_binding("peek-shortcut", "<Super><Alt>w").await,
+            read_helper_binding("edit-shortcut", "<Super><Alt>e").await,
+        )
+    } else {
+        ("<Super><Alt>w".into(), "<Super><Alt>e".into())
+    };
+    ShortcutsState {
+        backend,
+        editable,
+        peek,
+        edit,
+    }
+}
+
+/// Updates the Native-mode GNOME Shell helper shortcuts via GSettings.
+pub async fn set_native_shortcuts(peek: &str, edit: &str) -> Result<(), String> {
+    let dir = helper_schema_dir().ok_or_else(|| "helper-schema-not-found".to_owned())?;
+    for (key, value) in [("peek-shortcut", peek), ("edit-shortcut", edit)] {
+        let trimmed = value.trim();
+        if trimmed.contains('\'') || trimmed.contains('\n') {
+            return Err("invalid-shortcut".into());
+        }
+        let gval = if trimmed.is_empty() {
+            "@as []".to_owned()
+        } else {
+            format!("['{trimmed}']")
+        };
+        let status = tokio::process::Command::new("gsettings")
+            .arg("--schemadir")
+            .arg(&dir)
+            .args(["set", HELPER_SCHEMA, key, &gval])
+            .status()
+            .await
+            .map_err(|e| format!("gsettings-failed: {e}"))?;
+        if !status.success() {
+            return Err(format!("gsettings-set-{key}-failed"));
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

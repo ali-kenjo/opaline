@@ -329,6 +329,39 @@ pub async fn run(hub: Arc<Hub>) -> Result<(), String> {
     }
 }
 
+/// Sends a test notification (Settings → Alerts) with Open and Snooze actions so the user can
+/// verify desktop notifications work on their system.
+pub async fn send_test_notification() -> Result<(), String> {
+    let conn = Connection::session().await.map_err(|e| e.to_string())?;
+    let actions = ["open", "Open", "snooze", "Snooze 1 h"];
+    let hints: HashMap<&str, Variant<'_>> = HashMap::from([
+        (
+            "desktop-entry",
+            Variant::from("io.github.ali_kenjo.Opaline"),
+        ),
+        ("category", Variant::from("device")),
+    ]);
+    conn.call_method(
+        Some("org.freedesktop.Notifications"),
+        "/org/freedesktop/Notifications",
+        Some("org.freedesktop.Notifications"),
+        "Notify",
+        &(
+            "Opaline",
+            0u32,
+            "io.github.ali_kenjo.Opaline",
+            "Opaline alerts are working",
+            "You'll see alerts like this when a sensor crosses its threshold.",
+            &actions[..],
+            hints,
+            5000i32,
+        ),
+    )
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

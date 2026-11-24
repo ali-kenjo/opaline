@@ -201,7 +201,10 @@ impl Sampler {
     async fn tick(&mut self, tick: u64) {
         let now = Instant::now();
         let interests: HashMap<Topic, ActivityClass> = self.hub.interests().into_iter().collect();
-        let eco = self.hub.eco();
+        let perf = self.hub.settings().performance.clone();
+        let paused = self.hub.paused() || (perf.pause_on_battery && self.hub.on_battery());
+        let eco = self.hub.eco() || perf.mode == crate::store::PerformanceMode::Eco;
+        let realtime = perf.mode == crate::store::PerformanceMode::Realtime;
         let mut published = Vec::new();
 
         for slot in &mut self.slots {
@@ -230,7 +233,14 @@ impl Sampler {
                 .iter()
                 .filter(|desc| {
                     interests.get(&Topic::new(desc.name)).is_some_and(|class| {
-                        let k = ticks(interval_for(*class, eco, desc.min_interval));
+                        let effective = if paused {
+                            ActivityClass::Idle
+                        } else if realtime && *class == ActivityClass::Ambient {
+                            ActivityClass::Interactive
+                        } else {
+                            *class
+                        };
+                        let k = ticks(interval_for(effective, eco, desc.min_interval));
                         is_due(tick, k, slot.last.get(desc.name).copied())
                     })
                 })

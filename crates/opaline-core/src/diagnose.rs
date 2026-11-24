@@ -224,6 +224,268 @@ async fn helper_api_version(conn: &Connection) -> Option<u32> {
     shell.api_version().await.ok()
 }
 
+/// Live diagnostics snapshot for Settings → Diagnostics (brief §5.9).
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LiveDiagnostics {
+    pub opaline_version: &'static str,
+    pub backend: opaline_ipc::BackendKind,
+    pub helper_installed: bool,
+    pub helper_running: bool,
+    pub helper_api_version: Option<u32>,
+    pub core_pss_mb: f64,
+    pub total_pss_mb: f64,
+    pub process_cpu_jiffies: u64,
+    pub total_cpu_jiffies: u64,
+    pub process_count: usize,
+    pub providers: BTreeMap<String, ProviderReport>,
+    pub topics: BTreeMap<String, String>,
+    pub recent_logs: Vec<String>,
+    pub debug_report_json: String,
+}
+
+fn read_pss_kb(pid: u32) -> Option<u64> {
+    let text = std::fs::read_to_string(format!("/proc/{pid}/smaps_rollup")).ok()?;
+    for line in text.lines() {
+        if let Some(rest) = line.strip_prefix("Pss:") {
+            return rest.split_whitespace().next()?.parse().ok();
+        }
+    }
+    None
+}
+
+fn read_proc_jiffies(pid: u32) -> Option<u64> {
+    let text = std::fs::read_to_string(format!("/proc/{pid}/stat")).ok()?;
+    let after = text.rsplit_once(") ")?.1;
+    let mut fields = after.split_whitespace();
+    let utime: u64 = fields.nth(11)?.parse().ok()?;
+    let stime: u64 = fields.next()?.parse().ok()?;
+    Some(utime.saturating_add(stime))
+}
+
+fn read_total_cpu_jiffies() -> u64 {
+    let Ok(text) = std::fs::read_to_string("/proc/stat") else {
+        return 0;
+    };
+    let Some(line) = text.lines().next() else {
+        return 0;
+    };
+    line.split_whitespace()
+        .skip(1)
+        .filter_map(|s| s.parse::<u64>().ok())
+        .sum()
+}
+
+/// Finds all Opaline processes (core, layer, and layer's WebKit children) owned by this UID.
+fn opaline_pids() -> Vec<u32> {
+    let own_uid = rustix::process::getuid().as_raw();
+    let self_pid = std::process::id();
+    let mut roots = vec![self_pid];
+    let mut children_by_ppid: std::collections::HashMap<u32, Vec<u32>> =
+        std::collections::HashMap::new();
+    let Ok(entries) = std::fs::read_dir("/proc") else {
+        return roots;
+    };
+    for entry in entries.flatten() {
+        let Some(pid) = entry
+            .file_name()
+            .to_str()
+            .and_then(|s| s.parse::<u32>().ok())
+        else {
+            continue;
+        };
+        let Ok(status) = std::fs::read_to_string(format!("/proc/{pid}/status")) else {
+            continue;
+        };
+        let mut uid_match = false;
+        let mut ppid = 0u32;
+        for line in status.lines() {
+            if let Some(rest) = line.strip_prefix("Uid:") {
+                uid_match = rest
+                    .split_whitespace()
+                    .next()
+                    .and_then(|s| s.parse::<u32>().ok())
+                    == Some(own_uid);
+            } else if let Some(rest) = line.strip_prefix("PPid:") {
+                ppid = rest.trim().parse().unwrap_or(0);
+            }
+        }
+        if !uid_match {
+            continue;
+        }
+        children_by_ppid.entry(ppid).or_default().push(pid);
+        if pid != self_pid
+            && let Ok(cmd) = std::fs::read_to_string(format!("/proc/{pid}/cmdline"))
+            && cmd.contains("opaline")
+            && cmd.contains("--layer")
+        {
+            roots.push(pid);
+        }
+    }
+    let mut visited = std::collections::HashSet::new();
+    let mut stack = roots;
+    let mut out = Vec::new();
+    while let Some(pid) = stack.pop() {
+        if visited.insert(pid) {
+            out.push(pid);
+            if let Some(kids) = children_by_ppid.get(&pid) {
+                stack.extend(kids.iter().copied());
+            }
+        }
+    }
+    out
+}
+
+fn read_recent_logs(max_lines: usize) -> Vec<String> {
+    let Ok(dir) = crate::paths::state_dir().map(|d| d.join("logs")) else {
+        return Vec::new();
+    };
+    let Ok(entries) = std::fs::read_dir(&dir) else {
+        return Vec::new();
+    };
+    let mut files: Vec<std::path::PathBuf> = entries
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.extension().is_some_and(|e| e == "log"))
+        .collect();
+    files.sort();
+    let Some(newest) = files.last() else {
+        return Vec::new();
+    };
+    let Ok(text) = std::fs::read_to_string(newest) else {
+        return Vec::new();
+    };
+    let lines: Vec<String> = text.lines().map(str::to_owned).collect();
+    let start = lines.len().saturating_sub(max_lines);
+    lines[start..].to_vec()
+}
+
+/// Collects live diagnostics from the running hub (fast, no extra sampler run).
+pub async fn live_snapshot(hub: &crate::hub::Hub) -> LiveDiagnostics {
+    let desktop = crate::desktop::status(hub).await;
+    let pids = tokio::task::spawn_blocking(opaline_pids)
+        .await
+        .unwrap_or_else(|_| vec![std::process::id()]);
+    let process_count = pids.len();
+    let self_pid = std::process::id();
+    let (core_pss_kb, total_pss_kb, proc_jiffies, total_jiffies, recent_logs) =
+        tokio::task::spawn_blocking(move || {
+            let core_pss = read_pss_kb(self_pid).unwrap_or(0);
+            let mut total_pss = 0u64;
+            let mut jiffies = 0u64;
+            for &pid in &pids {
+                total_pss = total_pss.saturating_add(read_pss_kb(pid).unwrap_or(0));
+                jiffies = jiffies.saturating_add(read_proc_jiffies(pid).unwrap_or(0));
+            }
+            (
+                core_pss,
+                total_pss,
+                jiffies,
+                read_total_cpu_jiffies(),
+                read_recent_logs(60),
+            )
+        })
+        .await
+        .unwrap_or((0, 0, 0, 0, Vec::new()));
+
+    let providers: BTreeMap<String, ProviderReport> = hub
+        .provider_statuses()
+        .into_iter()
+        .map(|(id, s)| {
+            (
+                id,
+                ProviderReport {
+                    cost: s.cost,
+                    health: s.health,
+                    sample_us: s.sample_us,
+                    details: BTreeMap::new(),
+                },
+            )
+        })
+        .collect();
+    let topics: BTreeMap<String, String> = hub
+        .all_latest()
+        .iter()
+        .map(|(k, v)| (k.clone(), status(Some(v))))
+        .collect();
+
+    let displays: Vec<Display> = hub
+        .monitors()
+        .into_iter()
+        .map(|m| Display {
+            serial_present: !m.serial.is_empty()
+                && m.serial.trim_start_matches("0x").chars().any(|c| c != '0'),
+            connector: m.connector,
+            vendor: m.vendor,
+            product: m.product,
+            x: m.x,
+            y: m.y,
+            width: m.width,
+            height: m.height,
+            scale: m.scale,
+            primary: m.primary,
+            builtin: m.builtin,
+        })
+        .collect();
+
+    let report = Report {
+        opaline_version: env!("CARGO_PKG_VERSION"),
+        os: Os {
+            pretty_name: std::fs::read_to_string("/etc/os-release")
+                .ok()
+                .as_deref()
+                .and_then(parse_pretty_name),
+            kernel: std::fs::read_to_string("/proc/sys/kernel/osrelease")
+                .ok()
+                .map(|s| s.trim().to_owned()),
+        },
+        session: Session {
+            session_type: env("XDG_SESSION_TYPE"),
+            current_desktop: env("XDG_CURRENT_DESKTOP"),
+            gnome_shell: None,
+        },
+        displays: Ok(displays),
+        desktop_integration: DesktopIntegration {
+            helper_installed: desktop.helper_installed,
+            helper_running: Some(desktop.helper_running),
+            helper_api_version: desktop.helper_api_version,
+        },
+        providers: providers
+            .iter()
+            .map(|(k, v)| {
+                (
+                    k.clone(),
+                    ProviderReport {
+                        cost: v.cost,
+                        health: v.health.clone(),
+                        sample_us: v.sample_us,
+                        details: v.details.clone(),
+                    },
+                )
+            })
+            .collect(),
+        topics: topics.clone(),
+    };
+    let debug_report_json = serde_json::to_string_pretty(&report).unwrap_or_default();
+
+    LiveDiagnostics {
+        opaline_version: env!("CARGO_PKG_VERSION"),
+        backend: desktop.backend,
+        helper_installed: desktop.helper_installed,
+        helper_running: desktop.helper_running,
+        helper_api_version: desktop.helper_api_version,
+        core_pss_mb: (core_pss_kb as f64 / 1024.0 * 10.0).round() / 10.0,
+        total_pss_mb: (total_pss_kb as f64 / 1024.0 * 10.0).round() / 10.0,
+        process_cpu_jiffies: proc_jiffies,
+        total_cpu_jiffies: total_jiffies,
+        process_count,
+        providers,
+        topics,
+        recent_logs,
+        debug_report_json,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
