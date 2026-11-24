@@ -265,4 +265,22 @@ Docker Desktop stopped) and was seen live where this laptop has it.
 | Live Edit mode on GNOME 50.1 Native Wayland (`eDP-1` + `HDMI-2`) | ✅ Auto-migrated 4 widgets to `~/.config/opaline/layouts.json`; ScreenCast capture verified dot grid, blurred backdrop, non-overlapping bottom toolbar, and live widgets |
 | Covered idle CPU (`scripts/measure-budget.sh`) | ✅ **0.042% CPU** over 15 s (budget 0.5%) |
 | Memory PSS (dual-monitor, `eDP-1` at `dpr=2`, after Edit) | ⚠️ **311–339 MB PSS** after Edit (`tightCanvas` shrinks WebGL2 canvas; full GTK/Wayland surface sizing stays work-area sized for instant Peek/Edit, noted for follow-up if needed) |
-| 🧑 Owner interactive sign-off (Edit mode, drag/resize/stack/remove/undo, picker, presets, keyboard, cross-display, detail views) | ⏳ Pending |
+| 🧑 Owner interactive sign-off (Edit mode, drag/resize/stack/remove/undo, picker, presets, keyboard, cross-display, detail views) | ✅ 2026-11-24 |
+
+
+## Phase 6: Product shell (ready for sign-off 2026-11-24)
+
+**Done** (156 Rust tests, 67 Vitest, 12 Playwright WebKit, helper ESLint + GSettings schema)
+- **6.1 Onboarding (`app/onboarding.html`, `app/src/onboarding/OnboardingApp.tsx`):** 6-step first-run flow (Welcome with expressive shape morph over real desktop wallpaper → Pick a starter layout over real wallpaper → Desktop integration toggle → Privacy: Open-Meteo city search / automatic location, public IP off, update checks on → Optional CPU power & autostart → Finish with Edit mode or Done). Automatically opens on a fresh account (`!settings.onboarding_done`); upgraded Phase 4/5 configs auto-mark `onboarding_done = true`; reachable anytime via `--onboarding` or Settings → About & Updates.
+- **6.2 Settings window (`app/settings.html`, `app/src/settings/SettingsApp.tsx`, `SettingsSections.tsx`, `app/src-tauri/src/shell.rs`, `capabilities/shell.json`):** Wayland-native core window in Opaline's dynamic Material 3 Expressive palette, with all 11 sections of brief §2.9 (Appearance, Layout, Widgets, Alerts, Performance, Privacy, Desktop integration, Shortcuts, Backup, Diagnostics, About & Updates) plus Peek / Edit widgets / Pause / Quit quick actions in the top bar (full tray parity on vanilla GNOME). Edit toolbar **Settings** button invokes `Command::OpenSettings` to open it directly.
+- **6.3 Tray, desktop file, shortcuts (`packaging/io.github.ali_kenjo.Opaline.desktop`, `shortcuts.rs`, `core_mode.rs`):** Desktop entry with `Peek`, `Edit widgets`, `Settings`, and `Quit` actions; single-instance app-grid relaunch enters Edit mode; Native shortcuts editable via GSettings (`org.gnome.shell.extensions.opaline-desktop`) and Instant shortcuts via GlobalShortcuts portal.
+- **6.4 Notifications, autostart, privacy, backup (`alerts.rs`, `autostart.rs`, `backup.rs`, `store.rs`, `engine/sampler.rs`):** Test alert notification with `Open` / `Snooze 1 h` actions, XDG autostart (`~/.config/autostart/io.github.ali_kenjo.Opaline.desktop`), Eco/Balanced/Realtime + pause-on-battery sampling wired into `Sampler`, appearance state (`Automatic`/`Full`/`Dimmed`), glass slider, and layout safe-margin wired live to `LayerApp`, and validated JSON export/import of settings + layouts.
+- **6.5 Updates (`crates/opaline-core/src/updates.rs`):** Daily opt-out GitHub Releases check, semver comparison, SHA-256 verification, pure-Rust minisign Ed25519 + BLAKE2b-512 verification (with unit tests including RFC 7693 vector and tampered-signature rejection), HTTPS-only `.deb` download, and `pkexec apt install`.
+
+**Acceptance (brief §10, P6)**
+
+| Check | Result |
+| - | - |
+| Core modules (`autostart`, `backup`, `updates` SHA-256 + minisign + BLAKE2b, `store` migration) | ✅ 156 Rust tests passing (`clippy -D warnings`, `rustfmt` clean) |
+| Live Wayland-native Settings & Onboarding windows on GNOME 50.1 | ✅ Verified via `--settings` and `--onboarding` ScreenCast captures: dynamic wallpaper palette, all 11 Settings sections, real blurred wallpaper in Onboarding, zero errors |
+| 🧑 Owner sign-off (Settings window, Onboarding flow / fresh-user first-run test) | ⏳ Pending |
