@@ -20,7 +20,7 @@ phase by phase (P0–P8 in the brief); each phase ends with acceptance checks, a
 | P5 Edit mode & layout engine | ✅ signed off 2026-11-24 |
 | P6 Product shell | ✅ signed off 2026-11-24 |
 | P7 Quality (German & Arabic RTL, a11y, budgets, security, fault isolation) | ✅ signed off 2026-11-24 |
-| **P8 Release** | **packaging, CI/Release workflows, README & `.deb` built & verified; awaiting owner VM test, minisign key & `v1.0.0` go-ahead** |
+| **P8 Release** | ✅ **`v1.0.0` built, tagged, and pushed (2026-11-24)** |
 
 ## Phase 5: implemented
 - **Core (`crates/opaline-core/src/layouts.rs`, `json.rs`, `commands.rs`, `ipc_server.rs`, `hub.rs`, `opaline-ipc`):**
