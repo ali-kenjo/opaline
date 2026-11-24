@@ -263,6 +263,8 @@ pub enum Command {
     StartDockerDesktop,
     /// Change settings with a JSON merge patch (as a `Map`; a missing value clears a field).
     UpdateSettings { patch: Value },
+    /// Replace per-monitor layouts (`layouts.json`, validated by core).
+    UpdateLayouts { layouts: Value },
     /// Search places for the weather location (Open-Meteo geocoding); answers with data.
     GeocodeSearch { query: String, language: String },
     /// The last `seconds` of a numeric series (`cpu.load`, `cpu.perThread#3`); answers with

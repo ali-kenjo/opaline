@@ -7,6 +7,7 @@ fn main() {
         "layer_command",
         "layer_set_raised",
         "layer_set_peek",
+        "layer_set_edit",
         "layer_asset",
         "layer_set_input_region",
         "layer_report",

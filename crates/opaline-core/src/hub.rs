@@ -11,6 +11,7 @@ use opaline_ipc::{
 use tokio::sync::{broadcast, watch};
 
 use crate::engine::ProviderStatus;
+use crate::layouts::Layouts;
 use crate::store::Settings;
 
 /// Capacity of the update/event broadcast channels. A client that falls this far behind skips
@@ -57,6 +58,7 @@ pub struct Hub {
     /// Whether any MPRIS player is playing: `None` = no player known.
     media_playing: watch::Sender<Option<bool>>,
     settings: watch::Sender<Arc<Settings>>,
+    layouts: watch::Sender<Arc<Layouts>>,
     /// Screen locked: every subscription counts as Idle and nothing is pushed.
     locked: std::sync::atomic::AtomicBool,
     /// Connectors whose layer window is covered by a maximized or fullscreen window (Native
@@ -67,6 +69,7 @@ pub struct Hub {
     history: crate::history::Shared,
     /// False when settings.json comes from a newer Opaline (or is broken): never overwrite it.
     settings_writable: std::sync::atomic::AtomicBool,
+    layouts_writable: std::sync::atomic::AtomicBool,
 }
 
 impl Hub {
@@ -85,11 +88,13 @@ impl Hub {
             spectrum: broadcast::channel(4).0,
             media_playing: watch::channel(None).0,
             settings: watch::channel(Arc::new(Settings::default())).0,
+            layouts: watch::channel(Arc::new(Layouts::default())).0,
             locked: std::sync::atomic::AtomicBool::new(false),
             covered: Mutex::new(HashSet::new()),
             work_areas: Mutex::new(HashMap::new()),
             history: crate::history::Shared::default(),
             settings_writable: std::sync::atomic::AtomicBool::new(true),
+            layouts_writable: std::sync::atomic::AtomicBool::new(true),
         })
     }
 
@@ -412,6 +417,32 @@ impl Hub {
         self.settings.send_replace(Arc::new(settings));
         self.publish(vec![TopicUpdate {
             topic: Topic::new(crate::store::TOPIC),
+            value: crate::json::from_json(&json),
+        }]);
+    }
+
+    pub fn layouts(&self) -> Arc<Layouts> {
+        self.layouts.borrow().clone()
+    }
+
+    pub fn layouts_writable(&self) -> bool {
+        self.layouts_writable
+            .load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    /// Installs the layouts loaded at startup.
+    pub fn init_layouts(&self, layouts: Layouts, writable: bool) {
+        self.layouts_writable
+            .store(writable, std::sync::atomic::Ordering::Relaxed);
+        self.set_layouts(layouts);
+    }
+
+    /// Replaces the layouts and publishes them as the `layouts` topic.
+    pub fn set_layouts(&self, layouts: Layouts) {
+        let json = serde_json::to_value(&layouts).unwrap_or_default();
+        self.layouts.send_replace(Arc::new(layouts));
+        self.publish(vec![TopicUpdate {
+            topic: Topic::new(crate::layouts::TOPIC),
             value: crate::json::from_json(&json),
         }]);
     }

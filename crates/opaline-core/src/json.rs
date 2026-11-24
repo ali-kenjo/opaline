@@ -37,10 +37,25 @@ pub fn from_json(json: &serde_json::Value) -> Value {
 }
 
 /// A command payload (a patch) as JSON: like [`to_json`], but "not reported" means `null`, so
-/// a patch can clear a field.
+/// a patch can clear a field, and integral floats become JSON integers so typed Rust fields
+/// (`u32`, `usize`, `i64`) deserialize cleanly from protocol `Value::Num(f64)`.
 pub fn patch_to_json(value: &Value) -> serde_json::Value {
     match value {
         Value::Missing(_) => serde_json::Value::Null,
+        Value::Num(n) => {
+            if n.is_finite()
+                && n.fract() == 0.0
+                && *n >= -9_007_199_254_740_991.0
+                && *n <= 9_007_199_254_740_991.0
+            {
+                #[allow(clippy::cast_possible_truncation)]
+                let i = *n as i64;
+                serde_json::Value::Number(serde_json::Number::from(i))
+            } else {
+                serde_json::Number::from_f64(*n)
+                    .map_or(serde_json::Value::Null, serde_json::Value::Number)
+            }
+        }
         Value::List(v) => serde_json::Value::Array(v.iter().map(patch_to_json).collect()),
         Value::Map(m) => serde_json::Value::Object(
             m.iter()
@@ -62,8 +77,8 @@ mod tests {
         let j = json!({"a": 1.5, "b": [true, "x"], "c": {"d": 2.0}});
         assert_eq!(to_json(&from_json(&j)), j);
         assert_eq!(
-            patch_to_json(&from_json(&json!({"x": null}))),
-            json!({"x": null})
+            patch_to_json(&from_json(&json!({"x": null, "n": 4.0, "f": 1.5}))),
+            json!({"x": null, "n": 4, "f": 1.5})
         );
     }
 }

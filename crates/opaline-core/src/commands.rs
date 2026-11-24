@@ -19,6 +19,39 @@ pub async fn execute(hub: &Arc<Hub>, command: Command) -> CommandResult {
                 .await
                 .map(|()| None)
         }
+        Command::UpdateLayouts { layouts } => {
+            crate::layouts::update(hub, crate::json::patch_to_json(&layouts))
+                .await
+                .map(|()| None)
+        }
+        Command::History { series, seconds } => {
+            let shared = hub.history();
+            let result = tokio::task::spawn_blocking(move || {
+                let in_mem = shared
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner)
+                    .query(&series, seconds);
+                let (step_s, values) = if seconds > 86_400 {
+                    crate::history::query_rollup(&series, seconds)
+                        .ok()
+                        .filter(|(_, v)| !v.is_empty())
+                        .or(in_mem)
+                        .unwrap_or((60, Vec::new()))
+                } else {
+                    in_mem.unwrap_or((1, Vec::new()))
+                };
+                Value::map([
+                    ("stepS", Value::Num(step_s as f64)),
+                    (
+                        "values",
+                        Value::Nums(values.into_iter().map(f64::from).collect()),
+                    ),
+                ])
+            })
+            .await
+            .map_err(|e| e.to_string());
+            result.map(Some)
+        }
         Command::GeocodeSearch { query, language } => {
             crate::providers::weather::geocode(&query, &language)
                 .await
@@ -75,6 +108,7 @@ async fn run(command: Command) -> Result<(), String> {
         }
         Command::StartDockerDesktop => crate::providers::docker::start_desktop().await,
         Command::UpdateSettings { .. }
+        | Command::UpdateLayouts { .. }
         | Command::GeocodeSearch { .. }
         | Command::History { .. }
         | Command::ListFonts

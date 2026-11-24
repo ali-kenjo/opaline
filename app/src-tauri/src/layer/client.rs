@@ -187,8 +187,12 @@ fn handle(app: &AppHandle, bridge: &Bridge, msg: ServerMsg, backend: opaline_ipc
                     windows::sync(app, bridge, monitors, backend);
                 }
                 CoreEvent::PeekRequested => {
-                    let active = bridge.toggle_peek();
-                    super::bridge::apply_raised(app, bridge, backend, active);
+                    let raised = bridge.toggle_peek();
+                    super::bridge::apply_raised(app, bridge, backend, raised);
+                }
+                CoreEvent::EditRequested => {
+                    let raised = bridge.toggle_edit();
+                    super::bridge::apply_raised(app, bridge, backend, raised);
                 }
                 _ => {}
             }

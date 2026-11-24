@@ -106,9 +106,10 @@ struct Subscriptions {
 }
 
 /// Essential UI state topics delivered even while covered or locked, so a layer that starts
-/// behind maximized windows still loads its widget list, wallpaper and palette before Peek.
-const ALWAYS_PUSH: [&str; 3] = [
+/// behind maximized windows still loads its widget list, layouts, wallpaper and palette.
+const ALWAYS_PUSH: [&str; 4] = [
     crate::store::TOPIC,
+    crate::layouts::TOPIC,
     "wallpaper.monitors",
     "appearance.settings",
 ];

@@ -79,6 +79,8 @@ pub fn run(request: Option<AppRequest>) -> ExitCode {
     ));
     let (settings, writable) = opaline_core::store::load();
     hub.init_settings(settings, writable);
+    let (layouts, layouts_writable) = opaline_core::layouts::load();
+    hub.init_layouts(layouts, layouts_writable);
 
     let listener = match rt.block_on(ipc_server::bind_default()) {
         Ok(listener) => listener,

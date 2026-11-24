@@ -16,6 +16,7 @@ pub mod http;
 pub mod hub;
 pub mod ipc_server;
 pub mod json;
+pub mod layouts;
 pub mod logging;
 pub mod paths;
 pub mod providers;

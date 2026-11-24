@@ -32,6 +32,7 @@ pub enum LayerEvent {
         core_version: String,
         backend: BackendKind,
         monitor: Option<MonitorInfo>,
+        monitors: Vec<MonitorInfo>,
     },
     Rejected {
         reason: String,
@@ -60,6 +61,10 @@ pub enum LayerEvent {
     Peek {
         active: bool,
     },
+    /// Edit mode across every layer window (all displays edit together).
+    Edit {
+        active: bool,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -84,8 +89,13 @@ struct Inner {
     /// Latest value of every topic, replayed to a window that attaches after the topic was
     /// subscribed (core sends the latest value only once, to the first subscriber).
     latest: HashMap<Topic, TopicUpdate>,
-    /// Shared Peek state across all monitor windows.
+    /// Shared Peek and Edit states across all monitor windows.
     peek: bool,
+    edit: bool,
+    /// Per-connector covered state from core, replayed to windows that attach late.
+    covered: HashMap<String, bool>,
+    /// Last DesktopFocusChanged from core, replayed on attach.
+    desktop_focused: Option<bool>,
 }
 
 pub struct Bridge {
@@ -116,6 +126,9 @@ impl Bridge {
                 geometry: HashMap::new(),
                 latest: HashMap::new(),
                 peek: false,
+                edit: false,
+                covered: HashMap::new(),
+                desktop_focused: None,
             }),
             outgoing,
             next_command: AtomicU32::new(1),
@@ -137,6 +150,7 @@ impl Bridge {
                 core_version: core_version.clone(),
                 backend: *backend,
                 monitor: inner.monitors_by_label.get(label).cloned(),
+                monitors: inner.monitors_by_label.values().cloned().collect(),
             },
             ConnState::Rejected(reason) => LayerEvent::Rejected {
                 reason: reason.clone(),
@@ -177,37 +191,98 @@ impl Bridge {
             .collect()
     }
 
-    /// Toggles Peek across every layer window and returns the new state.
+    /// Toggles Peek across every layer window (exiting Edit if open) and returns whether
+    /// the layer should be raised.
     pub fn toggle_peek(&self) -> bool {
-        let active = {
+        let (peek, edit_changed) = {
             let mut inner = self.lock();
             inner.peek = !inner.peek;
-            inner.peek
+            let ec = inner.peek && inner.edit;
+            if ec {
+                inner.edit = false;
+            }
+            (inner.peek, ec)
         };
-        self.broadcast(&LayerEvent::Peek { active });
-        active
+        if edit_changed {
+            self.broadcast(&LayerEvent::Edit { active: false });
+        }
+        self.broadcast(&LayerEvent::Peek { active: peek });
+        peek
     }
 
-    /// Sets Peek across every layer window; returns whether the state changed.
-    pub fn set_peek(&self, active: bool) -> bool {
-        let changed = {
+    /// Sets Peek across every layer window; returns whether the layer should be raised.
+    pub fn set_peek(&self, active: bool) -> (bool, bool) {
+        let (changed, raised) = {
             let mut inner = self.lock();
             let differs = inner.peek != active;
             inner.peek = active;
-            differs
+            (differs, inner.peek || inner.edit)
         };
         if changed {
             self.broadcast(&LayerEvent::Peek { active });
         }
-        changed
+        (changed, raised)
+    }
+
+    /// Toggles Edit mode across every layer window (exiting Peek if open) and returns whether
+    /// the layer should be raised.
+    pub fn toggle_edit(&self) -> bool {
+        let (edit, peek_changed) = {
+            let mut inner = self.lock();
+            inner.edit = !inner.edit;
+            let pc = inner.edit && inner.peek;
+            if pc {
+                inner.peek = false;
+            }
+            (inner.edit, pc)
+        };
+        if peek_changed {
+            self.broadcast(&LayerEvent::Peek { active: false });
+        }
+        self.broadcast(&LayerEvent::Edit { active: edit });
+        edit
+    }
+
+    /// Sets Edit mode across every layer window; returns `(changed, raised)`.
+    pub fn set_edit(&self, active: bool) -> (bool, bool) {
+        let (changed, peek_changed, raised) = {
+            let mut inner = self.lock();
+            let differs = inner.edit != active;
+            inner.edit = active;
+            let pc = active && inner.peek;
+            if pc {
+                inner.peek = false;
+            }
+            (differs, pc, inner.peek || inner.edit)
+        };
+        if peek_changed {
+            self.broadcast(&LayerEvent::Peek { active: false });
+        }
+        if changed {
+            self.broadcast(&LayerEvent::Edit { active });
+        }
+        (changed, raised)
     }
 
     pub fn broadcast(&self, event: &LayerEvent) {
         let mut inner = self.lock();
-        if let LayerEvent::Update { updates, .. } = event {
-            for u in updates {
-                inner.latest.insert(u.topic.clone(), u.clone());
+        match event {
+            LayerEvent::Update { updates, .. } => {
+                for u in updates {
+                    inner.latest.insert(u.topic.clone(), u.clone());
+                }
             }
+            LayerEvent::CoreEvent {
+                event: CoreEvent::LayerCovered { connector, covered },
+            } => {
+                inner.covered.insert(connector.clone(), *covered);
+            }
+            LayerEvent::CoreEvent {
+                event: CoreEvent::DesktopFocusChanged { focused },
+            } => {
+                inner.desktop_focused = Some(*focused);
+            }
+            _ => {}
         }
         for (label, channel) in &inner.channels {
             Self::send(label, channel, event.clone());
@@ -301,6 +376,33 @@ impl Bridge {
         if inner.peek {
             Self::send(&label, &channel, LayerEvent::Peek { active: true });
         }
+        if inner.edit {
+            Self::send(&label, &channel, LayerEvent::Edit { active: true });
+        }
+        let monitor = inner.monitors_by_label.get(&label).cloned();
+        if let Some(ref m) = monitor
+            && let Some(&covered) = inner.covered.get(&m.connector)
+        {
+            Self::send(
+                &label,
+                &channel,
+                LayerEvent::CoreEvent {
+                    event: CoreEvent::LayerCovered {
+                        connector: m.connector.clone(),
+                        covered,
+                    },
+                },
+            );
+        }
+        if let Some(focused) = inner.desktop_focused {
+            Self::send(
+                &label,
+                &channel,
+                LayerEvent::CoreEvent {
+                    event: CoreEvent::DesktopFocusChanged { focused },
+                },
+            );
+        }
         if !inner.latest.is_empty() {
             let updates: Vec<TopicUpdate> = inner.latest.values().cloned().collect();
             Self::send(
@@ -313,7 +415,6 @@ impl Bridge {
                 },
             );
         }
-        let monitor = inner.monitors_by_label.get(&label).cloned();
         inner.channels.insert(label, channel);
         monitor
     }
@@ -403,15 +504,37 @@ pub async fn layer_set_peek(
     backend: State<'_, BackendKind>,
     bridge: State<'_, std::sync::Arc<Bridge>>,
 ) -> Result<CommandResult, ()> {
-    if !bridge.set_peek(active) {
+    let (changed, raised) = bridge.set_peek(active);
+    if !changed {
         return Ok(CommandResult::Ok);
     }
     match *backend {
         BackendKind::Instant => {
-            super::windows::set_raised_instant(&app, active);
+            super::windows::set_raised_instant(&app, raised);
             Ok(CommandResult::Ok)
         }
-        BackendKind::Native => Ok(bridge.command(Command::SetRaised { raised: active }).await),
+        BackendKind::Native => Ok(bridge.command(Command::SetRaised { raised }).await),
+    }
+}
+
+/// Turns Edit mode on or off across every monitor window and updates stacking.
+#[tauri::command]
+pub async fn layer_set_edit(
+    app: AppHandle,
+    active: bool,
+    backend: State<'_, BackendKind>,
+    bridge: State<'_, std::sync::Arc<Bridge>>,
+) -> Result<CommandResult, ()> {
+    let (changed, raised) = bridge.set_edit(active);
+    if !changed {
+        return Ok(CommandResult::Ok);
+    }
+    match *backend {
+        BackendKind::Instant => {
+            super::windows::set_raised_instant(&app, raised);
+            Ok(CommandResult::Ok)
+        }
+        BackendKind::Native => Ok(bridge.command(Command::SetRaised { raised }).await),
     }
 }
 

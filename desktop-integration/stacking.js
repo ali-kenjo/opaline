@@ -86,6 +86,10 @@ export class Stacking {
   }
 
   _updateCovered() {
+    if (!this._layer.windows.length) {
+      this._covered.clear();
+      return;
+    }
     const ws = global.workspace_manager.get_active_workspace();
     const n = global.display.get_n_monitors();
     const covered = new Array(n).fill(false);
