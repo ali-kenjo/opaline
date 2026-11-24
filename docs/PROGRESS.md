@@ -306,4 +306,14 @@ Docker Desktop stopped) and was seen live where this laptop has it.
 | Sleeping dGPU rule | ADR 0003 checks | Verified in P1 (`runtime_status` check before NVML, NVML released when idle) | ✅ |
 | Fault isolation (panic + hang) | No crash, no stall | `panicking_provider_is_isolated_from_healthy_siblings` & `hanging_provider_does_not_stall_healthy_siblings` pass | ✅ |
 | Security review | §5.8 / PLAN 7.4 | Recorded in `docs/SECURITY.md` | ✅ |
-| 🧑 Owner review of German & Arabic strings + RTL & a11y sign-off | Plan 7.1–7.2 | ⏳ Pending |
+| 🧑 Owner review of German & Arabic strings + RTL & a11y sign-off | Plan 7.1–7.2 | ✅ 2026-11-24 |
+
+
+## Phase 8: Release packaging & readiness (ready for VM test & v1.0.0 go-ahead 2026-11-24)
+
+**Done**
+- **8.1 `.deb` package, maintainer scripts & AppStream (`tauri.conf.json`, `packaging/deb/{postinst,prerm,postrm}`, `packaging/metainfo/io.github.ali_kenjo.Opaline.metainfo.xml`, `scripts/stage-deb-assets.sh`):** Full `.deb` bundling `/usr/bin/opaline`, `/usr/libexec/opaline/opaline-privileged`, `Opaline.desktop` (with Peek/Edit/Settings/Quit actions), AppStream metainfo, hicolor SVG + PNG icons, D-Bus system service + bus policy, polkit policy, and the GNOME Shell helper with compiled `gschemas.compiled`. Validated with `desktop-file-validate`, `appstreamcli validate --no-net`, and `dpkg-deb -I/-c`.
+- **8.2 Clean Ubuntu 26.04 VM checklist (`docs/RELEASE.md`):** Step-by-step clean-VM install, Instant→Native switch, upgrade, and clean uninstall verification guide.
+- **8.3 Release workflow (`.github/workflows/release.yml`, `ci.yml`):** Automated `ubuntu:26.04` tag release pipeline that stages auxiliary assets, builds the `.deb`, produces `SHA256SUMS`, signs with `minisign` using repo secrets (`MINISIGN_SECRET_KEY`, `MINISIGN_PASSWORD`), and publishes the GitHub Release; `docs/RELEASE.md` documents one-time minisign key generation.
+- **8.4 Documentation (`README.md`, `.github/ISSUE_TEMPLATE/hardware-report.yml`, `THIRD_PARTY.md`):** Full user-facing README (features, `.deb` install, privacy table, Native vs Instant & NVIDIA troubleshooting, build/test instructions) and hardware-report issue template requesting redacted `opaline --diagnose` output.
+- **8.5 `v1.0.0` tag & GitHub Release:** Ready — awaiting owner minisign key, optional clean-VM install test, and explicit go-ahead before bumping version to `1.0.0` and tagging.
