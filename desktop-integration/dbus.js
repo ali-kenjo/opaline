@@ -36,10 +36,10 @@ const XML = `
 
 function connectorOf(index) {
   const manager = global.backend.get_monitor_manager();
-  for (const m of manager.get_monitors?.() ?? []) {
-    // Meta.Monitor knows its connector; match by logical monitor index.
-    const logical = manager.get_logical_monitors?.().find((l) => l.get_monitors?.().includes(m));
-    if (logical && logical.get_number?.() === index) return m.get_connector();
+  for (const logical of manager.get_logical_monitors?.() ?? []) {
+    if (logical.get_number?.() === index) {
+      return logical.get_monitors?.()[0]?.get_connector?.() ?? String(index);
+    }
   }
   return String(index);
 }

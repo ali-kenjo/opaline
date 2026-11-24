@@ -20,6 +20,7 @@ const HEALTHY_RUN_MS = 60000;
 export class Layer {
   constructor(service) {
     this._service = service;
+    this.onWindowsChanged = null;
     this._client = null;
     this._process = null;
     this._windows = new Map();
@@ -105,15 +106,26 @@ export class Layer {
       this._client = null;
       this._scheduleRetry();
       return;
+    } finally {
+      launcher.close?.();
     }
-    this._process = this._client.get_subprocess();
+    const proc = this._client.get_subprocess();
+    this._process = proc;
     const started = GLib.get_monotonic_time();
-    console.log(`Opaline: layer started (pid ${this._process?.get_identifier() ?? "?"})`);
-    this._process?.wait_async(null, () => {
+    console.log(`Opaline: layer started (pid ${proc?.get_identifier() ?? "?"})`);
+    proc?.wait_async(null, (p, res) => {
+      try {
+        p.wait_finish(res);
+      } catch {
+        // Exit status is logged below; wait_finish just clears the GAsyncResult.
+      }
+      // Ignore exits of a process we already replaced or stopped.
+      if (p !== this._process) return;
       const ranMs = (GLib.get_monotonic_time() - started) / 1000;
       this._client = null;
       this._process = null;
       this._windows.clear();
+      this._service.layerWindowsChanged(0);
       if (this._destroyed || !this._coreOwner) return;
       if (ranMs >= HEALTHY_RUN_MS) this._backoff = MIN_BACKOFF_MS;
       console.warn(`Opaline: the layer exited after ${Math.round(ranMs)} ms; restarting`);
@@ -151,7 +163,14 @@ export class Layer {
   _adopt(win) {
     if (!win || !this._client || this._windows.has(win) || !this._client.owns_window(win)) return;
     const ids = [
-      win.connect("notify::title", () => this._place(win)),
+      win.connect("notify::title", () => {
+        this._place(win);
+        this.onWindowsChanged?.();
+      }),
+      win.connect("shown", () => {
+        this._place(win);
+        this.onWindowsChanged?.();
+      }),
       // Show Desktop and friends minimize everything; the layer belongs to the desktop.
       win.connect("notify::minimized", () => {
         if (win.minimized) win.unminimize();
@@ -159,6 +178,7 @@ export class Layer {
       win.connect("unmanaged", () => {
         this._windows.delete(win);
         this._service.layerWindowsChanged(this._windows.size);
+        this.onWindowsChanged?.();
       }),
     ];
     this._windows.set(win, ids);
@@ -166,6 +186,7 @@ export class Layer {
     win.stick();
     this._place(win);
     this._service.layerWindowsChanged(this._windows.size);
+    this.onWindowsChanged?.();
   }
 
   _monitorIndex(win) {

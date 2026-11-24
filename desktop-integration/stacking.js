@@ -23,10 +23,13 @@ export class Stacking {
       this._schedule();
       this._service.setDesktopFocused(this._desktopFocused());
     });
+    on(global.display, "in-fullscreen-changed", () => this._schedule());
     on(global.workspace_manager, "active-workspace-changed", () => this._schedule());
     on(global.window_manager, "size-changed", () => this._schedule());
     on(global.window_manager, "minimize", () => this._schedule());
     on(global.window_manager, "unminimize", () => this._schedule());
+    on(global.window_manager, "destroy", () => this._schedule());
+    this._layer.onWindowsChanged = () => this._schedule();
     this._schedule();
   }
 
@@ -52,9 +55,11 @@ export class Stacking {
     const ours = this._layer.windows;
     if (!ours.length) return;
     const stack = global.display.sort_windows_by_stacking(global.display.list_all_windows());
-    const lowestOurs = Math.min(...ours.map((w) => stack.indexOf(w)).filter((i) => i >= 0));
-    const otherBelow = stack.slice(0, lowestOurs).some((w) => this._isOther(w));
     this._checkDing(stack);
+    // Every layer window must stay below every normal window, so check below our highest one.
+    const highestOurs = Math.max(-1, ...ours.map((w) => stack.indexOf(w)));
+    if (highestOurs <= 0) return;
+    const otherBelow = stack.slice(0, highestOurs).some((w) => this._isOther(w));
     if (!otherBelow) return;
     this._lowering = true;
     try {
@@ -119,11 +124,18 @@ export class Stacking {
       const first = this._layer.windows[0];
       first?.activate(global.get_current_time());
     } else {
+      this._lowering = true;
+      try {
+        for (const w of this._layer.windows) w.lower();
+      } finally {
+        this._lowering = false;
+      }
       this._schedule();
     }
   }
 
   destroy() {
+    this._layer.onWindowsChanged = null;
     if (this._idle) GLib.source_remove(this._idle);
     this._idle = 0;
     for (const [obj, id] of this._signals) obj.disconnect(id);

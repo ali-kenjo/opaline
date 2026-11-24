@@ -13,14 +13,12 @@ hz="$(getconf CLK_TCK)"
 cpus="$(nproc)"
 
 opaline_pids() {
-  local core layer
-  core="$(pgrep -x opaline -o || true)"
-  [[ -z "$core" ]] && return 0
-  echo "$core"
-  for layer in $(pgrep -x opaline -P "$core" || true); do
-    echo "$layer"
-    pgrep -P "$layer" || true
-  done
+  local pid
+  # Works in both Instant mode (core → layer → WebKit) and Native mode (gnome-shell → layer → WebKit).
+  for pid in $(pgrep -x opaline || true); do
+    echo "$pid"
+    pgrep -P "$pid" || true
+  done | sort -un
 }
 
 ticks() {
