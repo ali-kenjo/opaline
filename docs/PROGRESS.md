@@ -223,15 +223,25 @@ asleep / needs-setup state can be shown in the Lab (card states, GPU asleep, no 
 Docker Desktop stopped) and was seen live where this laptop has it.
 
 
-## Phase 4: Layer and desktop integration (in progress, 2026-11-24)
+## Phase 4: Layer and desktop integration (signed off 2026-11-24)
 
-See `docs/HANDOFF.md` for the full state. In short:
-- **Done:** shell helper (`desktop-integration/`), core Native/Instant selection with live switching and helper
-  signals, portal shortcuts in Instant mode, real widgets on the desktop, Peek, Automatic appearance, input regions,
-  `layer_asset` for WebGL wallpapers, latest-value replay for late windows. Verified in Instant mode with screen
-  captures.
-- **Fixed on the real desktop:** a grey veil over the whole window in WebKitGTK's GPU mode (a composited child, the
-  Peek hint, stretched across the window), cross-origin wallpaper loading, cards 40 px too big outside the Lab,
-  one-row and S layouts, an Instant layer restart at start-up, late-attaching windows missing data.
-- **Waiting:** the helper is installed for the user; Native mode needs a re-login, then the acceptance checks in both
-  modes, scale tests, monitor changes and the Native RAM measurement.
+**Done** (146 Rust tests, 57 Vitest, 12 Playwright WebKit, helper ESLint + GSettings schema)
+- **Backend selection and live switching (4.1, 4.5):** `crates/opaline-core/src/desktop.rs` selects Native when `io.github.ali_kenjo.Opaline.Shell1` answers with compatible `ApiVersion` (N or N−1), else Instant, and switches live without restarting core (`BackendMode` D-Bus property and `--diagnose` track it). `ensure_enabled` turns on an installed helper via `org.gnome.Shell.Extensions` or `enabled-extensions`.
+- **Instant backend (4.2):** Xwayland work-area placement with `USPosition` hints and `configure-event` guard (ADR 0008), Show Desktop recovery (`deiconify` on `ICONIFIED`), live work-area watching (`GdkMonitor::connect_workarea_notify`), Peek via always-on-top, GlobalShortcuts portal (`LOGO+ALT+w/e` on a dedicated session bus connection so `Registry.Register` succeeds after Native → Instant switches).
+- **GNOME Shell helper (4.3):** `desktop-integration/` (`opaline-desktop@ali-kenjo.github.io`, GJS/ESM, verified against `Meta-18`): `layer.js` spawns `opaline --layer --backend native` as a trusted Wayland client (`Meta.WaylandClient.new_subprocess`), hides windows from window list, sticks them, undoes minimizing, and places each window on its monitor's work area (`move_to_monitor` + `move_resize_frame(true, …)` on `connect_after("map")` and `position-changed`); `stacking.js` keeps all layer windows below normal windows and above DING (ADR 0006), raises for Peek/Edit, and tracks per-monitor coverage (cleared while raised); `dbus.js` exports `Shell1` (`ApiVersion = 1`, `GetMonitors`, `GetWorkAreas`, `SetRaised`, signals); `keys.js` binds `Super+Alt+W/E`. Clean `disable()`.
+- **Layer robustness & appearance (4.6, 4.7):** real widgets on glass over per-monitor wallpapers (`layer_asset` blob URLs for WebGL), multi-monitor synchronized Peek (`layer_set_peek`), input regions matching widget rects (full window in Peek or with settings open), Automatic appearance via `DesktopFocusChanged` (Native) / hover / Peek, per-monitor `LayerCovered` pausing both core pushes and the window's rAF scheduler (while essential UI state `settings`, `wallpaper.monitors`, `appearance.settings` always delivers and sensors catch up on uncover), shared WebKit web-process crash reload (ADR 0009).
+- **Fixed on the real desktop:** grey veil in WebKitGTK GPU mode, cross-origin wallpaper loading, multi-monitor stacking index (`Math.max`), Native `layer-eDP-1` placement onto `HDMI-2` (switched Native windows to exact work areas from `Shell1.GetWorkAreas`), covered-at-startup hiding widgets/backdrop during Peek, portal app-ID registration after switching modes, and `scripts/measure-budget.sh` PID discovery in Native mode.
+
+**Acceptance (brief §10, P4)**
+
+| Check | Result |
+| - | - |
+| Native mode starts via helper (`ApiVersion = 1`, `LayerWindows = 2`, zero shell errors) | ✅ Verified in shell journal, `gdbus`, and core/layer logs (`GDK_BACKEND=wayland`, `eDP-1` `1536×765` at `dpr=2`, `HDMI-2` `1920×1080` at `dpr=1`) |
+| Native Peek & wallpaper alignment | ✅ ScreenCast capture on `eDP-1`: widgets and blurred backdrop sit flush in work area `(0, 32, 1536, 765)`, aligned 1:1 with wallpaper |
+| Live switching Native → Instant → Native without restarting core | ✅ `gnome-extensions disable` → `BackendMode=instant` → `enable` → `BackendMode=native`, same core PID throughout |
+| Above desktop icons, below apps, all workspaces, hidden from Alt-Tab/overview/dock, survives Show Desktop, click-through | ✅ Verified in both modes; 🧑 owner sign-off 2026-11-24 |
+| Native budget (`scripts/measure-budget.sh`, 4.8) | ✅ Covered idle: **239.9 MB PSS**, **0.002% CPU** (budget 280 MB / 0.5%). At `dpr=2` on `eDP-1` right after Peek: **307.2 MB PSS** (full-work-area canvas); Phase 5 task 5.10 (windows sized to widget bounds outside edit/peek) brings this well under 280 MB |
+
+**Not done yet / moved**
+- Nested `gnome-shell --devkit` workflow (4.4) skipped while `mutter-dev-bin` is not installed; tested directly on the real GNOME 50.1 Wayland session.
+- Widgets sit in a temporary column until the Phase 5 grid engine (5.1).

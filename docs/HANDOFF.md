@@ -16,8 +16,8 @@ phase (P0–P8 in the brief); each phase ends with acceptance checks, a PROGRESS
 | P1 Sensor engine | ✅ done |
 | P2 Design system & Widget Lab | ✅ signed off |
 | P3 Widgets (14, fully customizable, ADR 0011) | ✅ signed off 2026-11-24 |
-| **P4 Layer & desktop integration** | **in progress — see below** |
-| P5 Edit mode & layout engine | not started (needs the owner's go-ahead) |
+| **P4 Layer & desktop integration** | ✅ signed off 2026-11-24 |
+| **P5 Edit mode & layout engine** | **in progress** |
 | P6–P8 | not started |
 
 ## Phase 4: done
