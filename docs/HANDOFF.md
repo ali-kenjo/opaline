@@ -5,9 +5,9 @@ For whoever continues this work (person or AI tool). Read this first, then `CLAU
 
 ## The project in one paragraph
 Opaline is a desktop-widgets app for Ubuntu 26.04 / GNOME 50: glass widgets on the wallpaper, above the desktop
-icons and below windows. Rust core (sensor engine, settings, IPC, D-Bus) + Tauri 2 layer process (one transparent
-WebKitGTK window per monitor, React 19 frontend) + a small GNOME Shell helper for "Native mode". Built phase by
-phase (P0–P8 in the brief); each phase ends with acceptance checks, a PROGRESS note and the owner's sign-off.
+icons and below windows. Rust core (sensor engine, settings, layouts, IPC, D-Bus) + Tauri 2 layer process (one
+transparent WebKitGTK window per monitor, React 19 frontend) + a small GNOME Shell helper for "Native mode". Built
+phase by phase (P0–P8 in the brief); each phase ends with acceptance checks, a PROGRESS note and the owner's sign-off.
 
 ## Phase status
 | Phase | State |
@@ -16,77 +16,47 @@ phase (P0–P8 in the brief); each phase ends with acceptance checks, a PROGRESS
 | P1 Sensor engine | ✅ done |
 | P2 Design system & Widget Lab | ✅ signed off |
 | P3 Widgets (14, fully customizable, ADR 0011) | ✅ signed off 2026-11-24 |
-| **P4 Layer & desktop integration** | ✅ signed off 2026-11-24 |
-| **P5 Edit mode & layout engine** | **in progress** |
-| P6–P8 | not started |
+| P4 Layer & desktop integration | ✅ signed off 2026-11-24 |
+| **P5 Edit mode & layout engine** | **implemented & verified live; awaiting owner sign-off** |
+| P6 Product shell (onboarding, Settings window, autostart, export/import, updates) | next after P5 sign-off |
+| P7–P8 | not started |
 
-## Phase 4: done
-All committed and pushed (`main`, last commit `251e78a` plus this note).
-- **Shell helper** `desktop-integration/` (UUID `opaline-desktop@ali-kenjo.github.io`, GJS/ESM, `pnpm lint:helper`
-  in `app/`): `layer.js` starts `opaline --layer --backend native` as a trusted Wayland client
-  (`Meta.WaylandClient.new_subprocess`) while core owns `io.github.ali_kenjo.Opaline`, restarts with backoff, places
-  windows by title `opaline-layer:<connector>`, hides them from the window list, sticks them, undoes minimizing;
-  `stacking.js` keeps them at the bottom of the normal windows (ADR 0006), raises for Peek/Edit, reports covered
-  monitors; `dbus.js` exports `io.github.ali_kenjo.Opaline.Shell1` (ApiVersion 1); `keys.js` binds Super+Alt+W/E.
-  Core tells the helper which binary to start via D-Bus properties `LayerExecutable` / `LayerEnvironment`.
-- **Core** `crates/opaline-core/src/desktop.rs`: Native when a helper with ApiVersion N or N−1 answers, else Instant;
-  live switching; starts in the right mode (`initial_backend`); helper signals → `CoreEvent::DesktopFocusChanged`,
-  covered monitors (`Hub::set_covered`, subscriptions become Covered when all monitors are covered), shortcuts →
-  Peek/Edit; `Command::SetRaised`; `ensure_enabled` turns an installed helper on (Extensions API, else
-  `enabled-extensions`). `app/src-tauri/src/instant.rs::control_layer` runs the Instant layer only in Instant mode.
-- **Portal shortcuts** `shortcuts.rs`: GlobalShortcuts portal session only while Instant (XDG trigger format
-  `LOGO+ALT+w`); registers the app ID via `org.freedesktop.host.portal.Registry`.
-- **Layer page** `app/src/layer/LayerApp.tsx`: real widgets (default set `a-clock`, `b-cpu`, `c-memory`, `d-network`
-  written to settings on first run) in a column at the top right of the primary monitor (temporary until the P5
-  grid); glass over this monitor's wallpaper; **Peek** (raised, blurred backdrop at 0.92, hint, Esc/click to close);
-  **Automatic appearance** (full on desktop focus/hover/Peek, else dimmed); input regions = widget rects (whole
-  window in Peek or with the settings sheet open); page errors → layer log.
-- **Verified live in Instant mode** with screen captures (`scripts/capture-monitor.py eDP-1 /tmp/x` during
-  `opaline --peek`): widgets render on glass, Peek backdrop and hint, correct sizes.
+## Phase 5: implemented
+- **Core (`crates/opaline-core/src/layouts.rs`, `json.rs`, `commands.rs`, `ipc_server.rs`, `hub.rs`, `opaline-ipc`):**
+  - Versioned `~/.config/opaline/layouts.json` with atomic writes, migration, and validation of bounds, overlaps, and stacks.
+  - `Command::UpdateLayouts` and `Command::History` (queries in-memory ring + SQLite rollups).
+  - `patch_to_json` emits JSON integers for integral `f64` values from IPC so `u32` coordinates deserialize cleanly.
+  - `"layouts"` added to `ALWAYS_PUSH` so layouts load even when starting behind maximized windows.
+- **Layer Rust bridge (`app/src-tauri/src/layer/bridge.rs`, `client.rs`, `mod.rs`):**
+  - Shared Edit mode across all monitors (`layer_set_edit`, `LayerEvent::Edit`) and full `monitors` list in `LayerEvent::Connected`.
+  - Caches and replays `CoreEvent::LayerCovered` and `CoreEvent::DesktopFocusChanged` to windows attaching after initial connect.
+- **Helper (`desktop-integration/stacking.js`):**
+  - Clears `_covered` map when layer windows go away so a restarted core receives fresh covered state (installed to `~/.local/share/gnome-shell/extensions/opaline-desktop@ali-kenjo.github.io`; activates on next GNOME Shell login).
+- **Frontend (`app/src/layer/` & `app/src/design-system/glass/`):**
+  - Grid engine (`grid.ts`, `grid.test.ts`): 96 px cells / 16 px gutters, collision reflow, nearest-free search, refit, stacking overlap, monitor matching, waiting monitors, neighbor lookup.
+  - Edit mode (`LayerApp.tsx`, `SpringSlot.tsx`): blurred backdrop, dot grid, bottom toolbar (`Add widget · Presets · Settings · Undo · Redo · Done`), 450 ms long-press drag, spring reflow with `useGlassSync()`, 4 pill resize handles, Remove drop zone + `–` badges + 5 s Undo snackbar, `Ctrl+Z`/`Ctrl+Shift+Z`/`Ctrl+Y`, keyboard nav, 600 ms edge-hold & context-menu cross-display moves, glass right-click menu.
+  - Stacks (`StackWidget.tsx`): wheel/swipe flipping, dots indicator, Smart Rotate, `StackEditor` sheet.
+  - Widget Picker (`WidgetPicker.tsx`): search, categories, live previews at each supported size, availability reasons, click-to-place & drag-to-place.
+  - Starter presets (`presets.ts`, `presets.test.ts`): Essentials, Performance, Creator, Developer, Minimal + Phase 4 migration.
+  - Detail views (`DetailModal.tsx`): shared-element spring morph, 15 min / 24 h history chart, all fields, actions, Customize button, alert deep-linking (`CoreEvent::AlertOpened`).
+  - Tight WebGL2 canvas (`GlassStage.tsx`, `compositor.ts`): shrinks canvas to widget bounding box + 48 px margin outside Edit/Peek (`1×1` hidden on empty monitors) and skips no-op `setPlacement` redraws.
 
-## Phase 4: state of the machine right now
-- The helper is **installed for the user** in `~/.local/share/gnome-shell/extensions/opaline-desktop@ali-kenjo.github.io`
-  (`scripts/install-helper-dev.sh`; undo with `--remove`) and added to `org.gnome.shell enabled-extensions`.
-- The owner was asked to **log out and back in**, then start Opaline by hand
-  (`~/Dokumente/vs-code-projects/widgets-app/target/release/opaline`; no autostart until P6).
-- GNOME may still show "Add Keyboard Shortcuts" dialogs from the Instant-mode portal tests; cancelling them is fine.
-- The release binary in `target/release/opaline` is current (includes everything above).
+## State of the machine right now
+- Release binary `target/release/opaline` is built and running under `systemd-run --user` (`opaline-p5-fresh.service`) in Native mode.
+- `~/.config/opaline/layouts.json` is live-migrated with the 4 starter widgets on `eDP-1`.
+- Helper in `~/.local/share/gnome-shell/extensions/opaline-desktop@ali-kenjo.github.io` is up to date.
+- Remember when launching `opaline` from an integrated VS Code terminal: the Snap environment leaks `GSETTINGS_SCHEMA_DIR`/`GTK_PATH`; launch via `systemd-run --user --unit=<name> --collect ./target/release/opaline` or a regular GNOME Terminal.
 
-## Phase 4: next steps
-1. **Confirm Native mode after the re-login.** In `~/.local/state/opaline/logs/opaline-core.<UTC date>.log` look for
-   `desktop integration backend=Native` / `helper found; Native mode`; in the shell journal
-   (`journalctl --user -b -o cat /usr/bin/gnome-shell | grep -i opaline`) for `Opaline: layer started`. If the helper
-   fails to load, `gnome-extensions info opaline-desktop@ali-kenjo.github.io` shows the error; fix in
-   `desktop-integration/`, reinstall with the script, and it needs another re-login (or a nested session, below).
-   Helper code is untested so far: expect small API fixes (it was written against Meta-18 introspection).
-2. **Acceptance in both modes** (brief §10, P4): above desktop icons, below apps, on all workspaces, hidden from
-   Alt-Tab / overview / dock, survives Show Desktop, clicks outside widgets reach desktop icons, switching to Native
-   after a re-login without restarting Opaline. Several need the owner's eyes (they can't be captured while windows
-   cover the desktop). Peek in Native goes through `SetRaised`.
-3. **Plan items still open:** 4.2 tests at scale 1.0/1.25/1.5/2.0; 4.4 nested-session workflow
-   (`gnome-shell --devkit` needs `mutter-dev-bin`, which was removed; needs `sudo apt install mutter-dev-bin`, ask
-   first); 4.6 appearance in Native via `DesktopFocusChanged` (wired, untested); 4.7 monitor hot-plug and scale
-   changes (Instant path existed since P0; recheck), covered → no rendering; 4.8 measure RAM in Native mode against
-   280 MB (`scripts/measure-budget.sh 60`, ADR 0009).
-4. Write the Phase 4 section in `docs/PROGRESS.md` with the acceptance table, then ask the owner for sign-off.
-
-## Known limitations / decided moves
-- Widgets sit in a temporary column; the grid, per-monitor layouts, edit mode, widget picker → P5.
-- Detail views and in-card alerts → P5 (alert notifications from core already work).
-- Native mode uses a 32 px top inset instead of the real work area (`NATIVE_TOP` in `LayerApp.tsx`); P5 should use
-  the helper's `GetWorkAreas`.
-- Instant mode can't detect "covered"; only Native reports it.
-- The layer window being fully covered pauses WebKit timers (fine, saves power).
+## Next steps
+1. Get the owner's visual & interactive sign-off on Phase 5 (and mark P5 signed off in `docs/PROGRESS.md`).
+2. Start **Phase 6: Product shell** (`docs/PLAN.md` 6.1–6.5): first-run onboarding, Settings window (wire Edit toolbar's Settings button & tray Settings item to it), autostart, export/import settings & layouts, and update check.
 
 ## How to work here (essentials; details in CLAUDE.md)
 - Commits: conventional, author `ali-kenjo <285495463+ali-kenjo@users.noreply.github.com>` (repo git config),
   **no Co-Authored-By / "Generated with" lines**. Push to `main`; CI (GitHub Actions) must stay green.
 - Checks: `cargo test --workspace && cargo clippy --workspace --all-targets -- -D warnings && cargo fmt --all --check`;
   `cd app && pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e`; `pnpm lint:helper`.
-- Builds: `cd app && pnpm tauri build --debug --no-bundle` (or `--no-bundle` for release). Lab:
-  `LAB=1 pnpm exec vite build && pnpm exec vite preview` → `/lab.html`. Re-record baselines with
-  `pnpm exec playwright test --update-snapshots=all` (the default skips small diffs).
-- Run: `./target/release/opaline` (core starts the layer), `--quit`, `--peek`, `--diagnose`, `--dump <prefix>`.
+- Builds: `cd app && pnpm tauri build --debug --no-bundle` (or `--no-bundle` for release).
+- Run: `./target/release/opaline`, `--quit`, `--peek`, `--edit`, `--diagnose`, `--dump <prefix>`.
 - Never `pkill -f 'opaline --layer'` from a shell command (it matches the shell itself).
 - Real data only in the product; mocks only in tests and the Lab. The owner prefers plain, short explanations.
-- Read the WebKitGTK and zbus 6 gotchas in CLAUDE.md before touching the layer page or D-Bus code.

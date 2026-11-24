@@ -245,3 +245,24 @@ Docker Desktop stopped) and was seen live where this laptop has it.
 **Not done yet / moved**
 - Nested `gnome-shell --devkit` workflow (4.4) skipped while `mutter-dev-bin` is not installed; tested directly on the real GNOME 50.1 Wayland session.
 - Widgets sit in a temporary column until the Phase 5 grid engine (5.1).
+
+
+## Phase 5: Edit mode and layout engine (ready for sign-off 2026-11-24)
+
+**Done** (148 Rust tests, 67 Vitest, 12 Playwright WebKit, helper ESLint + GSettings schema)
+- **5.1 Grid engine (`app/src/layer/grid.ts`, `grid.test.ts`):** 96 px cell / 16 px gutter grid computed per monitor work area, cell↔pixel transforms, minimal-movement collision resolver (`resolveCollisions`), nearest-free slot search (`findNearestFree`), viewport refit (`refitLayout`), stack overlap detection (`findStackTarget`), monitor matching (`exact → serial → connector+vendor/product`), waiting-monitor detection, and neighbor-monitor lookup for cross-display drags.
+- **5.2 Per-monitor layouts & persistence (`crates/opaline-core/src/layouts.rs`, `json.rs`, `ipc_server.rs`, `commands.rs`):** versioned `~/.config/opaline/layouts.json` with atomic save, schema migration, bounds/overlap/stack validation, `Command::UpdateLayouts` and `Command::History` (in-memory ring + SQLite rollups), `"layouts"` topic in `ALWAYS_PUSH`, and integer-preserving `patch_to_json` for IPC numeric coordinates. Shared Edit mode (`layer_set_edit`, `LayerEvent::Edit`) synced across all monitors, plus `LayerCovered` / `DesktopFocusChanged` replay in `bridge.rs` and `_covered` reset in `stacking.js` on core restart.
+- **5.3–5.6, 5.8 Edit mode, stacks, keyboard, cross-display & presets (`LayerApp.tsx`, `SpringSlot.tsx`, `StackWidget.tsx`, `presets.ts`):** Edit mode via `Super+Alt+E`, tray, `--edit`, right-click menu, or 450 ms long-press with seamless handoff into drag. Blurred backdrop, 96 px dot grid, floating bottom toolbar (`Add widget · Presets · Settings · Undo · Redo · Done`), spring-animated reflow (`spatialDefault` + `useGlassSync()`), landing ghost, 4 pill resize handles snapping to each widget's allowed sizes, drag-to-Remove zone and `–` badges with 5 s Undo snackbar, `Ctrl+Z` / `Ctrl+Shift+Z` / `Ctrl+Y` session undo/redo, full keyboard model (`Tab`, arrows, `Shift+arrows`, `Delete`, `Enter`, `Esc`), 600 ms monitor-edge hold + context-menu cross-display move, right-click glass context menu, Widget Stacks (wheel/swipe flipping, dots indicator, Smart Rotate for media/battery/storage, `StackEditor` sheet), and 5 starter presets (`Essentials`, `Performance`, `Creator`, `Developer`, `Minimal`) with automatic migration of Phase 4 widgets.
+- **5.7 Widget Picker (`WidgetPicker.tsx`):** bottom sheet with search, categories, live `WidgetFrame` previews with real data at each supported size, availability reasons, and both click-to-place and drag-to-place.
+- **5.9 Detail views (`DetailModal.tsx`):** click any widget outside Edit mode (or open an alert notification via `CoreEvent::AlertOpened`) for a shared-element spring morph up to 8×6 cells with 15 min / 24 h history chart (`Command::History`), all widget fields, actions, and Customize button.
+- **5.10 Tight WebGL2 canvas & idle redraw guards (`GlassStage.tsx`, `compositor.ts`):** shrinks the WebGL2 canvas to the widget bounding box (+ 48 px shadow margin) outside Edit/Peek and `1×1` hidden on empty monitors; early-returns on unchanged `setPlacement` / `setOpaque` / `setBackdropOpacity` and memoized stage props.
+
+**Acceptance (brief §10, P5)**
+
+| Check | Result |
+| - | - |
+| Grid & preset invariants (no overlaps, bounds, refit, IPC integer round-trip) | ✅ 7 `grid.test.ts` + 3 `presets.test.ts` + 3 `layouts.rs` unit tests passing |
+| Live Edit mode on GNOME 50.1 Native Wayland (`eDP-1` + `HDMI-2`) | ✅ Auto-migrated 4 widgets to `~/.config/opaline/layouts.json`; ScreenCast capture verified dot grid, blurred backdrop, non-overlapping bottom toolbar, and live widgets |
+| Covered idle CPU (`scripts/measure-budget.sh`) | ✅ **0.042% CPU** over 15 s (budget 0.5%) |
+| Memory PSS (dual-monitor, `eDP-1` at `dpr=2`, after Edit) | ⚠️ **311–339 MB PSS** after Edit (`tightCanvas` shrinks WebGL2 canvas; full GTK/Wayland surface sizing stays work-area sized for instant Peek/Edit, noted for follow-up if needed) |
+| 🧑 Owner interactive sign-off (Edit mode, drag/resize/stack/remove/undo, picker, presets, keyboard, cross-display, detail views) | ⏳ Pending |
