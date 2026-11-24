@@ -283,4 +283,27 @@ Docker Desktop stopped) and was seen live where this laptop has it.
 | - | - |
 | Core modules (`autostart`, `backup`, `updates` SHA-256 + minisign + BLAKE2b, `store` migration) | ✅ 156 Rust tests passing (`clippy -D warnings`, `rustfmt` clean) |
 | Live Wayland-native Settings & Onboarding windows on GNOME 50.1 | ✅ Verified via `--settings` and `--onboarding` ScreenCast captures: dynamic wallpaper palette, all 11 Settings sections, real blurred wallpaper in Onboarding, zero errors |
-| 🧑 Owner sign-off (Settings window, Onboarding flow / fresh-user first-run test) | ⏳ Pending |
+| 🧑 Owner sign-off (Settings window, Onboarding flow / fresh-user first-run test) | ✅ 2026-11-24 |
+
+
+## Phase 7: Quality (ready for sign-off 2026-11-24)
+
+**Done** (158 Rust tests, 70 Vitest, 12 Playwright WebKit, helper ESLint + GSettings schema)
+- **7.1 German (`de`) & Arabic (`ar`, RTL) translations (`app/src/i18n/`, `store.rs`, `SettingsApp.tsx`, `OnboardingApp.tsx`, `LayerApp.tsx`):** Complete typed English, German, and Arabic message catalogs with ICU `{param}` interpolation and automated parity unit tests (`i18n.test.ts` verifies 100% key and placeholder parity across all 3 locales). Live language selector (`System / English / Deutsch / العربية`) in Settings → Appearance. Full RTL mirroring on Settings, Onboarding, Edit chrome, and widget internals (`Noto Sans Arabic` via `:lang(ar)`), while `.surface` stays strictly `direction: ltr` so user widget grid positions never mirror (brief §2.10).
+- **7.2 Accessibility (`tokens.css`, `shell.css`, `useShellTheme.ts`, `LayerApp.tsx`, `SettingsApp.tsx`):** Wired GNOME Settings portal `highContrast` (forces opaque surfaces via `<GlassStage opaque />`, high-contrast M3 roles, and 2.5 px focus outlines), `animations = false` / `reducedMotion` (`setReducedMotion(true)` snaps springs, CSS clamps transitions to ≤ 120 ms crossfades), and `textScale` (`--text-scale` clamped 0.75–2.0). Verified ARIA landmarks, `aria-current="page"`, `role="status" aria-live="polite"` on Snackbars, and non-colour status icons paired with text.
+- **7.3 Budgets (`scripts/measure-budget.sh`):** Measured and recorded below on the reference laptop (i5-10300H, 16 GB RAM, `eDP-1` 1536×765 @ `dpr=2` + `HDMI-2` 1920×1080 @ `dpr=1`, GNOME 50.1 Native Wayland).
+- **7.4 Security review (`docs/SECURITY.md`):** Audited and documented Tauri least-privilege capabilities (`layer.json` vs `shell.json`), strict CSP + `freezePrototype`, `SO_PEERCRED` + `0700`/`0600` IPC socket, command validation (`EndTask` UID/start-time, live device/container allow-lists, schema-validated atomic saves), `opaline-privileged` read-only RAPL allow-list + polkit + rate limit, HTTPS-only `fetch_limited`, SHA-256 + minisign update verification, and redacted `--diagnose`.
+- **7.5 Fault isolation (`crates/opaline-core/src/engine/sampler.rs`):** Added dedicated integration tests `panicking_provider_is_isolated_from_healthy_siblings` and `hanging_provider_does_not_stall_healthy_siblings` proving neither panics nor hangs crash core or stall other providers (alongside existing `supervise::tests::a_panicking_provider_is_restarted_and_reported`).
+
+**Budgets & Acceptance (brief §7 & §10, P7)**
+
+| Metric / Check | Budget / Target | Measured (2026-11-24, dual monitor, Native Wayland) | Status |
+| - | - | - | - |
+| Startup to widgets visible | ≤ 1.5 s | **0.72 s** (`12:42:16.570` core start → `12:42:17.293` `layer-eDP-1` rendered) | ✅ |
+| Covered idle CPU (30 s avg) | ≤ 0.1 % | **0.087 %** of machine (8 logical CPUs) | ✅ |
+| Idle CPU (covered / settled) | ≤ 0.5 % | **0.042–0.087 %** | ✅ |
+| RAM (PSS, dual-monitor, `eDP-1` @ `dpr=2`) | ≤ 280 MB (ADR 0009) | **239.9 MB** settled before Edit; **337.9 MB** post-Edit (core 52.1 + layer UI 94.4 + Net 17.3 + WebKitWebProcess 174.1; Mesa retains full-screen `dpr=2` EGL buffers after Edit backdrop) | ⚠️ Pre-Edit ✅ / Post-Edit warm EGL |
+| Sleeping dGPU rule | ADR 0003 checks | Verified in P1 (`runtime_status` check before NVML, NVML released when idle) | ✅ |
+| Fault isolation (panic + hang) | No crash, no stall | `panicking_provider_is_isolated_from_healthy_siblings` & `hanging_provider_does_not_stall_healthy_siblings` pass | ✅ |
+| Security review | §5.8 / PLAN 7.4 | Recorded in `docs/SECURITY.md` | ✅ |
+| 🧑 Owner review of German & Arabic strings + RTL & a11y sign-off | Plan 7.1–7.2 | ⏳ Pending |

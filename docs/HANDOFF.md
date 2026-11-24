@@ -18,9 +18,9 @@ phase by phase (P0–P8 in the brief); each phase ends with acceptance checks, a
 | P3 Widgets (14, fully customizable, ADR 0011) | ✅ signed off 2026-11-24 |
 | P4 Layer & desktop integration | ✅ signed off 2026-11-24 |
 | P5 Edit mode & layout engine | ✅ signed off 2026-11-24 |
-| **P6 Product shell** | **implemented & verified live; awaiting owner sign-off** |
-| P7 Quality (German & Arabic RTL, a11y, budgets, security, fault isolation) | next after P6 sign-off |
-| P8 Release | not started |
+| P6 Product shell | ✅ signed off 2026-11-24 |
+| **P7 Quality** | **implemented & measured; awaiting owner string/RTL sign-off** |
+| P8 Release (`.deb` scripts, clean VM install, minisign key, README media, v1.0.0) | next after P7 sign-off |
 
 ## Phase 5: implemented
 - **Core (`crates/opaline-core/src/layouts.rs`, `json.rs`, `commands.rs`, `ipc_server.rs`, `hub.rs`, `opaline-ipc`):**
