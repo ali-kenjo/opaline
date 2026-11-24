@@ -10,6 +10,7 @@ export type Connection =
 export interface LayerState {
   connection: Connection;
   monitor: Monitor | null;
+  monitors: Monitor[];
   values: Readonly<Record<string, Value>>;
   updatesPaused: boolean;
   /** This window's rectangle in global logical pixels (for wallpaper alignment). */
@@ -20,6 +21,10 @@ export interface LayerState {
   covered: boolean;
   /** Shared Peek state across every monitor window. */
   peek: boolean;
+  /** Shared Edit mode state across every monitor window. */
+  edit: boolean;
+  /** Rule id from an alert notification's "Open" action. */
+  alertRule: string | null;
   /** Peek requests counted, so every request toggles once. */
   peekRequests: number;
   editRequests: number;
@@ -39,6 +44,7 @@ export function reduce(state: LayerState, event: LayerEvent): Partial<LayerState
           backend: event.backend,
         },
         monitor: event.monitor,
+        monitors: event.monitors ?? (event.monitor ? [event.monitor] : state.monitors),
       };
     case "rejected":
       return { connection: { state: "rejected", reason: event.reason } };
@@ -54,6 +60,8 @@ export function reduce(state: LayerState, event: LayerEvent): Partial<LayerState
       return { geometry: { x: event.x, y: event.y, width: event.width, height: event.height } };
     case "peek":
       return { peek: event.active };
+    case "edit":
+      return { edit: event.active };
     case "core-event":
       switch (event.event.event) {
         case "updates-paused":
@@ -61,7 +69,7 @@ export function reduce(state: LayerState, event: LayerEvent): Partial<LayerState
         case "monitors-changed": {
           const key = state.monitor?.key;
           const monitor = event.event.monitors.find((m) => m.key === key) ?? state.monitor;
-          return { monitor };
+          return { monitor, monitors: event.event.monitors };
         }
         case "peek-requested":
           return { peekRequests: state.peekRequests + 1 };
@@ -78,8 +86,7 @@ export function reduce(state: LayerState, event: LayerEvent): Partial<LayerState
             ? { covered: event.event.covered }
             : {};
         case "alert-opened":
-          // Detail views arrive with Phase 5.
-          return {};
+          return { alertRule: event.event.rule };
       }
   }
 }
@@ -87,12 +94,15 @@ export function reduce(state: LayerState, event: LayerEvent): Partial<LayerState
 export const useLayer = create<LayerState>()((set) => ({
   connection: { state: "connecting", attempt: 0 },
   monitor: null,
+  monitors: [],
   values: {},
   updatesPaused: false,
   geometry: null,
   desktopFocused: null,
   covered: false,
   peek: false,
+  edit: false,
+  alertRule: null,
   peekRequests: 0,
   editRequests: 0,
   apply: (event) => {

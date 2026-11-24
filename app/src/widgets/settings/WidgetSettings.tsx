@@ -37,6 +37,8 @@ export interface WidgetSettingsProps {
   def: WidgetDef;
   open: boolean;
   onClose: () => void;
+  initialTab?: Tab;
+  initialScope?: Scope;
 }
 
 type Tab = "content" | "style";
@@ -46,10 +48,17 @@ function argbHex(argb: number): string {
   return `#${(argb & 0xffffff).toString(16).padStart(6, "0")}`;
 }
 
-export function WidgetSettings({ id, def, open, onClose }: WidgetSettingsProps) {
+export function WidgetSettings({
+  id,
+  def,
+  open,
+  onClose,
+  initialTab = "content",
+  initialScope = "widget",
+}: WidgetSettingsProps) {
   const host = useHost();
-  const [tab, setTab] = useState<Tab>("content");
-  const [scope, setScope] = useState<Scope>("widget");
+  const [tab, setTab] = useState<Tab>(initialTab);
+  const [scope, setScope] = useState<Scope>(initialScope);
   const [fonts, setFonts] = useState<string[]>([]);
   const [message, setMessage] = useState<string | null>(null);
 

@@ -5,5 +5,11 @@ export {
   type SurfaceLook,
   type WallpaperPlacement,
 } from "./compositor";
-export { Glass, GlassStage, type GlassProps, type GlassStageProps } from "./GlassStage";
+export {
+  Glass,
+  GlassStage,
+  useGlassSync,
+  type GlassProps,
+  type GlassStageProps,
+} from "./GlassStage";
 export { contrast, legibleAlpha, luminance, luminanceUnder, sliderAlpha } from "./legibility";

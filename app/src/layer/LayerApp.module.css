@@ -17,17 +17,262 @@
   position: relative;
   width: 100%;
   height: 100%;
+  user-select: none;
 }
 
 .widget {
   position: absolute;
+  touch-action: none;
+  outline: none;
 }
 
-/* Peek: the backdrop takes the clicks that dismiss it. */
+.widgetEdit {
+  cursor: grab;
+}
+
+.widgetDragging {
+  cursor: grabbing;
+}
+
+.widgetSelected {
+  border-radius: 32px;
+  box-shadow: 0 0 0 2px rgb(var(--md-primary));
+}
+
+.stackHighlight {
+  border-radius: 32px;
+  box-shadow: 0 0 0 3px rgb(var(--md-tertiary));
+}
+
+/* Peek / Edit: the backdrop takes clicks that dismiss it. */
 .backdrop {
   position: absolute;
   inset: 0;
   background: transparent;
+}
+
+/* Subtle dot grid shown in Edit mode (brief §2.2). */
+.dotGrid {
+  position: absolute;
+  pointer-events: none;
+  background-image: radial-gradient(
+    circle,
+    rgb(var(--md-on-surface) / 0.24) 1.5px,
+    transparent 1.5px
+  );
+  background-size: 96px 96px;
+}
+
+/* Ghost showing the landing cell while dragging or resizing. */
+.ghost {
+  position: absolute;
+  border-radius: 28px;
+  border: 2px dashed rgb(var(--md-primary) / 0.75);
+  background: rgb(var(--md-primary) / 0.14);
+  pointer-events: none;
+}
+
+.ghostStack {
+  border-style: solid;
+  border-color: rgb(var(--md-tertiary));
+  background: rgb(var(--md-tertiary) / 0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgb(var(--md-on-surface));
+  font: 600 13px/1.2 var(--font-ui);
+}
+
+/* Floating bottom toolbar in Edit mode (Add widget · Presets · Settings · Undo/Redo · Done). */
+.toolbarWrap {
+  position: absolute;
+  bottom: 16px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 30;
+}
+
+.toolbarWrap > * {
+  pointer-events: auto;
+}
+
+/* Remove drop target shown at top center while dragging a widget. */
+.removeZone {
+  position: absolute;
+  top: 16px;
+  left: 0;
+  right: 0;
+  width: max-content;
+  margin-inline: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: rgb(var(--md-surface-container-high) / 0.92);
+  border: 1.5px solid rgb(var(--md-error) / 0.55);
+  color: rgb(var(--md-error));
+  font: 600 13px/1.2 var(--font-ui);
+  z-index: 32;
+  pointer-events: none;
+}
+
+.removeZoneHot {
+  background: rgb(var(--md-error));
+  color: rgb(var(--md-on-error));
+  border-color: transparent;
+  transform: scale(1.06);
+}
+
+/* Corner remove badge ("–") in Edit mode. */
+.removeBadge {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 2px solid rgb(var(--md-surface));
+  background: rgb(var(--md-error));
+  color: rgb(var(--md-on-error));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 6;
+}
+
+/* Stack indicator badge in Edit mode to open the stack editor. */
+.stackBadge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 2px solid rgb(var(--md-surface));
+  background: rgb(var(--md-secondary-container));
+  color: rgb(var(--md-on-secondary-container));
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: 600 11px/1 var(--font-ui);
+  cursor: pointer;
+  z-index: 6;
+}
+
+/* Four Android-style pill resize handles on the selected item in Edit mode. */
+.handle {
+  position: absolute;
+  border: 0;
+  border-radius: 999px;
+  background: rgb(var(--md-primary));
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.35);
+  z-index: 7;
+  padding: 0;
+}
+
+.handleN,
+.handleS {
+  left: 50%;
+  width: 36px;
+  height: 8px;
+  transform: translateX(-50%);
+  cursor: ns-resize;
+}
+
+.handleN {
+  top: -4px;
+}
+
+.handleS {
+  bottom: -4px;
+}
+
+.handleE,
+.handleW {
+  top: 50%;
+  width: 8px;
+  height: 36px;
+  transform: translateY(-50%);
+  cursor: ew-resize;
+}
+
+.handleE {
+  right: -4px;
+}
+
+.handleW {
+  left: -4px;
+}
+
+/* Edge handoff glow during 600 ms cross-display drag. */
+.edgeGlow {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(var(--md-primary) / 0.25);
+  color: rgb(var(--md-on-surface));
+  font: 600 13px/1.2 var(--font-ui);
+  pointer-events: none;
+  z-index: 25;
+}
+
+.edgeLeft {
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 48px;
+}
+
+.edgeRight {
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 48px;
+}
+
+.edgeTop {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 48px;
+}
+
+.edgeBottom {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 48px;
+}
+
+/* Popover menu (Presets or widget context menu). */
+.menuAnchor {
+  position: absolute;
+  z-index: 38;
+}
+
+.snackbarWrap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 24px;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 42;
+}
+
+.snackbarWrapEdit {
+  bottom: 76px;
+}
+
+.snackbarWrap > * {
+  pointer-events: auto;
 }
 
 .hint {

@@ -1,0 +1,132 @@
+.stack {
+  position: relative;
+}
+
+.dots {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgb(var(--md-surface-container-highest) / 0.65);
+  z-index: 3;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  border: 0;
+  padding: 0;
+  background: rgb(var(--md-on-surface) / 0.35);
+  cursor: pointer;
+}
+
+.dotActive {
+  width: 14px;
+  background: rgb(var(--md-primary));
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 8px 20px 20px;
+  max-width: 520px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.editorHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.editorTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: rgb(var(--md-on-surface));
+}
+
+.smartRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgb(var(--md-surface-container-high) / 0.65);
+}
+
+.smartLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgb(var(--md-on-surface));
+}
+
+.smartDesc {
+  font-size: 12px;
+  color: rgb(var(--md-on-surface-variant));
+  margin-top: 2px;
+}
+
+.childList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.childRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgb(var(--md-surface-container) / 0.7);
+  color: rgb(var(--md-on-surface));
+}
+
+.childName {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.childActions {
+  display: flex;
+  gap: 4px;
+}
+
+.iconBtn {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 0;
+  background: transparent;
+  color: rgb(var(--md-on-surface-variant));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.iconBtn:hover:not(:disabled) {
+  background: rgb(var(--md-on-surface) / 0.1);
+  color: rgb(var(--md-on-surface));
+}
+
+.iconBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.dangerBtn:hover:not(:disabled) {
+  color: rgb(var(--md-error));
+}

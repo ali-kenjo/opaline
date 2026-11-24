@@ -12,7 +12,10 @@ import type { StoredSettings, StoredWidget } from "./host";
 import { type Json, fromJson, toJson } from "./json";
 import { emitSpectrum, onSpectrum } from "./spectrum";
 
+import type { LayoutItem, LayoutsDoc } from "../layer/grid";
+
 export const SETTINGS_TOPIC = "settings";
+export const LAYOUTS_TOPIC = "layouts";
 export const APPEARANCE_TOPIC = "appearance.settings";
 export const WALLPAPER_TOPIC = "wallpaper.monitors";
 
@@ -57,6 +60,84 @@ export async function updateSettings(patch: Record<string, Json>) {
   return await command({ cmd: "update-settings", patch: fromJson(patch) });
 }
 
+function parseItem(raw: Json): LayoutItem | null {
+  const r = record(raw);
+  const id = typeof r.id === "string" ? r.id : null;
+  const x = typeof r.x === "number" ? Math.round(r.x) : null;
+  const y = typeof r.y === "number" ? Math.round(r.y) : null;
+  const w = typeof r.w === "number" ? Math.round(r.w) : null;
+  const h = typeof r.h === "number" ? Math.round(r.h) : null;
+  if (!id || x === null || y === null || w === null || h === null) return null;
+  if (r.type === "stack") {
+    const children = Array.isArray(r.children)
+      ? r.children.filter((c): c is string => typeof c === "string")
+      : [];
+    if (children.length === 0) return null;
+    return {
+      id,
+      type: "stack",
+      x,
+      y,
+      w,
+      h,
+      children,
+      activeIndex: typeof r.activeIndex === "number" ? Math.round(r.activeIndex) : 0,
+      smartRotate: Boolean(r.smartRotate),
+    };
+  }
+  const kind = typeof r.kind === "string" ? r.kind : null;
+  if (!kind) return null;
+  return { id, type: "widget", kind, x, y, w, h };
+}
+
+/** Core's `layouts` topic value as a typed `LayoutsDoc`. */
+export function storedLayouts(v: Value | undefined): LayoutsDoc {
+  const j = record(toJson(v));
+  const monitors: LayoutsDoc["monitors"] = {};
+  for (const [key, m] of Object.entries(record(j.monitors ?? null))) {
+    const mr = record(m);
+    const items = Array.isArray(mr.items)
+      ? mr.items.map(parseItem).filter((i): i is LayoutItem => i !== null)
+      : [];
+    monitors[key] = { items };
+  }
+  return {
+    version: typeof j.version === "number" ? j.version : 1,
+    showMissingOnPrimary: Boolean(j.showMissingOnPrimary),
+    monitors,
+  };
+}
+
+export async function updateLayouts(doc: LayoutsDoc) {
+  const json: Json = {
+    version: doc.version,
+    showMissingOnPrimary: doc.showMissingOnPrimary,
+    monitors: Object.fromEntries(
+      Object.entries(doc.monitors).map(([k, m]) => [
+        k,
+        {
+          items: m.items.map((it) =>
+            it.type === "stack"
+              ? {
+                  id: it.id,
+                  type: "stack",
+                  x: it.x,
+                  y: it.y,
+                  w: it.w,
+                  h: it.h,
+                  children: it.children,
+                  activeIndex: it.activeIndex ?? 0,
+                  smartRotate: it.smartRotate ?? false,
+                }
+              : { id: it.id, type: "widget", kind: it.kind, x: it.x, y: it.y, w: it.w, h: it.h },
+          ),
+        },
+      ]),
+    ),
+  };
+  return await command({ cmd: "update-layouts", layouts: fromJson(json) });
+}
+
 export async function listFonts(): Promise<string[]> {
   const r = await command({ cmd: "list-fonts" });
   if (r.result !== "data" || r.value.kind !== "list") return [];
@@ -84,7 +165,7 @@ export function useCoreColors(monitorKey: string | null): ColorContext {
   const glass = typeof entry.glass === "string" ? entry.glass : null;
 
   useEffect(() => {
-    subscribeTopics([APPEARANCE_TOPIC, WALLPAPER_TOPIC, SETTINGS_TOPIC], "ambient");
+    subscribeTopics([APPEARANCE_TOPIC, WALLPAPER_TOPIC, SETTINGS_TOPIC, LAYOUTS_TOPIC], "ambient");
   }, []);
   useEffect(() => {
     if (!glass) return;

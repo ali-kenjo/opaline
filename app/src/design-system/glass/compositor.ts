@@ -201,17 +201,28 @@ export class GlassCompositor {
   }
 
   setPlacement(p: WallpaperPlacement): void {
+    const cur = this.placement;
+    if (
+      cur.offsetX === p.offsetX &&
+      cur.offsetY === p.offsetY &&
+      cur.monitorWidth === p.monitorWidth &&
+      cur.monitorHeight === p.monitorHeight
+    ) {
+      return;
+    }
     this.placement = p;
     this.invalidate();
   }
 
   setOpaque(opaque: boolean): void {
+    if (this.opaque === opaque) return;
     this.opaque = opaque;
     this.invalidate();
   }
 
   /** Edit/Peek backdrop opacity (0 hides it; 0.92 when fully shown). */
   setBackdropOpacity(opacity: number): void {
+    if (this.backdropOpacity === opacity) return;
     this.backdropOpacity = opacity;
     this.invalidate();
   }

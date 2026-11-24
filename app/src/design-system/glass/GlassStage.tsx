@@ -53,6 +53,8 @@ interface Registration {
 interface StageContext {
   register(id: string, reg: Registration): () => void;
   update(id: string, patch: Partial<Registration>): void;
+  /** Re-measures every registered surface right now (called from spring animation ticks). */
+  sync(): void;
   /** `null` when WebGL2 isn't available: Glass draws its CSS fallback. */
   compositor: GlassCompositor | null;
   fallback: {
@@ -65,6 +67,14 @@ interface StageContext {
 }
 
 const Ctx = createContext<StageContext | null>(null);
+
+/** Returns a callback that re-syncs glass surface boxes with moving DOM elements on the same tick. */
+export function useGlassSync(): () => void {
+  const stage = useContext(Ctx);
+  return useCallback(() => {
+    stage?.sync();
+  }, [stage]);
+}
 
 export interface GlassStageProps {
   children: ReactNode;
@@ -83,6 +93,8 @@ export interface GlassStageProps {
   slider: number;
   opaque?: boolean;
   backdrop?: number;
+  /** Shrink the WebGL2 canvas tightly to surfaces when `backdrop === 0` (PLAN 5.10 / ADR 0009). */
+  tightCanvas?: boolean;
   /** Called with the compositor once it exists (`null`: CSS fallback). Diagnostics only. */
   onCompositor?: (compositor: GlassCompositor | null) => void;
 }
@@ -99,8 +111,10 @@ export function GlassStage(props: GlassStageProps) {
     slider,
     opaque = false,
     backdrop = 0,
+    tightCanvas = false,
     onCompositor,
   } = props;
+  const stageRef = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const [compositor, setCompositor] = useState<GlassCompositor | null>(null);
   const regs = useRef(new Map<string, Registration>());
@@ -116,7 +130,6 @@ export function GlassStage(props: GlassStageProps) {
 
   useEffect(() => compositor?.setWallpaper(wallpaper), [compositor, wallpaper]);
   useEffect(() => compositor?.setWallpaper(wallpaper, "backdrop"), [compositor, wallpaper]);
-  useEffect(() => compositor?.setPlacement(placement), [compositor, placement]);
   useEffect(() => compositor?.setOpaque(opaque), [compositor, opaque]);
   useEffect(() => compositor?.setBackdropOpacity(backdrop), [compositor, backdrop]);
 
@@ -124,30 +137,90 @@ export function GlassStage(props: GlassStageProps) {
   const tintLum = useMemo(() => relLum(tint), [tint]);
 
   const sync = useCallback(() => {
-    if (!compositor || !canvas.current) return;
-    const origin = canvas.current.getBoundingClientRect();
-    const surfaces: Surface[] = [];
+    if (!compositor || !canvas.current || !stageRef.current) return;
+    const stageRect = stageRef.current.getBoundingClientRect();
+    const raw: { reg: Registration; x: number; y: number; w: number; h: number }[] = [];
     for (const r of regs.current.values()) {
       const b = r.el.getBoundingClientRect();
-      const x = b.left - origin.left;
-      const y = b.top - origin.top;
+      raw.push({
+        reg: r,
+        x: b.left - stageRect.left,
+        y: b.top - stageRect.top,
+        w: b.width,
+        h: b.height,
+      });
+    }
+
+    // Outside Peek/Edit (`backdrop === 0`), shrink the WebGL2 canvas to the tight bounding box
+    // of the surfaces (+ 48 px shadow margin) so empty monitors allocate a 1×1 canvas and
+    // sparse desktops avoid full-screen HiDPI framebuffers (ADR 0009 / PLAN 5.10).
+    let cx = 0;
+    let cy = 0;
+    let cw = stageRect.width;
+    let ch = stageRect.height;
+    if (tightCanvas && backdrop <= 0.001) {
+      if (raw.length === 0) {
+        cw = 1;
+        ch = 1;
+      } else {
+        const pad = 48;
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+        for (const item of raw) {
+          minX = Math.min(minX, item.x);
+          minY = Math.min(minY, item.y);
+          maxX = Math.max(maxX, item.x + item.w);
+          maxY = Math.max(maxY, item.y + item.h);
+        }
+        cx = Math.max(0, Math.floor(minX - pad));
+        cy = Math.max(0, Math.floor(minY - pad));
+        const right = Math.min(stageRect.width, Math.ceil(maxX + pad));
+        const bottom = Math.min(stageRect.height, Math.ceil(maxY + pad));
+        cw = Math.max(1, right - cx);
+        ch = Math.max(1, bottom - cy);
+      }
+    }
+    const cEl = canvas.current;
+    const leftPx = `${String(cx)}px`;
+    const topPx = `${String(cy)}px`;
+    const widthPx = `${String(cw)}px`;
+    const heightPx = `${String(ch)}px`;
+    const vis = tightCanvas && backdrop <= 0.001 && raw.length === 0 ? "hidden" : "visible";
+    if (cEl.style.left !== leftPx) cEl.style.left = leftPx;
+    if (cEl.style.top !== topPx) cEl.style.top = topPx;
+    if (cEl.style.width !== widthPx) cEl.style.width = widthPx;
+    if (cEl.style.height !== heightPx) cEl.style.height = heightPx;
+    if (cEl.style.visibility !== vis) cEl.style.visibility = vis;
+
+    compositor.setPlacement({
+      offsetX: placement.offsetX + cx,
+      offsetY: placement.offsetY + cy,
+      monitorWidth: placement.monitorWidth,
+      monitorHeight: placement.monitorHeight,
+    });
+
+    const surfaces: Surface[] = [];
+    for (const item of raw) {
+      const r = item.reg;
       const bgLum = luminance
         ? luminanceUnder(
             luminance,
-            (x + placement.offsetX) / placement.monitorWidth,
-            (y + placement.offsetY) / placement.monitorHeight,
-            b.width / placement.monitorWidth,
-            b.height / placement.monitorHeight,
+            (item.x + placement.offsetX) / placement.monitorWidth,
+            (item.y + placement.offsetY) / placement.monitorHeight,
+            item.w / placement.monitorWidth,
+            item.h / placement.monitorHeight,
           )
         : 0.05;
       const o = r.options;
       const t = o.tint ?? tint;
       const a = o.alpha ?? base;
       surfaces.push({
-        x,
-        y,
-        w: b.width,
-        h: b.height,
+        x: item.x - cx,
+        y: item.y - cy,
+        w: item.w,
+        h: item.h,
         radius: o.radius,
         tint: [t[0] / 255, t[1] / 255, t[2] / 255],
         tintAlpha:
@@ -162,18 +235,18 @@ export function GlassStage(props: GlassStageProps) {
         dimmed: o.dimmed ?? 0,
         hovered: r.hovered,
         lifted: o.lifted ?? 0,
-        ...(r.pointer ? { pointer: r.pointer } : {}),
+        ...(r.pointer ? { pointer: [r.pointer[0] - cx, r.pointer[1] - cy] as const } : {}),
         ...(o.look ? { look: o.look } : {}),
       });
     }
     compositor.setSurfaces(surfaces);
-  }, [compositor, luminance, placement, tint, base, tintLum, textLuminance]);
+  }, [compositor, luminance, placement, tint, base, tintLum, textLuminance, backdrop, tightCanvas]);
 
   useLayoutEffect(() => {
     sync();
     const ro = new ResizeObserver(sync);
     for (const r of regs.current.values()) ro.observe(r.el);
-    if (canvas.current) ro.observe(canvas.current);
+    if (stageRef.current) ro.observe(stageRef.current);
     window.addEventListener("resize", sync);
     return () => {
       ro.disconnect();
@@ -197,6 +270,7 @@ export function GlassStage(props: GlassStageProps) {
         Object.assign(r, patch);
         sync();
       },
+      sync,
       compositor,
       fallback: {
         wallpaperUrl,
@@ -211,7 +285,7 @@ export function GlassStage(props: GlassStageProps) {
 
   return (
     <Ctx.Provider value={ctx}>
-      <div className={styles.stage} data-glass={compositor ? "webgl2" : "css"}>
+      <div ref={stageRef} className={styles.stage} data-glass={compositor ? "webgl2" : "css"}>
         <canvas ref={canvas} className={styles.canvas} aria-hidden="true" />
         <div className={styles.content}>{children}</div>
       </div>

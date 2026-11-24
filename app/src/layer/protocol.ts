@@ -58,6 +58,7 @@ export type Command =
   | { cmd: "container"; id: string; action: "start" | "stop" | "restart" }
   | { cmd: "start-docker-desktop" }
   | { cmd: "update-settings"; patch: Value }
+  | { cmd: "update-layouts"; layouts: Value }
   | { cmd: "geocode-search"; query: string; language: string }
   | { cmd: "history"; series: string; seconds: number }
   | { cmd: "list-fonts" };
@@ -71,10 +72,17 @@ export type ActivityClass = "idle" | "covered" | "ambient" | "interactive";
 
 export type LayerEvent =
   | { kind: "connecting"; attempt: number }
-  | { kind: "connected"; coreVersion: string; backend: BackendKind; monitor: Monitor | null }
+  | {
+      kind: "connected";
+      coreVersion: string;
+      backend: BackendKind;
+      monitor: Monitor | null;
+      monitors?: Monitor[];
+    }
   | { kind: "rejected"; reason: string }
   | { kind: "update"; seq: number; atMs: number; updates: TopicUpdate[] }
   | { kind: "spectrum"; seq: number; levels: number[] }
   | { kind: "geometry"; x: number; y: number; width: number; height: number }
   | { kind: "peek"; active: boolean }
+  | { kind: "edit"; active: boolean }
   | { kind: "core-event"; event: CoreEvent };
