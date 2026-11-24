@@ -34,6 +34,7 @@
     ],
     "category": "Utility",
     "shortDescription": "Glass widgets for your Ubuntu desktop",
+    "longDescription": "Opaline puts customizable glass widgets on your Ubuntu 26.04 / GNOME 50 desktop: add, move, resize, and stack live system, media, weather, calendar, and developer widgets right on the wallpaper.",
     "copyright": "© 2026 Ali Kenjo. GPL-3.0-or-later.",
     "license": "GPL-3.0-or-later",
     "icon": [
@@ -41,6 +42,33 @@
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.png"
-    ]
+    ],
+    "linux": {
+      "deb": {
+        "depends": [
+          "libpipewire-0.3-0t64 | libpipewire-0.3-0"
+        ],
+        "desktopTemplate": "../../packaging/io.github.ali_kenjo.Opaline.desktop",
+        "postInstallScript": "../../packaging/deb/postinst",
+        "preRemoveScript": "../../packaging/deb/prerm",
+        "postRemoveScript": "../../packaging/deb/postrm",
+        "files": {
+          "/usr/libexec/opaline/opaline-privileged": "../../target/release/opaline-privileged",
+          "/usr/share/dbus-1/system-services/io.github.ali_kenjo.Opaline.Privileged.service": "../../packaging/dbus/io.github.ali_kenjo.Opaline.Privileged.service",
+          "/usr/share/dbus-1/system.d/io.github.ali_kenjo.Opaline.Privileged.conf": "../../packaging/dbus/io.github.ali_kenjo.Opaline.Privileged.conf",
+          "/usr/share/polkit-1/actions/io.github.ali_kenjo.opaline.policy": "../../packaging/polkit/io.github.ali_kenjo.opaline.policy",
+          "/usr/share/metainfo/io.github.ali_kenjo.Opaline.metainfo.xml": "../../packaging/metainfo/io.github.ali_kenjo.Opaline.metainfo.xml",
+          "/usr/share/icons/hicolor/scalable/apps/io.github.ali_kenjo.Opaline.svg": "../../packaging/icons/opaline.svg",
+          "/usr/share/gnome-shell/extensions/opaline-desktop@ali-kenjo.github.io/metadata.json": "../../desktop-integration/metadata.json",
+          "/usr/share/gnome-shell/extensions/opaline-desktop@ali-kenjo.github.io/extension.js": "../../desktop-integration/extension.js",
+          "/usr/share/gnome-shell/extensions/opaline-desktop@ali-kenjo.github.io/dbus.js": "../../desktop-integration/dbus.js",
+          "/usr/share/gnome-shell/extensions/opaline-desktop@ali-kenjo.github.io/keys.js": "../../desktop-integration/keys.js",
+          "/usr/share/gnome-shell/extensions/opaline-desktop@ali-kenjo.github.io/layer.js": "../../desktop-integration/layer.js",
+          "/usr/share/gnome-shell/extensions/opaline-desktop@ali-kenjo.github.io/stacking.js": "../../desktop-integration/stacking.js",
+          "/usr/share/gnome-shell/extensions/opaline-desktop@ali-kenjo.github.io/schemas/org.gnome.shell.extensions.opaline-desktop.gschema.xml": "../../desktop-integration/schemas/org.gnome.shell.extensions.opaline-desktop.gschema.xml",
+          "/usr/share/gnome-shell/extensions/opaline-desktop@ali-kenjo.github.io/schemas/gschemas.compiled": "../../desktop-integration/schemas/gschemas.compiled"
+        }
+      }
+    }
   }
 }

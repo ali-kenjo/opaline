@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.ali_kenjo.Opaline</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Opaline</name>
+  <summary>Glass widgets for your Ubuntu desktop</summary>
+  <developer id="io.github.ali_kenjo">
+    <name>Ali Kenjo</name>
+  </developer>
+  <description>
+    <p>
+      Opaline brings customizable glass widgets to the Ubuntu 26.04 / GNOME 50 desktop. Place,
+      move, resize, and stack live widgets right on your wallpaper — above desktop icons and below
+      application windows, across multiple monitors.
+    </p>
+    <p>
+      Includes fourteen built-in widgets (Clock, CPU, Memory, GPU, Storage, Network, Battery &amp;
+      Power, Fans, Processes, Now Playing, Audio Visualizer, Weather, Calendar, and Docker),
+      dynamic Material 3 Expressive themes, Peek and Edit modes, and zero telemetry.
+    </p>
+  </description>
+  <launchable type="desktop-id">Opaline.desktop</launchable>
+  <url type="homepage">https://github.com/ali-kenjo/opaline</url>
+  <url type="bugtracker">https://github.com/ali-kenjo/opaline/issues</url>
+  <url type="vcs-browser">https://github.com/ali-kenjo/opaline</url>
+  <content_rating type="oars-1.1" />
+  <categories>
+    <category>Utility</category>
+  </categories>
+  <recommends>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>touch</control>
+  </recommends>
+  <releases>
+    <release version="0.1.0" date="2026-11-24">
+      <description>
+        <p>Pre-1.0 complete build with all fourteen widgets, Native and Instant desktop integration, Edit mode, Settings, Onboarding, and English/German/Arabic (RTL) support.</p>
+      </description>
+    </release>
+  </releases>
+</component>

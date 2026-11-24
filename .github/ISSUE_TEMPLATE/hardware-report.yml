@@ -1,0 +1,40 @@
+name: Hardware / Sensor Report
+description: Report a missing sensor, wrong reading, or desktop-integration issue on your machine.
+title: "[Hardware] "
+labels: ["hardware"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please paste the output of `opaline --diagnose` below.
+        It automatically strips SSIDs, IP addresses, hostnames, usernames, and monitor serials.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe which widget, sensor, or desktop behaviour looked wrong.
+    validations:
+      required: true
+  - type: textarea
+    id: diagnose
+    attributes:
+      label: Output of `opaline --diagnose`
+      description: Run `opaline --diagnose` in a terminal and paste the JSON here (or copy it from Settings → Diagnostics → Copy debug report).
+      render: json
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Desktop integration mode
+      options:
+        - Native (GNOME Shell helper)
+        - Instant (Xwayland fallback)
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: hardware
+    attributes:
+      label: Hardware summary
+      placeholder: e.g. ThinkPad T14 AMD Ryzen 7, 2× 1440p @ 125% scale
