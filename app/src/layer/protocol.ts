@@ -61,7 +61,8 @@ export type Command =
   | { cmd: "update-layouts"; layouts: Value }
   | { cmd: "geocode-search"; query: string; language: string }
   | { cmd: "history"; series: string; seconds: number }
-  | { cmd: "list-fonts" };
+  | { cmd: "list-fonts" }
+  | { cmd: "open-settings" };
 
 export type MediaAction = "play" | "pause" | "play-pause" | "next" | "previous";
 

@@ -5,19 +5,21 @@ export interface SwitchProps {
   checked: boolean;
   onChange: (checked: boolean) => void;
   label: string;
+  disabled?: boolean;
 }
 
 /** Material 3 switch: the thumb grows and shows a check when on. */
-export function Switch({ checked, onChange, label }: SwitchProps) {
+export function Switch({ checked, onChange, label, disabled = false }: SwitchProps) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
       aria-label={label}
+      disabled={disabled}
       className={styles.switch}
       onClick={() => {
-        onChange(!checked);
+        if (!disabled) onChange(!checked);
       }}
     >
       <span className={styles.thumb}>

@@ -421,7 +421,6 @@ export function LayerApp() {
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const [openSettings, setOpenSettings] = useState<string | null>(null);
-  const [settingsGlobal, setSettingsGlobal] = useState(false);
   const [detail, setDetail] = useState<DetailState | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -470,7 +469,33 @@ export function LayerApp() {
 
   const width = geometry?.width ?? window.innerWidth;
   const height = geometry?.height ?? window.innerHeight;
-  const g = useMemo(() => computeGrid(width, height), [width, height]);
+  const rawSettings = useLayer((s) => s.values.settings);
+  const settingsExtra = useMemo(() => {
+    const j = toJson(rawSettings);
+    const obj = typeof j === "object" && j !== null && !Array.isArray(j) ? j : {};
+    const app =
+      typeof obj.appearance === "object" &&
+      obj.appearance !== null &&
+      !Array.isArray(obj.appearance)
+        ? obj.appearance
+        : {};
+    const lay =
+      typeof obj.layout === "object" && obj.layout !== null && !Array.isArray(obj.layout)
+        ? obj.layout
+        : {};
+    const state =
+      app.state === "full" || app.state === "dimmed" || app.state === "automatic"
+        ? app.state
+        : "automatic";
+    const glass = typeof app.glass === "number" ? Math.max(0, Math.min(100, app.glass)) : 45;
+    const marginPx =
+      typeof lay.marginPx === "number" ? Math.max(12, Math.min(64, lay.marginPx)) : 24;
+    return { state, glass, marginPx };
+  }, [rawSettings]);
+  const g = useMemo(
+    () => computeGrid(width, height, settingsExtra.marginPx),
+    [width, height, settingsExtra.marginPx],
+  );
 
   // Startup diagnostics: page size vs. the window geometry core placed (layer log).
   useEffect(() => {
@@ -1223,16 +1248,15 @@ export function LayerApp() {
     height,
   ]);
 
-  // Automatic appearance: full on desktop focus / hover / Peek / Edit / overlays; dimmed otherwise.
+  // Appearance state (brief §2.6): Automatic (default), Full color, or Dimmed.
   const desktopActive = backend === "native" ? (desktopFocused ?? true) : focused;
-  const autoDimmed = !(
-    peek ||
-    edit ||
-    hovered ||
-    desktopActive ||
-    openSettings !== null ||
-    detail !== null
-  );
+  const interactiveOverride = peek || edit || hovered || openSettings !== null || detail !== null;
+  const autoDimmed =
+    settingsExtra.state === "full"
+      ? false
+      : settingsExtra.state === "dimmed"
+        ? !interactiveOverride
+        : !(interactiveOverride || desktopActive);
 
   const entry = useMemo(() => {
     const all = toJson(wallpapers);
@@ -1341,7 +1365,7 @@ export function LayerApp() {
           tint={tint}
           textLuminance={lum((text >> 16) & 255, (text >> 8) & 255, text & 255)}
           {...(luminance ? { luminance } : {})}
-          slider={45}
+          slider={settingsExtra.glass}
           backdrop={peek || edit ? 0.92 : 0}
           tightCanvas
         >
@@ -1446,16 +1470,8 @@ export function LayerApp() {
                     icon="settings"
                     onClick={() => {
                       setPresetsOpen(false);
-                      const sel = monitorItems.find((i) => i.id === selectedId);
-                      const first = monitorItems[0];
-                      const pickId =
-                        (sel?.type === "widget" ? sel.id : sel?.children[0]) ??
-                        (first?.type === "widget" ? first.id : first?.children[0]) ??
-                        Object.keys(widgets)[0];
-                      if (pickId) {
-                        setSettingsGlobal(true);
-                        setOpenSettings(pickId);
-                      }
+                      void setEditActive(false);
+                      void host.command({ cmd: "open-settings" });
                     }}
                   >
                     Settings
@@ -1705,11 +1721,8 @@ export function LayerApp() {
           id={openSettings}
           def={openDef}
           open
-          initialTab={settingsGlobal ? "style" : "content"}
-          initialScope={settingsGlobal ? "global" : "widget"}
           onClose={() => {
             setOpenSettings(null);
-            setSettingsGlobal(false);
           }}
         />
       ) : null}

@@ -58,10 +58,14 @@ export interface PxRect {
 }
 
 /** Computes the grid that fits inside a monitor's work area minus safe margins. */
-export function computeGrid(workWidth: number, workHeight: number): GridMetrics {
+export function computeGrid(
+  workWidth: number,
+  workHeight: number,
+  margin: number = grid.safeMargin,
+): GridMetrics {
   const step = grid.cell + grid.gap;
-  const usableW = Math.max(grid.cell * 2 + grid.gap, workWidth - grid.safeMargin * 2);
-  const usableH = Math.max(grid.cell * 2 + grid.gap, workHeight - grid.safeMargin * 2);
+  const usableW = Math.max(grid.cell * 2 + grid.gap, workWidth - margin * 2);
+  const usableH = Math.max(grid.cell * 2 + grid.gap, workHeight - margin * 2);
   const cols = Math.max(2, Math.floor((usableW + grid.gap) / step));
   const rows = Math.max(2, Math.floor((usableH + grid.gap) / step));
   const width = spanPx(cols);
