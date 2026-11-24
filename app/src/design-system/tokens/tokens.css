@@ -52,3 +52,26 @@
   --font-ui: "Noto Sans Arabic", "Inter", system-ui, sans-serif;
   --font-display: "Noto Sans Arabic", "Roboto Flex", system-ui, sans-serif;
 }
+
+/* GNOME accessibility: high contrast gives stronger outlines (brief §2.10);
+   reduced motion keeps transitions <= 150 ms crossfades with no morphs. */
+[data-high-contrast="true"] {
+  --outline-opaque: 2px;
+}
+
+[data-high-contrast="true"] button:focus-visible,
+[data-high-contrast="true"] input:focus-visible,
+[data-high-contrast="true"] select:focus-visible,
+[data-high-contrast="true"] [tabindex]:focus-visible {
+  outline: 2.5px solid rgb(var(--md-primary));
+  outline-offset: 2px;
+}
+
+[data-reduced-motion="true"] *,
+[data-reduced-motion="true"] *::before,
+[data-reduced-motion="true"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 120ms !important;
+  scroll-behavior: auto !important;
+}

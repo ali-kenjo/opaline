@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import type { LayoutsDoc } from "../layer/grid";
 import type { BackendKind, Monitor } from "../layer/protocol";
 import type { Style } from "../design-system/style";
+import type { LanguagePref } from "../i18n";
 
 export type AppearanceState = "automatic" | "full" | "dimmed";
 export type Density = "compact" | "comfortable" | "spacious";
@@ -29,6 +30,7 @@ export interface WeatherLocation {
 export interface CoreSettings {
   version: number;
   onboardingDone: boolean;
+  language: LanguagePref;
   appearance: {
     state: AppearanceState;
     glass: number;
@@ -138,8 +140,10 @@ export interface ShellState {
   appearance: {
     accentRgb?: number[];
     colorScheme?: string;
+    animations?: boolean;
     highContrast?: boolean;
-    enableAnimations?: boolean;
+    reducedMotion?: boolean;
+    textScale?: number;
   } | null;
   wallpapers: Record<string, WallpaperMonitorEntry> | null;
   autostart: boolean;

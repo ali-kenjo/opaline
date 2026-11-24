@@ -9,12 +9,14 @@ import { Button, ContextMenu, type MenuItem, Snackbar, Toolbar } from "../design
 import { GlassStage, useGlassSync } from "../design-system/glass";
 import { luminance as lum } from "../design-system/glass/legibility";
 import { Icon } from "../design-system/icons";
-import { applyPalette, scheduler } from "../design-system/motion";
+import { applyPalette, scheduler, setReducedMotion } from "../design-system/motion";
 import { resolveStyle, rolesFor, sanitizeStyle } from "../design-system/style";
 import { type SizeClass, sizes, spanPx } from "../design-system/tokens/tokens";
+import { applyDocumentLocale, isRtl, resolveLocale, t } from "../i18n";
 import { HostContext, type StoredSettings } from "../widgets/host";
 import { toJson } from "../widgets/json";
 import {
+  APPEARANCE_TOPIC,
   LAYOUTS_TOPIC,
   WALLPAPER_TOPIC,
   attachLayer,
@@ -225,6 +227,7 @@ interface GridItemsProps {
   onOpenSettings: (widgetId: string) => void;
   onEditStack: (stackId: string) => void;
   onStackActive: (stackId: string, idx: number) => void;
+  contentDir: "ltr" | "rtl";
 }
 
 function GridItems({
@@ -245,6 +248,7 @@ function GridItems({
   onOpenSettings,
   onEditStack,
   onStackActive,
+  contentDir,
 }: GridItemsProps) {
   const syncGlass = useGlassSync();
 
@@ -307,6 +311,7 @@ function GridItems({
             dragging={isDragging || isResizing}
             onTick={syncGlass}
             dataItemId={item.id}
+            dir={contentDir}
             tabIndex={edit ? 0 : undefined}
             ariaLabel={
               item.type === "stack" ? `Stack of ${String(item.children.length)} widgets` : item.kind
@@ -470,6 +475,7 @@ export function LayerApp() {
   const width = geometry?.width ?? window.innerWidth;
   const height = geometry?.height ?? window.innerHeight;
   const rawSettings = useLayer((s) => s.values.settings);
+  const rawAppearance = useLayer((s) => s.values[APPEARANCE_TOPIC]);
   const settingsExtra = useMemo(() => {
     const j = toJson(rawSettings);
     const obj = typeof j === "object" && j !== null && !Array.isArray(j) ? j : {};
@@ -490,8 +496,37 @@ export function LayerApp() {
     const glass = typeof app.glass === "number" ? Math.max(0, Math.min(100, app.glass)) : 45;
     const marginPx =
       typeof lay.marginPx === "number" ? Math.max(12, Math.min(64, lay.marginPx)) : 24;
-    return { state, glass, marginPx };
+    const language = typeof obj.language === "string" ? obj.language : "system";
+    return { state, glass, marginPx, language };
   }, [rawSettings]);
+  const a11y = useMemo(() => {
+    const j = toJson(rawAppearance);
+    const obj = typeof j === "object" && j !== null && !Array.isArray(j) ? j : {};
+    const highContrast = obj.highContrast === true;
+    const reduced = obj.animations === false || obj.reducedMotion === true;
+    const scale =
+      typeof obj.textScale === "number" && Number.isFinite(obj.textScale)
+        ? Math.min(2, Math.max(0.75, obj.textScale))
+        : 1;
+    return { highContrast, reduced, scale };
+  }, [rawAppearance]);
+  const locale = resolveLocale(settingsExtra.language);
+  const rtl = isRtl(locale);
+  const contentDir: "rtl" | "ltr" = rtl ? "rtl" : "ltr";
+
+  useEffect(() => {
+    // Set document lang only; keep .surface LTR so user widget coordinates never mirror (brief §2.10).
+    applyDocumentLocale(locale, false);
+  }, [locale]);
+
+  useEffect(() => {
+    setReducedMotion(a11y.reduced);
+    const el = document.documentElement;
+    el.dataset.highContrast = a11y.highContrast ? "true" : "false";
+    el.dataset.reducedMotion = a11y.reduced ? "true" : "false";
+    el.style.setProperty("--text-scale", String(a11y.scale));
+  }, [a11y]);
+
   const g = useMemo(
     () => computeGrid(width, height, settingsExtra.marginPx),
     [width, height, settingsExtra.marginPx],
@@ -1303,24 +1338,28 @@ export function LayerApp() {
   const contextItems = useMemo<MenuItem[]>(() => {
     if (!contextMenu) return [];
     const list: MenuItem[] = [
-      { id: "edit", label: edit ? "Done editing" : "Edit widgets", icon: "edit" },
-      { id: "settings", label: "Widget settings", icon: "tune" },
+      {
+        id: "edit",
+        label: edit ? t(locale, "action.doneEditing") : t(locale, "action.editWidgets"),
+        icon: "edit",
+      },
+      { id: "settings", label: t(locale, "action.widgetSettings"), icon: "tune" },
     ];
     if (contextMenu.item.type === "stack") {
-      list.push({ id: "stack", label: "Edit stack", icon: "stacks" });
+      list.push({ id: "stack", label: t(locale, "action.editStack"), icon: "stacks" });
     }
     for (const m of monitors) {
       if (monitor && m.key !== monitor.key) {
         list.push({
           id: `move:${m.key}`,
-          label: `Move to ${m.connector}`,
+          label: t(locale, "action.moveTo", { display: m.connector }),
           icon: "open_in_full",
         });
       }
     }
-    list.push({ id: "remove", label: "Remove", icon: "delete", danger: true });
+    list.push({ id: "remove", label: t(locale, "action.remove"), icon: "delete", danger: true });
     return list;
-  }, [contextMenu, edit, monitors, monitor]);
+  }, [contextMenu, edit, monitors, monitor, locale]);
 
   const handleContextSelect = (id: string) => {
     if (!contextMenu) return;
@@ -1366,6 +1405,7 @@ export function LayerApp() {
           textLuminance={lum((text >> 16) & 255, (text >> 8) & 255, text & 255)}
           {...(luminance ? { luminance } : {})}
           slider={settingsExtra.glass}
+          opaque={a11y.highContrast}
           backdrop={peek || edit ? 0.92 : 0}
           tightCanvas
         >
@@ -1427,6 +1467,7 @@ export function LayerApp() {
               resize={resize}
               autoDimmed={autoDimmed}
               widgets={widgets}
+              contentDir={contentDir}
               onHover={setHovered}
               onPointerDownItem={handlePointerDownItem}
               onClickItem={handleClickItem}
@@ -1444,8 +1485,8 @@ export function LayerApp() {
             />
 
             {edit && !drag ? (
-              <div className={styles.toolbarWrap}>
-                <Toolbar label="Edit widgets">
+              <div className={styles.toolbarWrap} dir={contentDir}>
+                <Toolbar label={t(locale, "action.editWidgets")}>
                   <Button
                     variant="tonal"
                     icon="add"
@@ -1454,7 +1495,7 @@ export function LayerApp() {
                       setPickerOpen(true);
                     }}
                   >
-                    Add widget
+                    {t(locale, "action.addWidget")}
                   </Button>
                   <Button
                     variant="text"
@@ -1463,7 +1504,7 @@ export function LayerApp() {
                       setPresetsOpen((p) => !p);
                     }}
                   >
-                    Presets
+                    {t(locale, "action.presets")}
                   </Button>
                   <Button
                     variant="text"
@@ -1474,19 +1515,19 @@ export function LayerApp() {
                       void host.command({ cmd: "open-settings" });
                     }}
                   >
-                    Settings
+                    {t(locale, "action.settings")}
                   </Button>
                   <Button
                     variant="text"
                     icon="undo"
-                    label="Undo"
+                    label={t(locale, "action.undo")}
                     disabled={undoStack.length === 0}
                     onClick={handleUndo}
                   />
                   <Button
                     variant="text"
                     icon="redo"
-                    label="Redo"
+                    label={t(locale, "action.redo")}
                     disabled={redoStack.length === 0}
                     onClick={handleRedo}
                   />
@@ -1497,7 +1538,7 @@ export function LayerApp() {
                       void setEditActive(false);
                     }}
                   >
-                    Done
+                    {t(locale, "action.done")}
                   </Button>
                 </Toolbar>
               </div>
@@ -1505,10 +1546,15 @@ export function LayerApp() {
 
             {drag && !drag.fromPicker ? (
               <div
+                dir={contentDir}
                 className={`${styles.removeZone} ${drag.overRemove ? styles.removeZoneHot : ""}`}
               >
                 <Icon name="delete" size={18} />
-                <span>{drag.overRemove ? "Release to remove" : "Drop here to remove"}</span>
+                <span>
+                  {drag.overRemove
+                    ? t(locale, "edit.releaseToRemove")
+                    : t(locale, "edit.dropToRemove")}
+                </span>
               </div>
             ) : null}
 
@@ -1583,7 +1629,11 @@ export function LayerApp() {
 
             {/* Inside the stage's content layer: as a layer of its own, WebKitGTK stretched the
                 pill's background over the whole window. */}
-            {peek ? <div className={styles.hint}>Peek · Esc to close</div> : null}
+            {peek ? (
+              <div className={styles.hint} dir={contentDir}>
+                {t(locale, "peek.hint")}
+              </div>
+            ) : null}
           </div>
         </GlassStage>
       </div>

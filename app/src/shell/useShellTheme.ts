@@ -1,15 +1,42 @@
-// Applies Opaline's Material 3 Expressive color roles to Settings / Onboarding windows.
+// Applies Opaline's M3 Expressive palette, locale/RTL, and GNOME accessibility flags
+// (high contrast, reduced motion, text scaling) to Settings and Onboarding windows.
 import { argbFromRgb } from "@material/material-color-utilities";
 import { useEffect, useMemo, useState } from "react";
 import { DEFAULT_SOURCE, cssVariables } from "../design-system/color/scheme";
 import { sourceFromWallpaper } from "../design-system/color/source";
-import { applyPalette } from "../design-system/motion";
+import { applyPalette, setReducedMotion } from "../design-system/motion";
 import { resolveStyle, rolesFor, sanitizeStyle } from "../design-system/style";
+import { type Locale, applyDocumentLocale, isRtl, resolveLocale } from "../i18n";
 import { type ShellState, fetchWallpaperBlobUrl } from "./api";
 
-export function useShellTheme(state: ShellState | null): { wallpaperUrl: string | null } {
+export function useShellTheme(state: ShellState | null): {
+  wallpaperUrl: string | null;
+  locale: Locale;
+  rtl: boolean;
+} {
   const [wallSource, setWallSource] = useState(DEFAULT_SOURCE);
   const [wallpaperUrl, setWallpaperUrl] = useState<string | null>(null);
+
+  const locale = resolveLocale(state?.settings.language);
+  const rtl = isRtl(locale);
+
+  useEffect(() => {
+    applyDocumentLocale(locale, true);
+  }, [locale]);
+
+  const highContrast = Boolean(state?.appearance?.highContrast);
+  const reducedMotion =
+    state?.appearance?.animations === false || Boolean(state?.appearance?.reducedMotion);
+  const rawScale = state?.appearance?.textScale ?? 1;
+  const textScale = Number.isFinite(rawScale) ? Math.min(2, Math.max(0.75, rawScale)) : 1;
+
+  useEffect(() => {
+    setReducedMotion(reducedMotion);
+    const el = document.documentElement;
+    el.dataset.highContrast = highContrast ? "true" : "false";
+    el.dataset.reducedMotion = reducedMotion ? "true" : "false";
+    el.style.setProperty("--text-scale", String(textScale));
+  }, [highContrast, reducedMotion, textScale]);
 
   const primaryMonitor = state?.monitors.find((m) => m.primary) ?? state?.monitors[0] ?? null;
   const wallEntry =
@@ -57,13 +84,14 @@ export function useShellTheme(state: ShellState | null): { wallpaperUrl: string 
   }, [state?.appearance, wallSource]);
 
   const roles = useMemo(() => {
-    const style = resolveStyle(sanitizeStyle(state?.settings.style)).style;
+    const baseStyle = sanitizeStyle(state?.settings.style);
+    const style = resolveStyle(highContrast ? { ...baseStyle, contrast: 1 } : baseStyle).style;
     return rolesFor(style, colors);
-  }, [state?.settings.style, colors]);
+  }, [state?.settings.style, colors, highContrast]);
 
   useEffect(() => {
     applyPalette(cssVariables(roles));
   }, [roles]);
 
-  return { wallpaperUrl };
+  return { wallpaperUrl, locale, rtl };
 }

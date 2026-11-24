@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button, Slider, Snackbar, Switch } from "../design-system/components";
 import { Icon, type IconName } from "../design-system/icons";
+import { type LanguagePref, type MessageKey, t } from "../i18n";
 import { computeGrid, matchMonitorKey } from "../layer/grid";
 import { PRESETS, type PresetSpec, buildPreset } from "../layer/presets";
 import {
@@ -35,18 +36,18 @@ type SectionId =
   | "diagnostics"
   | "about";
 
-const NAV: readonly { id: SectionId; label: string; icon: IconName }[] = [
-  { id: "appearance", label: "Appearance", icon: "palette" },
-  { id: "layout", label: "Layout", icon: "grid_view" },
-  { id: "widgets", label: "Widgets", icon: "widgets" },
-  { id: "alerts", label: "Alerts", icon: "notifications" },
-  { id: "performance", label: "Performance", icon: "speed" },
-  { id: "privacy", label: "Privacy", icon: "lock" },
-  { id: "desktop", label: "Desktop integration", icon: "layers" },
-  { id: "shortcuts", label: "Shortcuts", icon: "tune" },
-  { id: "backup", label: "Backup", icon: "content_copy" },
-  { id: "diagnostics", label: "Diagnostics", icon: "monitoring" },
-  { id: "about", label: "About & Updates", icon: "info" },
+const NAV: readonly { id: SectionId; labelKey: MessageKey; icon: IconName }[] = [
+  { id: "appearance", labelKey: "settings.nav.appearance", icon: "palette" },
+  { id: "layout", labelKey: "settings.nav.layout", icon: "grid_view" },
+  { id: "widgets", labelKey: "settings.nav.widgets", icon: "widgets" },
+  { id: "alerts", labelKey: "settings.nav.alerts", icon: "notifications" },
+  { id: "performance", labelKey: "settings.nav.performance", icon: "speed" },
+  { id: "privacy", labelKey: "settings.nav.privacy", icon: "lock" },
+  { id: "desktop", labelKey: "settings.nav.desktop", icon: "layers" },
+  { id: "shortcuts", labelKey: "settings.nav.shortcuts", icon: "tune" },
+  { id: "backup", labelKey: "settings.nav.backup", icon: "content_copy" },
+  { id: "diagnostics", labelKey: "settings.nav.diagnostics", icon: "monitoring" },
+  { id: "about", labelKey: "settings.nav.about", icon: "info" },
 ];
 
 const VARIANTS = [
@@ -69,7 +70,7 @@ export function SettingsApp() {
   const [peekKey, setPeekKey] = useState("<Super><Alt>w");
   const [editKey, setEditKey] = useState("<Super><Alt>e");
 
-  useShellTheme(state);
+  const { locale } = useShellTheme(state);
 
   const notify = useCallback((msg: string) => {
     setToast(msg);
@@ -165,9 +166,11 @@ export function SettingsApp() {
             <Icon name="widgets" size={20} fill={1} />
           </div>
           <div>
-            <div className={styles.brandTitle}>Opaline</div>
+            <div className={styles.brandTitle}>{t(locale, "app.name")}</div>
             <div className={styles.brandSub}>
-              {desktop.backend === "native" ? "Native mode" : "Instant mode"}
+              {desktop.backend === "native"
+                ? t(locale, "app.mode.native")
+                : t(locale, "app.mode.instant")}
             </div>
           </div>
         </div>
@@ -177,13 +180,14 @@ export function SettingsApp() {
             <button
               key={item.id}
               type="button"
+              aria-current={section === item.id ? "page" : undefined}
               className={`${styles.navItem} ${section === item.id ? styles.navActive : ""}`}
               onClick={() => {
                 setSection(item.id);
               }}
             >
               <Icon name={item.icon} size={18} fill={section === item.id ? 1 : 0} />
-              <span>{item.label}</span>
+              <span>{t(locale, item.labelKey)}</span>
             </button>
           ))}
         </nav>
@@ -191,7 +195,7 @@ export function SettingsApp() {
 
       <main className={styles.main}>
         <header className={styles.topbar}>
-          <h1 className={styles.topTitle}>{activeNav?.label}</h1>
+          <h1 className={styles.topTitle}>{activeNav ? t(locale, activeNav.labelKey) : ""}</h1>
           <div className={styles.quickActions}>
             <Button
               variant="tonal"
@@ -200,7 +204,7 @@ export function SettingsApp() {
                 void triggerAction("peek");
               }}
             >
-              Peek
+              {t(locale, "action.peek")}
             </Button>
             <Button
               variant="tonal"
@@ -209,7 +213,7 @@ export function SettingsApp() {
                 void triggerAction("edit");
               }}
             >
-              Edit widgets
+              {t(locale, "action.editWidgets")}
             </Button>
             <Button
               variant="text"
@@ -220,7 +224,7 @@ export function SettingsApp() {
                   .catch(() => undefined);
               }}
             >
-              {state.paused ? "Resume" : "Pause"}
+              {state.paused ? t(locale, "action.resume") : t(locale, "action.pause")}
             </Button>
             <Button
               variant="text"
@@ -229,7 +233,7 @@ export function SettingsApp() {
                 void triggerAction("quit");
               }}
             >
-              Quit
+              {t(locale, "action.quit")}
             </Button>
           </div>
         </header>
@@ -238,7 +242,41 @@ export function SettingsApp() {
           {section === "appearance" ? (
             <>
               <div className={styles.card}>
-                <h2 className={styles.cardTitle}>Theme &amp; color</h2>
+                <h2 className={styles.cardTitle}>{t(locale, "settings.appearance.themeCard")}</h2>
+                <div className={styles.row}>
+                  <div className={styles.rowText}>
+                    <span className={styles.rowLabel}>
+                      {t(locale, "settings.appearance.language")}
+                    </span>
+                    <span className={styles.rowHint}>
+                      {t(locale, "settings.appearance.languageHint")}
+                    </span>
+                  </div>
+                  <div className={styles.segmented}>
+                    {(
+                      [
+                        { id: "system", label: t(locale, "settings.appearance.languageSystem") },
+                        { id: "en", label: "English" },
+                        { id: "de", label: "Deutsch" },
+                        { id: "ar", label: "العربية" },
+                      ] as readonly { id: LanguagePref; label: string }[]
+                    ).map((opt) => {
+                      const active = settings.language === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          className={`${styles.segBtn} ${active ? styles.segActive : ""}`}
+                          onClick={() => {
+                            void applyPatch({ language: opt.id });
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
                 <div className={styles.row}>
                   <div className={styles.rowText}>
                     <span className={styles.rowLabel}>Color source</span>

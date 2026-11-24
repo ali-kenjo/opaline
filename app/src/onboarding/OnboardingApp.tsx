@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { Button, LoadingIndicator, Snackbar, Switch } from "../design-system/components";
 import { Icon } from "../design-system/icons";
+import { t } from "../i18n";
 import { computeGrid, matchMonitorKey } from "../layer/grid";
 import { PRESETS, type PresetSpec, buildPreset } from "../layer/presets";
 import {
@@ -42,7 +43,7 @@ export function OnboardingApp() {
   const [done, setDone] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
-  const { wallpaperUrl } = useShellTheme(state);
+  const { wallpaperUrl, locale } = useShellTheme(state);
 
   useEffect(() => {
     getShellState()
@@ -137,7 +138,7 @@ export function OnboardingApp() {
       <header className={styles.header}>
         <div className={styles.brand}>
           <Icon name="widgets" size={22} fill={1} />
-          <span>Opaline</span>
+          <span>{t(locale, "app.name")}</span>
         </div>
         <div
           className={styles.steps}
@@ -157,12 +158,9 @@ export function OnboardingApp() {
           <div className={styles.hero} style={wallpaperBg}>
             <div className={styles.heroScrim} />
             <div className={styles.heroContent}>
-              <LoadingIndicator size={56} label="Opaline expressive emblem" />
-              <h1 className={styles.title}>Glass widgets for your Ubuntu desktop</h1>
-              <p className={styles.subtitle}>
-                Live system, weather, calendar, and media widgets right on your wallpaper — above
-                your desktop icons, below your apps, and light on battery.
-              </p>
+              <LoadingIndicator size={56} label={t(locale, "app.name")} />
+              <h1 className={styles.title}>{t(locale, "onboarding.welcomeTitle")}</h1>
+              <p className={styles.subtitle}>{t(locale, "onboarding.welcomeBody")}</p>
             </div>
           </div>
         ) : null}
@@ -439,7 +437,7 @@ export function OnboardingApp() {
               setStep((s) => Math.max(0, s - 1));
             }}
           >
-            Back
+            {t(locale, "action.back")}
           </Button>
         ) : (
           <Button
@@ -448,7 +446,7 @@ export function OnboardingApp() {
               void handleFinish(false);
             }}
           >
-            Skip setup
+            {t(locale, "action.skipSetup")}
           </Button>
         )}
 
@@ -459,7 +457,7 @@ export function OnboardingApp() {
               setStep((s) => Math.min(TOTAL_STEPS - 1, s + 1));
             }}
           >
-            {step === 0 ? "Get started" : "Next"}
+            {step === 0 ? t(locale, "action.getStarted") : t(locale, "action.next")}
           </Button>
         ) : null}
       </footer>

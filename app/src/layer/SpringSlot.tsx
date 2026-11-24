@@ -21,6 +21,7 @@ export interface SpringSlotProps {
   tabIndex?: number | undefined;
   ariaLabel?: string | undefined;
   dataItemId?: string | undefined;
+  dir?: "ltr" | "rtl";
 }
 
 export function SpringSlot({
@@ -38,6 +39,7 @@ export function SpringSlot({
   tabIndex,
   ariaLabel,
   dataItemId,
+  dir,
 }: SpringSlotProps) {
   const el = useRef<HTMLDivElement>(null);
   const springsRef = useRef<{ sx: Spring; sy: Spring; initialized: boolean } | null>(null);
@@ -94,6 +96,7 @@ export function SpringSlot({
       tabIndex={tabIndex}
       aria-label={ariaLabel}
       data-item-id={dataItemId}
+      dir={dir}
       onPointerDown={onPointerDown}
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}

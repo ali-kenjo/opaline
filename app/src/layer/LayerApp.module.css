@@ -18,6 +18,8 @@
   width: 100%;
   height: 100%;
   user-select: none;
+  /* User widget grid coordinates never mirror in RTL locales (brief §2.10). */
+  direction: ltr;
 }
 
 .widget {

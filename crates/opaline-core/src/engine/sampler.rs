@@ -526,4 +526,92 @@ mod tests {
         let status = hub.provider_statuses().remove("works").unwrap();
         assert_eq!(status.samples, 1);
     }
+
+    struct HealthySibling;
+    const HEALTHY_TOPICS: &[TopicDesc] = &[TopicDesc::new("healthy.value")];
+    impl Provider for HealthySibling {
+        fn id(&self) -> &'static str {
+            "healthy"
+        }
+        fn topics(&self) -> &[TopicDesc] {
+            HEALTHY_TOPICS
+        }
+        fn probe(&mut self) -> Probe {
+            Probe::default().available("healthy.value")
+        }
+        fn sample(&mut self, _cx: &SampleCx<'_>) -> Result<Vec<TopicUpdate>, ProviderError> {
+            Ok(vec![update("healthy.value", 99.0)])
+        }
+    }
+
+    struct HangingProvider(Arc<std::sync::atomic::AtomicBool>);
+    const HANGING_TOPICS: &[TopicDesc] = &[TopicDesc::new("hanging.value")];
+    impl Provider for HangingProvider {
+        fn id(&self) -> &'static str {
+            "hanging"
+        }
+        fn topics(&self) -> &[TopicDesc] {
+            HANGING_TOPICS
+        }
+        fn probe(&mut self) -> Probe {
+            Probe::default().available("hanging.value")
+        }
+        fn sample(&mut self, _cx: &SampleCx<'_>) -> Result<Vec<TopicUpdate>, ProviderError> {
+            while !self.0.load(std::sync::atomic::Ordering::Relaxed) {
+                std::thread::sleep(Duration::from_millis(20));
+            }
+            Ok(vec![update("hanging.value", 1.0)])
+        }
+    }
+
+    #[tokio::test]
+    async fn panicking_provider_is_isolated_from_healthy_siblings() {
+        let hub = Hub::new(BackendKind::Instant, Vec::new());
+        hub.subscribe(&Topic::new("fake.value"), ActivityClass::Interactive);
+        hub.subscribe(&Topic::new("healthy.value"), ActivityClass::Interactive);
+        let mut sampler = Sampler::new(
+            hub.clone(),
+            vec![Box::new(Fake { mode: "panics" }), Box::new(HealthySibling)],
+        );
+        sampler.tick(1).await;
+        assert_eq!(
+            hub.latest(&Topic::new("healthy.value")),
+            Some(Value::Num(99.0)),
+            "healthy sibling still publishes when another provider panics"
+        );
+        assert_eq!(
+            hub.latest(&Topic::new("fake.value")),
+            Some(Value::unavailable("provider-failed"))
+        );
+        let status = hub.provider_statuses().remove("panics").unwrap();
+        assert!(matches!(status.health, Health::Failed { failures: 1, .. }));
+    }
+
+    #[tokio::test]
+    async fn hanging_provider_does_not_stall_healthy_siblings() {
+        let hub = Hub::new(BackendKind::Instant, Vec::new());
+        hub.subscribe(&Topic::new("hanging.value"), ActivityClass::Interactive);
+        hub.subscribe(&Topic::new("healthy.value"), ActivityClass::Interactive);
+        let release = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let mut sampler = Sampler::new(
+            hub.clone(),
+            vec![
+                Box::new(HangingProvider(release.clone())),
+                Box::new(HealthySibling),
+            ],
+        );
+        let started = Instant::now();
+        sampler.tick(1).await;
+        let elapsed = started.elapsed();
+        assert_eq!(
+            hub.latest(&Topic::new("healthy.value")),
+            Some(Value::Num(99.0)),
+            "healthy sibling publishes even while another provider hangs"
+        );
+        assert!(
+            elapsed < Duration::from_secs(3),
+            "gather deadline kept tick bounded ({elapsed:?})"
+        );
+        release.store(true, std::sync::atomic::Ordering::Relaxed);
+    }
 }

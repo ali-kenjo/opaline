@@ -15,11 +15,22 @@ use crate::style::{Style, WidgetConfig};
 pub const VERSION: u32 = 1;
 pub const TOPIC: &str = "settings";
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum Language {
+    #[default]
+    System,
+    En,
+    De,
+    Ar,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Settings {
     pub version: u32,
     pub onboarding_done: bool,
+    pub language: Language,
     pub appearance: AppearancePrefs,
     pub layout: LayoutPrefs,
     pub performance: PerformancePrefs,
@@ -41,6 +52,7 @@ impl Default for Settings {
         Self {
             version: VERSION,
             onboarding_done: false,
+            language: Language::System,
             appearance: AppearancePrefs::default(),
             layout: LayoutPrefs::default(),
             performance: PerformancePrefs::default(),

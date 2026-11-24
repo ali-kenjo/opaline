@@ -14,7 +14,7 @@ body,
   height: 100%;
   background: rgb(var(--md-surface));
   color: rgb(var(--md-on-surface));
-  font: 400 14px/1.45 var(--font-ui);
+  font: 400 calc(14px * var(--text-scale, 1)) / 1.45 var(--font-ui);
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
 }
