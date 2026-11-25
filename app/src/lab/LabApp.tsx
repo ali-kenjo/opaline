@@ -6,6 +6,7 @@ import type { Variant } from "../design-system/color/scheme";
 import { scheduler, setReducedMotion } from "../design-system/motion";
 import { ComponentsDemo } from "./ComponentsDemo";
 import { DirectionsDemo } from "./directions/DirectionsDemo";
+import { SpikeWebkit } from "./spike/SpikeWebkit";
 import { GlassDemo } from "./GlassDemo";
 import styles from "./Lab.module.css";
 import { Specimen } from "./Specimen";
@@ -21,7 +22,9 @@ const params = new URLSearchParams(location.search);
 const still = params.has("still");
 /** `?only=glass|widgets|components|specimen` shows one section (for memory and perf bisecting). */
 const only = params.get("only");
-const shows = (section: string) => only === null || only === section;
+const shows = (section: string) => (only === null && !params.has("spike")) || only === section;
+/** Spike pages (PLAN-2 §4): `?spike=webkit`. */
+const spike = params.get("spike");
 /** The P1 visual directions are opt-in, so the regular Lab and its baselines stay as they are. */
 const directions = only === "directions";
 if (still) setReducedMotion(true);
@@ -152,6 +155,7 @@ export function LabApp() {
       {shows("components") ? <ComponentsDemo dark={dark} value={value} /> : null}
       {shows("specimen") ? <Specimen value={value} /> : null}
       {directions ? <DirectionsDemo /> : null}
+      {spike === "webkit" ? <SpikeWebkit /> : null}
     </main>
   );
 }
