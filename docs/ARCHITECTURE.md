@@ -334,7 +334,7 @@ gives SMART unprivileged (ADR 0004); it comes back only if a machine shows it's 
 | Budget | How we meet it | How we measure |
 | - | - | - |
 | ≤ 0.5 % CPU idle | aligned 1 s ticks, `pread` reuse, event-driven providers, coalesced IPC frames, no rAF when idle, widgets redraw on data change only, sparklines scroll only while visible | `scripts/measure-budget.sh`: `/proc/<pid>/stat` utime+stime over 60 s for core + layer + WebKit processes |
-| ≤ 280 MB RAM (core + layer; the brief says 220, raised by you on 2026-11-23, ADR 0009) | core has no webview unless Settings is open; layer windows share one web process if possible; history in `f32` rings | PSS from `smaps_rollup` for all Opaline processes |
+| ≤ 450 MB RAM (core + layer; the brief said 220, raised by you to 280 on 2026-11-23 and to 450 on 2026-11-25, ADR 0009) | core has no webview unless Settings is open; layer windows share one web process if possible; history in `f32` rings | PSS from `smaps_rollup` for all Opaline processes |
 | ≤ 0.1 % covered/locked | no pushes to the layer, rAF stopped, Idle class | same script with a maximized window |
 | ≤ 3 % visualizer @ 60 fps | FFT in Rust, `u8` bands as raw binary frames, one canvas draw per frame | same script during playback |
 | no dropped frames | layout springs outside React, compositor single pass, `will-change` only while animating | WebKit frame timing in the Lab + manual check |

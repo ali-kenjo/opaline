@@ -76,4 +76,4 @@ for pid in "${pids[@]}"; do
       "$(mb "$stack")" "$(mb "$other")" "$(mb "$total")"
   fi
 done
-[[ $csv -eq 1 ]] || printf '\nTotal PSS: %s MB   budget: 280 MB\n' "$(mb "$sum")"
+[[ $csv -eq 1 ]] || printf '\nTotal PSS: %s MB   budget: 450 MB\n' "$(mb "$sum")"

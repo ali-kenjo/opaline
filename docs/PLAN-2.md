@@ -26,9 +26,9 @@ when we get there.
    screenshots. Full baselines for **Opaline** and **Classic**; for the other seven, one sheet per theme per wallpaper
    (every widget at its default size plus its smallest size). The zero-truncation and contrast checks run on **every**
    combination, without stored screenshots.
-6. **Memory.** 2.0 adds fonts, blur levels, the inspector, workers, photos. The budget (280 MB PSS, default layout)
-   is already missed by 146 MB. P0 fixes what it can; if it can't get under 280 MB, I bring you numbers and options
-   and you decide before P1. Every later feature states its cost, and each phase records the budget.
+6. **Memory.** 2.0 adds fonts, blur levels, the inspector, workers, photos. The budget was 280 MB PSS and missed by
+   146 MB. **Decided 2026-11-25 after the P0 measurements: the budget is 450 MB PSS** (ADR 0009). Every later feature
+   states its cost, and each phase records the budget.
 
 ## 2. Brief corrections found while planning (checked on this machine)
 
@@ -66,7 +66,8 @@ Goal: memory back under budget (or your decision), UI tests in place, `LayerApp.
 | 0.8 | **Small fixes**: `PROGRESS.md` grid numbers (84 px / 12 px); `fans` provider: find the 405 ms read and fix it or label it `expensive`; Instant-mode layer restart with exponential backoff (1 s → 5 min, reset after 60 s healthy); updater: a test that a release without a valid `.minisig` is refused, and the release workflow fails instead of publishing unsigned |
 | 0.9 | PROGRESS, HANDOFF, commits; your sign-off |
 
-Acceptance: ≤ 280 MB PSS with the default layout after Edit and after 1 h (or your decision on new numbers); UI tests
+Acceptance: ≤ 280 MB PSS with the default layout after Edit and after 1 h (or your decision on new numbers: **450 MB**,
+decided 2026-11-25); UI tests
 green; `LayerApp.tsx` split with all tests unchanged.
 
 ### P1: Design language and glass 2.0 (§3)

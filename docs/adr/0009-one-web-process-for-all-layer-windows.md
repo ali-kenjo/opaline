@@ -1,6 +1,6 @@
 # ADR 0009: One WebKit web process for all layer windows
 
-Status: accepted (Phase 0 spike B) · 2026-11-22 · budget raised to 280 MB on 2026-11-23
+Status: accepted (Phase 0 spike B) · 2026-11-22 · budget raised to 280 MB on 2026-11-23, to 450 MB on 2026-11-25
 
 ## Context
 The RAM budget is 220 MB for core plus layer (brief §7). This laptop has two monitors, so the layer has two windows.
@@ -64,3 +64,37 @@ The first layer window is created normally. Every further window is created with
   If even 280 MB can't be met with the real widget set, I'll bring you numbers and options first.
 - A crash of the shared web process blanks every layer window at once; the layer has to reload them (added in P4
   with the other robustness work).
+
+## Update 2026-11-25 (Opaline 2.0, Phase 0): budget raised to 450 MB
+
+**Measured** (release build of `main`, Native mode, both monitors, the owner's five-widget layout, PSS with
+`scripts/memory-breakdown.sh`; Peek and Edit driven with `opaline --peek` / `--edit`):
+
+| State | core | layer | network | web process | total |
+| - | - | - | - | - | - |
+| fresh start | 33–60 MB | 85–100 MB | 16 MB | 146–153 MB | 300–330 MB |
+| 90 s of Peek (widgets visible, values updating) | 70–80 MB | 94–108 MB | 16 MB | 203 MB | 370–400 MB |
+| after Peek + 4–8 Edit sessions | 70–110 MB | 94–108 MB | 16 MB | 238–305 MB | 430–505 MB |
+| installed 1.1.0 after 2 h 43 min / 3 h 28 min of normal use | 70–78 MB | 92 MB | 16 MB | 244–248 MB | 426–429 MB |
+
+**What grows and why:**
+- The **web process** grows while widgets are visible and their values change (about 0.5 MB/s with springs; five
+  times slower with animations off) and in Edit mode (the first session adds 10–30 MB), and keeps that memory. It
+  levels off rather than growing forever (426 MB after 2.7 h, 429 MB after 3.5 h).
+- It is **not** a JavaScript leak (a JavaScriptCore GC log in WPE WebKit shows a bounded heap), **not** Tauri's
+  channel delivery (120 `eval` messages/s for over 2 minutes: +0.4 MB), **not** the visualizer (flat on its own),
+  and **not** `will-change` on the odometer digits.
+- Reloading the pages doesn't release it; only a new web process does (a fresh one is 90–110 MB again).
+- **Core** keeps short peaks (wallpaper rendering, about 16 MB for NVML while a GPU widget is visible) because glibc
+  doesn't return freed memory; its heap swings between 12 and 80 MB.
+
+**Options offered:** recycle the web process while the layer is hidden, size the windows to the widgets outside
+Edit/Peek (about −29 MB), glibc tunables for core, fewer animation frames, or a higher budget.
+
+**Decision (owner, 2026-11-25): raise the RAM budget to 450 MB PSS** (default layout, both monitors, including after
+Edit and long use). The levers above stay documented here for later; every 2.0 feature still states its memory
+cost, and `scripts/memory-trend.sh` records long runs.
+
+**Found on the way:** after a crash of the shared web process the layer recovers, but the two windows then run in
+two web processes (about +60 MB until Opaline restarts), because a related view only shares a process when it is
+created.
