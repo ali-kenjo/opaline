@@ -1,4 +1,5 @@
 // Opaline Settings window — all 11 sections of brief §2.9 plus tray-parity quick actions.
+import { DESKTOP_LOOKS } from "../design-system/style";
 import { useCallback, useEffect, useState } from "react";
 import { Button, Slider, Snackbar, Switch } from "../design-system/components";
 import { Icon, type IconName } from "../design-system/icons";
@@ -425,6 +426,68 @@ export function SettingsApp() {
                   </div>
                 ) : null}
 
+                <div className={styles.row}>
+                  <div className={styles.rowText}>
+                    <span className={styles.rowLabel}>{t(locale, "settings.appearance.look")}</span>
+                    <span className={styles.rowHint}>
+                      {t(locale, "settings.appearance.lookHint")}
+                    </span>
+                  </div>
+                  <div className={styles.segmented}>
+                    {DESKTOP_LOOKS.map((l) => (
+                      <button
+                        key={l}
+                        type="button"
+                        className={`${styles.segBtn} ${(settings.appearance.look ?? "glass") === l ? styles.segActive : ""}`}
+                        onClick={() => {
+                          void applyPatch({ appearance: { look: l } });
+                        }}
+                      >
+                        {t(locale, `look.${l}`)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {settings.appearance.look === "tinted" ? (
+                  <div className={styles.row}>
+                    <span className={styles.rowLabel}>
+                      {t(locale, "settings.appearance.lookColor")}
+                    </span>
+                    <input
+                      type="color"
+                      aria-label={t(locale, "settings.appearance.lookColor")}
+                      value={settings.appearance.lookColor ?? "#7c6cf0"}
+                      onChange={(e) => {
+                        void applyPatch({ appearance: { lookColor: e.target.value } });
+                      }}
+                    />
+                  </div>
+                ) : null}
+
+                <div className={styles.row}>
+                  <div className={styles.rowText}>
+                    <span className={styles.rowLabel}>
+                      {t(locale, "settings.appearance.master")} (
+                      {Math.round(settings.appearance.masterTransparency ?? 50)}%)
+                    </span>
+                    <span className={styles.rowHint}>
+                      {t(locale, "settings.appearance.masterHint")}
+                    </span>
+                  </div>
+                  <div style={{ width: 220 }}>
+                    <Slider
+                      value={settings.appearance.masterTransparency ?? 50}
+                      min={0}
+                      max={100}
+                      label={t(locale, "settings.appearance.master")}
+                      onChange={(v) => {
+                        void applyPatch({ appearance: { masterTransparency: Math.round(v) } });
+                      }}
+                    />
+                  </div>
+                </div>
+
                 {settings.style.surface !== "opaque" && settings.style.surface !== "clear" ? (
                   <>
                     <div className={styles.row}>
@@ -456,18 +519,18 @@ export function SettingsApp() {
                     <div className={styles.row}>
                       <div className={styles.rowText}>
                         <span className={styles.rowLabel}>
-                          Extra blur ({Math.round(settings.style.blur ?? 0)}%)
+                          Blur ({Math.round(settings.style.blur ?? 60)}%)
                         </span>
                         <span className={styles.rowHint}>
-                          Softens the wallpaper behind glass widgets.
+                          0% shows the wallpaper sharp; 60% is the classic frosted glass.
                         </span>
                       </div>
                       <div style={{ width: 220 }}>
                         <Slider
-                          value={settings.style.blur ?? 0}
+                          value={settings.style.blur ?? 60}
                           min={0}
                           max={100}
-                          label="Extra blur"
+                          label="Blur"
                           onChange={(v) => {
                             void applyPatch({ style: { blur: Math.round(v) } });
                           }}

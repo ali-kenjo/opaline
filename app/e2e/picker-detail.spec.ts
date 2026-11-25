@@ -126,3 +126,20 @@ test("context menu: right-click offers edit, settings and remove", async ({ page
   await menu.getByRole("menuitem", { name: "Remove" }).click();
   await expect.poll(async () => (await storedItems(page)).map((i) => i.id)).toEqual(["w-clock"]);
 });
+
+test("the Look menu switches the desktop look", async ({ page }) => {
+  await openLayer(page);
+  await enterEdit(page);
+  await page.getByRole("toolbar").getByRole("button", { name: "Look" }).click();
+  const menu = page.getByRole("menu", { name: "Desktop look" });
+  await expect(menu.getByRole("menuitem")).toHaveCount(6);
+  await menu.getByRole("menuitem", { name: "Clear" }).click();
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const s = window.__fake?.settings() as { appearance?: { look?: string } } | null;
+        return s?.appearance?.look;
+      }),
+    )
+    .toBe("clear");
+});

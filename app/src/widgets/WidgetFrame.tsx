@@ -10,6 +10,8 @@ import { Icon } from "../design-system/icons";
 import { LoadingIndicator } from "../design-system/components/LoadingIndicator";
 import {
   type ResolvedStyle,
+  DEFAULT_LOOK,
+  applyDesktopLook,
   glassOptions,
   isDark,
   radiusFor,
@@ -150,9 +152,14 @@ export function WidgetFrame({
 }: WidgetFrameProps) {
   const host = useHost();
   const stored = host.settings.widgets[id];
-  const { style } = useMemo(
-    () => resolveStyle(sanitizeStyle(host.settings.style), sanitizeStyle(stored?.style)),
-    [host.settings.style, stored?.style],
+  const look = host.settings.look ?? DEFAULT_LOOK;
+  const style = useMemo(
+    () =>
+      applyDesktopLook(
+        resolveStyle(sanitizeStyle(host.settings.style), sanitizeStyle(stored?.style)).style,
+        look,
+      ),
+    [host.settings.style, stored?.style, look],
   );
   const content = useMemo(() => resolveContent(def, stored?.content), [def, stored?.content]);
   const roles = rolesFor(style, host.colors);

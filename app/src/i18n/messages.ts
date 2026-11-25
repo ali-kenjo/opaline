@@ -14,6 +14,20 @@ export const EN = {
   // Common actions
   "action.addWidget": "Add widget",
   "action.presets": "Presets",
+  "action.look": "Look",
+  "look.glass": "Glass",
+  "look.clear": "Clear",
+  "look.tinted": "Tinted",
+  "look.dark": "Dark",
+  "look.light": "Light",
+  "look.dimmed": "Dimmed",
+  "settings.appearance.look": "Desktop look",
+  "settings.appearance.lookHint":
+    "One switch for every widget. Your own widget styles stay underneath and come back with Glass.",
+  "settings.appearance.lookColor": "Tint color",
+  "settings.appearance.master": "Desktop transparency",
+  "settings.appearance.masterHint":
+    "Makes every widget clearer or more solid, relative to its own setting.",
   "action.settings": "Settings",
   "action.done": "Done",
   "action.undo": "Undo",
@@ -164,6 +178,20 @@ export const DE: Record<MessageKey, string> = {
 
   "action.addWidget": "Widget hinzufügen",
   "action.presets": "Vorlagen",
+  "action.look": "Stil",
+  "look.glass": "Glas",
+  "look.clear": "Klar",
+  "look.tinted": "Getönt",
+  "look.dark": "Dunkel",
+  "look.light": "Hell",
+  "look.dimmed": "Gedimmt",
+  "settings.appearance.look": "Desktop-Stil",
+  "settings.appearance.lookHint":
+    "Ein Schalter für alle Widgets. Deine eigenen Widget-Stile bleiben darunter erhalten und kommen mit „Glas“ zurück.",
+  "settings.appearance.lookColor": "Tönungsfarbe",
+  "settings.appearance.master": "Transparenz aller Widgets",
+  "settings.appearance.masterHint":
+    "Macht jedes Widget klarer oder deckender, ausgehend von seiner eigenen Einstellung.",
   "action.settings": "Einstellungen",
   "action.done": "Fertig",
   "action.undo": "Rückgängig",
@@ -304,6 +332,20 @@ export const AR: Record<MessageKey, string> = {
 
   "action.addWidget": "إضافة ودجة",
   "action.presets": "قوالب جاهزة",
+  "action.look": "المظهر",
+  "look.glass": "زجاج",
+  "look.clear": "شفاف",
+  "look.tinted": "ملوّن",
+  "look.dark": "داكن",
+  "look.light": "فاتح",
+  "look.dimmed": "خافت",
+  "settings.appearance.look": "مظهر سطح المكتب",
+  "settings.appearance.lookHint":
+    "مفتاح واحد لكل الأدوات. تبقى أنماط أدواتك كما هي تحته وتعود مع «زجاج».",
+  "settings.appearance.lookColor": "لون التلوين",
+  "settings.appearance.master": "شفافية كل الأدوات",
+  "settings.appearance.masterHint":
+    "يجعل كل أداة أكثر شفافية أو أكثر عتامة بالنسبة لإعدادها الخاص.",
   "action.settings": "الإعدادات",
   "action.done": "تم",
   "action.undo": "تراجع",

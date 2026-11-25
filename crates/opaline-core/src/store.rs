@@ -93,6 +93,29 @@ pub struct AppearancePrefs {
     /// Clear (0) … Tinted (100), brief §4.2 default 45.
     pub glass: u32,
     pub density: Density,
+    /// The desktop look quick mode (2.0 brief §3.3, DESIGN-2 §6.4), applied over every widget.
+    pub look: DesktopLook,
+    /// The one color of the Tinted look (`#rrggbb`); unset uses the accent.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub look_color: Option<String>,
+    /// Master transparency 0 (more solid) … 100 (clear); 50 leaves every widget as it is.
+    pub master_transparency: u32,
+}
+
+/// Desktop look quick modes.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum DesktopLook {
+    /// Every widget as styled.
+    #[default]
+    Glass,
+    /// Very see-through: little tint and blur.
+    Clear,
+    /// One tint color for every widget.
+    Tinted,
+    Dark,
+    Light,
+    Dimmed,
 }
 
 impl Default for AppearancePrefs {
@@ -101,6 +124,9 @@ impl Default for AppearancePrefs {
             state: AppearanceState::Automatic,
             glass: 45,
             density: Density::Comfortable,
+            look: DesktopLook::Glass,
+            look_color: None,
+            master_transparency: 50,
         }
     }
 }
@@ -229,6 +255,16 @@ impl Settings {
         }
         if !(1..=31).contains(&self.network.billing_day) {
             return Err("billing-day-out-of-range".into());
+        }
+        if self.appearance.master_transparency > 100 {
+            return Err("master-transparency-out-of-range".into());
+        }
+        if let Some(c) = &self.appearance.look_color
+            && !(c.len() == 7
+                && c.starts_with('#')
+                && c.chars().skip(1).all(|x| x.is_ascii_hexdigit()))
+        {
+            return Err("look-color-not-hex".into());
         }
         if self
             .network
@@ -511,6 +547,28 @@ mod tests {
         // A v2 file is left alone.
         let (s, _) = migrate(json!({"version": 2, "style": {"blur": 10}}));
         assert_eq!(s.style.blur, Some(10.0));
+    }
+
+    #[test]
+    fn desktop_look_is_validated() {
+        let s = Settings::default();
+        assert_eq!(s.appearance.look, DesktopLook::Glass);
+        assert_eq!(s.appearance.master_transparency, 50);
+        let next = patched(
+            &s,
+            &json!({"appearance": {"look": "tinted", "lookColor": "#3366cc"}}),
+        )
+        .unwrap();
+        assert_eq!(next.appearance.look, DesktopLook::Tinted);
+        assert_eq!(
+            patched(&s, &json!({"appearance": {"masterTransparency": 101}})),
+            Err("master-transparency-out-of-range".into())
+        );
+        assert_eq!(
+            patched(&s, &json!({"appearance": {"lookColor": "blue"}})),
+            Err("look-color-not-hex".into())
+        );
+        assert!(patched(&s, &json!({"appearance": {"look": "neon"}})).is_err());
     }
 
     #[test]

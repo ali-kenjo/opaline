@@ -23,3 +23,11 @@ export {
   styleVariables,
   transparencyAlpha,
 } from "./apply";
+export {
+  DEFAULT_LOOK,
+  DESKTOP_LOOKS,
+  applyDesktopLook,
+  lookPrefs,
+  type DesktopLook,
+  type LookPrefs,
+} from "./look";

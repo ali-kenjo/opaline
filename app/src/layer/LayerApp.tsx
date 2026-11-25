@@ -9,7 +9,15 @@ import { ContextMenu, type MenuItem, Snackbar } from "../design-system/component
 import { GlassStage, SPIKE_WANTS_SHARP } from "../design-system/glass";
 import { luminance as lum } from "../design-system/glass/legibility";
 import { applyPalette, scheduler, setReducedMotion } from "../design-system/motion";
-import { inksFor, resolveStyle, rolesFor, sanitizeStyle } from "../design-system/style";
+import {
+  DEFAULT_LOOK,
+  DESKTOP_LOOKS,
+  applyDesktopLook,
+  inksFor,
+  resolveStyle,
+  rolesFor,
+  sanitizeStyle,
+} from "../design-system/style";
 import { type SizeClass, sizes } from "../design-system/tokens/tokens";
 import { applyDocumentLocale, isRtl, resolveLocale, t } from "../i18n";
 import { HostContext } from "../widgets/host";
@@ -114,6 +122,7 @@ export function LayerApp() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [presetsOpen, setPresetsOpen] = useState(false);
+  const [lookOpen, setLookOpen] = useState(false);
   const [stackEditId, setStackEditId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [undoToast, setUndoToast] = useState<UndoToast | null>(null);
@@ -132,9 +141,10 @@ export function LayerApp() {
   }, []);
 
   // Global style → page palette (sheets, toolbar, context menu and backdrop use it).
+  const lookSettings = host.settings.look ?? DEFAULT_LOOK;
   const globalStyle = useMemo(
-    () => resolveStyle(sanitizeStyle(host.settings.style)).style,
-    [host.settings.style],
+    () => applyDesktopLook(resolveStyle(sanitizeStyle(host.settings.style)).style, lookSettings),
+    [host.settings.style, lookSettings],
   );
   const roles = rolesFor(globalStyle, host.colors);
   const inks = useMemo(() => inksFor(globalStyle, host.colors), [globalStyle, host.colors]);
@@ -390,6 +400,7 @@ export function LayerApp() {
           setSelectedId(null);
           setPickerOpen(false);
           setPresetsOpen(false);
+          setLookOpen(false);
           setStackEditId(null);
           setContextMenu(null);
           setUndoToast(null);
@@ -763,7 +774,12 @@ export function LayerApp() {
                   setPickerOpen(true);
                 }}
                 onTogglePresets={() => {
+                  setLookOpen(false);
                   setPresetsOpen((p) => !p);
+                }}
+                onToggleLook={() => {
+                  setPresetsOpen(false);
+                  setLookOpen((o) => !o);
                 }}
                 onSettings={() => {
                   setPresetsOpen(false);
@@ -801,6 +817,29 @@ export function LayerApp() {
                   }}
                   onClose={() => {
                     setPresetsOpen(false);
+                  }}
+                />
+              </div>
+            ) : null}
+
+            {lookOpen && edit ? (
+              <div
+                className={styles.menuAnchor}
+                style={{ bottom: 76, left: Math.max(16, width / 2 - 20) }}
+              >
+                <ContextMenu
+                  label={t(locale, "settings.appearance.look")}
+                  items={DESKTOP_LOOKS.map((l) => ({
+                    id: l,
+                    label: t(locale, `look.${l}`),
+                    icon: l === lookSettings.look ? "check" : "palette",
+                  }))}
+                  onSelect={(id) => {
+                    setLookOpen(false);
+                    void host.updateSettings({ appearance: { look: id } });
+                  }}
+                  onClose={() => {
+                    setLookOpen(false);
                   }}
                 />
               </div>

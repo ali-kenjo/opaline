@@ -1,5 +1,6 @@
 // What a widget frame needs from where it runs: live data, the stored settings and a way to
 // change them, and the color context. The layer and the Lab provide different implementations.
+import type { LookPrefs } from "../design-system/style";
 import { createContext, useContext } from "react";
 import type { ColorContext, Style } from "../design-system/style";
 import type { ActivityClass, Command, CommandResult, Value } from "../layer/protocol";
@@ -15,6 +16,8 @@ export interface StoredSettings {
   style: Style;
   styles: Record<string, Style>;
   widgets: Record<string, StoredWidget>;
+  /** The desktop look quick mode and master transparency (default: Glass, unchanged). */
+  look?: LookPrefs;
 }
 
 export interface WidgetHost {

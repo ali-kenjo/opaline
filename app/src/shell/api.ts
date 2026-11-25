@@ -1,4 +1,5 @@
 // Typed bridge to core's shell window commands (Settings and Onboarding).
+import type { DesktopLook } from "../design-system/style";
 import { invoke } from "@tauri-apps/api/core";
 import type { LayoutsDoc } from "../layer/grid";
 import type { BackendKind, Monitor } from "../layer/protocol";
@@ -35,6 +36,9 @@ export interface CoreSettings {
     state: AppearanceState;
     glass: number;
     density: Density;
+    look?: DesktopLook;
+    lookColor?: string | null;
+    masterTransparency?: number;
   };
   layout: {
     marginPx: number;

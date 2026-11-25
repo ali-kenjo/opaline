@@ -10,6 +10,7 @@ export interface EditToolbarProps {
   canRedo: boolean;
   onAdd: () => void;
   onTogglePresets: () => void;
+  onToggleLook: () => void;
   onSettings: () => void;
   onUndo: () => void;
   onRedo: () => void;
@@ -23,6 +24,7 @@ export function EditToolbar({
   canRedo,
   onAdd,
   onTogglePresets,
+  onToggleLook,
   onSettings,
   onUndo,
   onRedo,
@@ -36,6 +38,9 @@ export function EditToolbar({
         </Button>
         <Button variant="text" icon="grid_view" onClick={onTogglePresets}>
           {t(locale, "action.presets")}
+        </Button>
+        <Button variant="text" icon="palette" onClick={onToggleLook}>
+          {t(locale, "action.look")}
         </Button>
         <Button variant="text" icon="settings" onClick={onSettings}>
           {t(locale, "action.settings")}

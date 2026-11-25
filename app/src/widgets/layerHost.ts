@@ -1,5 +1,6 @@
 // The widget host backed by core: live values from the layer store, settings from core's
 // `settings` topic, saved through commands. Used by the layer (and the Lab's ?live mode).
+import { lookPrefs } from "../design-system/style";
 import { argbFromRgb } from "@material/material-color-utilities";
 import { useEffect, useMemo, useState } from "react";
 import { DEFAULT_SOURCE } from "../design-system/color/scheme";
@@ -53,7 +54,12 @@ export function storedSettings(v: Value | undefined): StoredSettings {
   }
   const styles: Record<string, Record<string, Json>> = {};
   for (const [name, s] of Object.entries(record(j.styles ?? null))) styles[name] = record(s);
-  return { style: record(j.style ?? null), styles, widgets };
+  return {
+    style: record(j.style ?? null),
+    styles,
+    widgets,
+    look: lookPrefs(j.appearance ?? null),
+  };
 }
 
 export async function updateSettings(patch: Record<string, Json>) {
