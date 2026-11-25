@@ -98,6 +98,7 @@ export const fansWidget: WidgetDef = {
     {
       id: "cpuTemp",
       label: "CPU temperature",
+      shortLabel: "CPU temp",
       icon: "thermostat",
       topics: ["cpu.temp"],
       read: (c) => {

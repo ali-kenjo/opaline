@@ -109,6 +109,7 @@ export const gpu: WidgetDef = {
     {
       id: "temp",
       label: "Temperature",
+      shortLabel: "Temp",
       icon: "thermostat",
       topics: (c) => t(c, "temp"),
       read: (c) => {
@@ -126,6 +127,7 @@ export const gpu: WidgetDef = {
     {
       id: "vram",
       label: "Video memory",
+      shortLabel: "VRAM",
       icon: "memory",
       topics: (c) => t(c, "vram"),
       read: (c): Reading | null => {
@@ -147,6 +149,7 @@ export const gpu: WidgetDef = {
     {
       id: "clock",
       label: "Core clock",
+      shortLabel: "Clock",
       icon: "bolt",
       topics: (c) => t(c, "clocks"),
       read: (c) => {
@@ -165,6 +168,7 @@ export const gpu: WidgetDef = {
     {
       id: "memClock",
       label: "Memory clock",
+      shortLabel: "Mem clock",
       icon: "bolt",
       topics: (c) => t(c, "clocks"),
       read: (c) => {
@@ -213,6 +217,7 @@ export const gpu: WidgetDef = {
     {
       id: "video",
       label: "Video engines",
+      shortLabel: "Video",
       icon: "graphic_eq",
       topics: (c) => t(c, "encdec"),
       read: (c) => {
@@ -243,6 +248,7 @@ export const gpu: WidgetDef = {
     {
       id: "pstate",
       label: "Power state",
+      shortLabel: "State",
       icon: "eco",
       topics: (c) => t(c, "state"),
       hero: false,
@@ -256,6 +262,7 @@ export const gpu: WidgetDef = {
     {
       id: "name",
       label: "GPU model",
+      shortLabel: "Model",
       icon: "developer_board",
       topics: [],
       hero: false,

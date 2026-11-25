@@ -12,3 +12,4 @@ export { ContextMenu, type MenuItem } from "./ContextMenu";
 export { Sheet } from "./Sheet";
 export { Snackbar } from "./Snackbar";
 export { Toolbar } from "./Toolbar";
+export { Fit, fitRows, fitVariants, useFitRows, type FitProps } from "./Fit";

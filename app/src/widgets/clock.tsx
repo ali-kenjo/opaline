@@ -1,5 +1,6 @@
 // Clock widget: digital or analog face, 12/24 h, seconds, date style, its own time zone and a
 // second zone. Follows GNOME's clock settings unless the user overrides them.
+import { Fit } from "../design-system/components";
 import { useEffect, useState } from "react";
 import { Odometer } from "../design-system/motion";
 import { map, num, text } from "./format";
@@ -143,13 +144,19 @@ function ClockFace({ ctx }: { ctx: RenderCtx }) {
   const label = (id: string) => readings.find((r) => r.field.id === id)?.label ?? id;
   const animate = style.animations && style.odometer;
 
-  const lines: { id: string; text: string }[] = [];
+  // Each line may have shorter forms, used when the long one doesn't fit (never cut).
+  const lines: { id: string; text: string; shorter?: string[] }[] = [];
+  const dateIn = (o: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat(undefined, { timeZone: zone, ...o }).format(now);
   for (const r of readings) {
-    if (r.field.id === "date")
-      lines.push({
-        id: "date",
-        text: new Intl.DateTimeFormat(undefined, { timeZone: zone, dateStyle }).format(now),
-      });
+    if (r.field.id === "date") {
+      const text = dateIn({ dateStyle });
+      const shorter = [
+        dateIn({ weekday: "short", month: "short", day: "numeric" }),
+        dateIn({ month: "short", day: "numeric" }),
+      ].filter((v, i, all) => v !== text && all.indexOf(v) === i);
+      lines.push({ id: "date", text, shorter });
+    }
     if (r.field.id === "weekday")
       lines.push({
         id: "weekday",
@@ -189,9 +196,12 @@ function ClockFace({ ctx }: { ctx: RenderCtx }) {
         {lines
           .slice(0, size === "1x1" ? 0 : size === "2x1" || size === "S" || size === "4x1" ? 2 : 6)
           .map((l) => (
-            <div key={l.id} className={styles.line}>
-              {l.text}
-            </div>
+            <Fit
+              key={l.id}
+              className={styles.line}
+              label={l.text}
+              variants={[l.text, ...(l.shorter ?? [])]}
+            />
           ))}
       </div>
     </div>

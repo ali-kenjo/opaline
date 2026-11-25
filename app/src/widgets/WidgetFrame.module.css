@@ -179,9 +179,6 @@
   color: rgb(var(--md-on-surface-variant));
   font-size: calc(12px * var(--w-scale));
   text-transform: var(--w-label-case);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .stat[data-size="1x1"] .heroLabel {
@@ -237,25 +234,31 @@
   min-width: 0;
 }
 
+/* Rows never cut text (2.0 brief §3.2): the label gives way first (icon, short label, hidden),
+   the value keeps its full width, and a row whose value can't fit is dropped (Fit.tsx). */
 .row dt {
   display: flex;
   align-items: center;
-  gap: 4px;
+  flex: 1 1 auto;
+  min-width: 0;
   color: rgb(var(--md-on-surface-variant));
   text-transform: var(--w-label-case);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .row dd {
   margin: 0;
+  flex: none;
   font-family: var(--w-num-font);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
   text-align: right;
+}
+
+.row {
+  overflow: hidden;
+}
+
+.row[hidden] {
+  display: none;
 }
 
 /* Card buttons */

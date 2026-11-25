@@ -1,7 +1,7 @@
 // The standard layout for monitor widgets: the hero (ring, bar, graph or number) and the other
 // fields as rows, arranged per size class. Every visible field, its order and its label come
 // from the user's content settings.
-import { Ring, Sparkline } from "../design-system/components";
+import { Fit, Ring, Sparkline, useFitRows } from "../design-system/components";
 import { Icon } from "../design-system/icons";
 import { Odometer } from "../design-system/motion";
 import { springFor } from "../design-system/style";
@@ -18,6 +18,14 @@ export interface StatLayoutProps {
   historyMinutes: number;
   actions?: readonly WidgetAction[];
   onAction?: (cmd: Command) => Promise<CommandResult>;
+}
+
+/**
+ * The label forms a row may use, longest first: the label as shown, then the field's written
+ * short label (only when the user hasn't renamed the field).
+ */
+function labelVariants(shown: string, original: string, short: string | undefined): string[] {
+  return short && shown === original && short !== shown ? [shown, short] : [shown];
 }
 
 /** How many rows fit beside / under the hero per size class. */
@@ -51,6 +59,7 @@ export function StatLayout({
   onAction,
 }: StatLayoutProps) {
   const { size, style, readings, content } = ctx;
+  const rowsRef = useFitRows<HTMLDListElement>();
   const animate = style.animations && style.odometer;
   const hero = readings.find((r) => r.field.id === content.hero);
   const withActions = actions.length > 0 && ACTION_SIZES.has(size);
@@ -97,9 +106,15 @@ export function StatLayout({
           <Value text={heroText} animate={animate} />
         </div>
       )}
-      {hero && !showRing ? <div className={styles.heroLabel}>{hero.label}</div> : null}
+      {hero && !showRing ? (
+        <Fit
+          className={styles.heroLabel}
+          label={hero.label}
+          variants={labelVariants(hero.label, hero.field.label, hero.field.shortLabel)}
+        />
+      ) : null}
       {hero?.reading?.sub && size !== "1x1" && size !== "2x1" && !(showRing && size === "S") ? (
-        <div className={styles.sub}>{hero.reading.sub}</div>
+        <Fit className={styles.sub} label={hero.reading.sub} variants={[hero.reading.sub]} />
       ) : null}
       {showBar ? (
         <div className={styles.bar} role="presentation">
@@ -130,18 +145,34 @@ export function StatLayout({
       {heroBlock}
       <div className={styles.side}>
         {rest.length ? (
-          <dl className={styles.rows}>
-            {rest.map((r) => (
-              <div key={r.field.id} className={styles.row}>
-                <dt>
-                  {r.field.icon ? (
-                    <Icon name={r.field.icon} size={16} className={styles.icon} />
-                  ) : null}
-                  {r.label}
-                </dt>
-                <dd>{r.reading?.text ?? "—"}</dd>
-              </div>
-            ))}
+          <dl className={styles.rows} ref={rowsRef}>
+            {rest.map((r) => {
+              const icon = r.field.icon ? (
+                <Icon name={r.field.icon} size={16} className={styles.icon} />
+              ) : null;
+              const words = labelVariants(r.label, r.field.label, r.field.shortLabel);
+              return (
+                <div key={r.field.id} className={styles.row} data-fit-row="">
+                  <dt>
+                    <Fit
+                      label={r.label}
+                      variants={[
+                        ...(icon
+                          ? [
+                              <>
+                                {icon}
+                                {words[0]}
+                              </>,
+                            ]
+                          : []),
+                        ...words,
+                      ]}
+                    />
+                  </dt>
+                  <dd>{r.reading?.text ?? "—"}</dd>
+                </div>
+              );
+            })}
           </dl>
         ) : null}
         {actions.length && onAction && ACTION_SIZES.has(size) ? (

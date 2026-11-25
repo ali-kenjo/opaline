@@ -78,6 +78,7 @@ export const battery: WidgetDef = {
     {
       id: "time",
       label: "Time left",
+      shortLabel: "Left",
       icon: "timer",
       topics: [BATTERY],
       hero: false,
@@ -94,6 +95,7 @@ export const battery: WidgetDef = {
     {
       id: "rate",
       label: "Power draw",
+      shortLabel: "Draw",
       icon: "electric_bolt",
       topics: [BATTERY],
       read: (c) => {
@@ -111,6 +113,7 @@ export const battery: WidgetDef = {
     {
       id: "health",
       label: "Battery health",
+      shortLabel: "Health",
       icon: "battery_alert",
       topics: [BATTERY],
       read: (c) => {
@@ -153,6 +156,7 @@ export const battery: WidgetDef = {
     {
       id: "ac",
       label: "Power adapter",
+      shortLabel: "Adapter",
       icon: "power",
       topics: [AC],
       hero: false,
@@ -164,6 +168,7 @@ export const battery: WidgetDef = {
     {
       id: "profile",
       label: "Power mode",
+      shortLabel: "Mode",
       icon: "tune",
       topics: [PROFILE],
       hero: false,

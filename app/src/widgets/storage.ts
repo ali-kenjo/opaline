@@ -126,6 +126,7 @@ export const storage: WidgetDef = {
     {
       id: "used",
       label: "Used space",
+      shortLabel: "Used",
       icon: "storage",
       topics: [],
       read: (c) => space(c, "usedB"),
@@ -135,6 +136,7 @@ export const storage: WidgetDef = {
     {
       id: "activity",
       label: "Read / write",
+      shortLabel: "I/O",
       icon: "swap_vert",
       topics: [IO],
       read: (c) => {
@@ -164,6 +166,7 @@ export const storage: WidgetDef = {
     {
       id: "temp",
       label: "Temperature",
+      shortLabel: "Temp",
       icon: "thermostat",
       topics: [TEMPS, HEALTH],
       read: (c) => {
@@ -211,6 +214,7 @@ export const storage: WidgetDef = {
     {
       id: "written",
       label: "Written",
+      shortLabel: "Written",
       icon: "upload",
       topics: [HEALTH],
       hero: false,
@@ -222,6 +226,7 @@ export const storage: WidgetDef = {
     {
       id: "hours",
       label: "Powered on",
+      shortLabel: "Hours",
       icon: "schedule",
       topics: [HEALTH],
       hero: false,
@@ -267,6 +272,7 @@ export const storage: WidgetDef = {
     {
       id: "driveKind",
       label: "Drive type",
+      shortLabel: "Type",
       icon: "info",
       topics: [],
       hero: false,

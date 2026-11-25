@@ -138,6 +138,7 @@ export const network: WidgetDef = {
     {
       id: "link",
       label: "Link speed",
+      shortLabel: "Link",
       icon: "speed",
       topics: [WIFI],
       read: (c) => {
@@ -167,6 +168,7 @@ export const network: WidgetDef = {
     {
       id: "connectivity",
       label: "Internet",
+      shortLabel: "Online",
       icon: "public",
       topics: [CONNECTIVITY],
       hero: false,
@@ -200,6 +202,7 @@ export const network: WidgetDef = {
     {
       id: "publicIp",
       label: "Public IP",
+      shortLabel: "IP",
       icon: "language",
       topics: [PUBLIC_IP],
       hero: false,
@@ -221,6 +224,7 @@ export const network: WidgetDef = {
     {
       id: "period",
       label: "This period",
+      shortLabel: "Period",
       icon: "calendar_today",
       topics: [USAGE],
       hero: false,

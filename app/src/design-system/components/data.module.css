@@ -30,3 +30,34 @@
 .loading {
   display: block;
 }
+
+/* Fit (responsive labels without truncation): the element clips, never ellipsizes; the fitter
+   picks the variant that doesn't overflow. When none fits, the text is visually hidden but kept
+   for screen readers. */
+.fit {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.fitVariant {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+
+.fitVariant[hidden] {
+  display: none;
+}
+
+.fit[data-fit-hidden] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}

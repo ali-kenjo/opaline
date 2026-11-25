@@ -88,6 +88,11 @@ export interface Reading {
 export interface FieldDef {
   id: string;
   label: string;
+  /**
+   * A written short form of the label for tight sizes ("Video" for "Video memory"). Never made by
+   * cutting the label (2.0 brief §3.2); without one, a label that doesn't fit is hidden instead.
+   */
+  shortLabel?: string;
   icon?: IconName;
   /** Topics this field reads (subscribed only while the field is shown); may depend on the
    * widget's base topics and content (which GPU, which drive). */

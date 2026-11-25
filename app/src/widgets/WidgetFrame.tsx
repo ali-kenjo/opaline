@@ -287,7 +287,7 @@ export function WidgetFrame({
         opacity: 1,
       }}
     >
-      <div className={styles.inner} data-size={size}>
+      <div className={styles.inner} data-size={size} data-fit-bounds="">
         {title && sizes[size].h > 1 ? (
           <div className={styles.header}>
             <Icon name={def.icon} size={18} className={styles.icon} />

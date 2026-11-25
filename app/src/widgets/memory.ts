@@ -130,6 +130,7 @@ export const memory: WidgetDef = {
     {
       id: "slots",
       label: "RAM slots",
+      shortLabel: "Slots",
       icon: "grid_view",
       topics: [INFO],
       hero: false,
@@ -149,6 +150,7 @@ export const memory: WidgetDef = {
     {
       id: "speed",
       label: "RAM speed",
+      shortLabel: "Speed",
       icon: "speed",
       topics: [INFO],
       hero: false,
@@ -169,6 +171,7 @@ export const memory: WidgetDef = {
     {
       id: "type",
       label: "Memory type",
+      shortLabel: "Type",
       icon: "memory",
       topics: [INFO],
       hero: false,
@@ -181,6 +184,7 @@ export const memory: WidgetDef = {
     {
       id: "manufacturer",
       label: "Manufacturer",
+      shortLabel: "Maker",
       icon: "info",
       topics: [INFO],
       hero: false,
@@ -192,6 +196,7 @@ export const memory: WidgetDef = {
     {
       id: "maxCapacity",
       label: "Max capacity",
+      shortLabel: "Max",
       icon: "storage",
       topics: [INFO],
       hero: false,
@@ -203,6 +208,7 @@ export const memory: WidgetDef = {
     {
       id: "partNumber",
       label: "Part number",
+      shortLabel: "Part",
       icon: "developer_board",
       topics: [INFO],
       hero: false,

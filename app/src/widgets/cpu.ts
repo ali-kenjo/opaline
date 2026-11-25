@@ -68,6 +68,7 @@ export const cpu: WidgetDef = {
     {
       id: "temp",
       label: "Temperature",
+      shortLabel: "Temp",
       icon: "thermostat",
       topics: [TEMP],
       series: TEMP,
@@ -86,6 +87,7 @@ export const cpu: WidgetDef = {
     {
       id: "freq",
       label: "Frequency",
+      shortLabel: "Clock",
       icon: "bolt",
       topics: [FREQ, INFO],
       series: FREQ,
@@ -109,6 +111,7 @@ export const cpu: WidgetDef = {
     {
       id: "busiest",
       label: "Busiest thread",
+      shortLabel: "Busiest",
       icon: "local_fire_department",
       topics: [PER_THREAD],
       read: (c) => {
@@ -150,6 +153,7 @@ export const cpu: WidgetDef = {
     {
       id: "throttle",
       label: "Throttling",
+      shortLabel: "Throttle",
       icon: "warning",
       topics: [THROTTLE],
       hero: false,
@@ -163,6 +167,7 @@ export const cpu: WidgetDef = {
     {
       id: "loadavg",
       label: "Load average",
+      shortLabel: "Load avg",
       icon: "monitoring",
       topics: [LOADAVG],
       hero: false,
@@ -199,6 +204,7 @@ export const cpu: WidgetDef = {
     {
       id: "model",
       label: "CPU model",
+      shortLabel: "Model",
       icon: "memory",
       topics: [INFO],
       hero: false,
@@ -228,6 +234,7 @@ export const cpu: WidgetDef = {
     {
       id: "freqRange",
       label: "Clock range",
+      shortLabel: "Range",
       icon: "bolt",
       topics: [INFO],
       hero: false,
@@ -247,6 +254,7 @@ export const cpu: WidgetDef = {
     {
       id: "driver",
       label: "Scaling driver",
+      shortLabel: "Driver",
       icon: "developer_board",
       topics: [INFO],
       hero: false,
@@ -269,6 +277,7 @@ export const cpu: WidgetDef = {
     {
       id: "arch",
       label: "Architecture",
+      shortLabel: "Arch",
       icon: "info",
       topics: [INFO],
       hero: false,

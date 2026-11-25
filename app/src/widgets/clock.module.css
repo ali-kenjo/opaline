@@ -49,9 +49,6 @@
   color: rgb(var(--md-on-surface-variant));
   font-size: calc(14px * var(--w-scale));
   text-transform: var(--w-label-case);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .analog {
