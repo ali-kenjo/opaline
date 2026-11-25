@@ -1,7 +1,9 @@
 # Opaline: notes for Claude
 
-Desktop widgets for Ubuntu 26.04 / GNOME 50. The brief is `OPALINE_BUILD_PROMPT.md`; the plan is `docs/PLAN.md`;
-where we are is `docs/PROGRESS.md`; the latest handoff is `docs/HANDOFF.md`. Read those before working. Decisions live in `docs/adr/`.
+Desktop widgets for Ubuntu 26.04 / GNOME 50. **Current work is Opaline 2.0**: the brief is `OPALINE_2_BRIEF.md`,
+the plan is `docs/PLAN-2.md`, the design is `docs/DESIGN-2.md`. The 1.0 brief (`OPALINE_BUILD_PROMPT.md`) and plan
+(`docs/PLAN.md`) still apply where the 2.0 brief says nothing. Where we are is `docs/PROGRESS.md`; the latest handoff
+is `docs/HANDOFF.md`. Read those before working. Decisions live in `docs/adr/`.
 
 ## Commands
 
