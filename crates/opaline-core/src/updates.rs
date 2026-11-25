@@ -299,8 +299,21 @@ fn blake2b_512(data: &[u8]) -> [u8; 64] {
     out
 }
 
-/// Downloads, verifies (SHA-256 + minisign), and installs an update `.deb` via `pkexec apt install`.
-pub async fn download_and_install(info: &UpdateInfo) -> Result<PathBuf, String> {
+/// The assets an installable release must have. Checked before anything is downloaded.
+#[derive(Debug, PartialEq, Eq)]
+struct ReleaseAssets<'a> {
+    deb_url: &'a str,
+    deb_name: &'a str,
+    checksums_url: &'a str,
+    sig_url: &'a str,
+}
+
+/// Refuses a release that can't be verified: no signing key built in, no `.minisig` asset, no
+/// `SHA256SUMS`, or an odd `.deb` name.
+fn installable_assets<'a>(info: &'a UpdateInfo, pubkey: &str) -> Result<ReleaseAssets<'a>, String> {
+    if pubkey.is_empty() {
+        return Err("release-signing-key-not-configured".into());
+    }
     let deb_url = info
         .deb_url
         .as_deref()
@@ -320,6 +333,22 @@ pub async fn download_and_install(info: &UpdateInfo) -> Result<PathBuf, String> 
         .signature_url
         .as_deref()
         .ok_or_else(|| "missing-signature-asset".to_owned())?;
+    Ok(ReleaseAssets {
+        deb_url,
+        deb_name,
+        checksums_url,
+        sig_url,
+    })
+}
+
+/// Downloads, verifies (SHA-256 + minisign), and installs an update `.deb` via `pkexec apt install`.
+pub async fn download_and_install(info: &UpdateInfo) -> Result<PathBuf, String> {
+    let ReleaseAssets {
+        deb_url,
+        deb_name,
+        checksums_url,
+        sig_url,
+    } = installable_assets(info, RELEASE_MINISIGN_PUBKEY)?;
 
     let (checksums_bytes, _) = crate::http::fetch_limited(
         checksums_url,
@@ -399,6 +428,50 @@ mod tests {
     use ring::signature::{Ed25519KeyPair, KeyPair};
 
     use super::*;
+
+    fn release(sig: Option<&str>) -> UpdateInfo {
+        UpdateInfo {
+            current_version: "1.1.0".into(),
+            latest_version: "1.2.0".into(),
+            update_available: true,
+            release_url: "https://github.com/ali-kenjo/opaline/releases/tag/v1.2.0".into(),
+            notes: String::new(),
+            deb_url: Some("https://example.invalid/Opaline_1.2.0_amd64.deb".into()),
+            deb_name: Some("Opaline_1.2.0_amd64.deb".into()),
+            checksums_url: Some("https://example.invalid/SHA256SUMS".into()),
+            signature_url: sig.map(str::to_owned),
+            checked_at: String::new(),
+        }
+    }
+
+    #[test]
+    fn a_release_without_a_signature_is_refused() {
+        let info = release(None);
+        assert_eq!(
+            installable_assets(&info, "RWSkey"),
+            Err("missing-signature-asset".into())
+        );
+    }
+
+    #[test]
+    fn nothing_installs_without_a_built_in_signing_key() {
+        let info = release(Some("https://example.invalid/SHA256SUMS.minisig"));
+        assert_eq!(
+            installable_assets(&info, ""),
+            Err("release-signing-key-not-configured".into())
+        );
+        assert!(installable_assets(&info, "RWSkey").is_ok());
+    }
+
+    #[test]
+    fn odd_deb_names_are_refused() {
+        let mut info = release(Some("https://example.invalid/SHA256SUMS.minisig"));
+        info.deb_name = Some("../evil.deb".into());
+        assert_eq!(
+            installable_assets(&info, "RWSkey"),
+            Err("invalid-deb-filename".into())
+        );
+    }
 
     #[test]
     fn semver_comparisons() {

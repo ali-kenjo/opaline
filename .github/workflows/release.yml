@@ -58,13 +58,16 @@ jobs:
             printf '%s\n' "$MINISIGN_PASSWORD" | minisign -Sm SHA256SUMS -s /tmp/opaline.key
             rm -f /tmp/opaline.key
           else
-            echo "MINISIGN_SECRET_KEY not configured; publishing unsigned SHA256SUMS"
+            # The app refuses unsigned updates, so an unsigned release would be useless to
+            # existing installs. Fail instead of publishing one.
+            echo "::error::MINISIGN_SECRET_KEY is not configured; refusing to publish an unsigned release"
+            exit 1
           fi
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          fail_on_unmatched_files: false
+          fail_on_unmatched_files: true
           files: |
             release-assets/*.deb
             release-assets/SHA256SUMS
