@@ -10,7 +10,9 @@ use tokio::process::Command;
 use tokio::sync::watch;
 
 const MIN_BACKOFF: Duration = Duration::from_millis(500);
-const MAX_BACKOFF: Duration = Duration::from_secs(30);
+/// A layer that keeps failing (missing binary, broken GPU stack) is retried at most every 5 min,
+/// so a real failure doesn't flood the log.
+const MAX_BACKOFF: Duration = Duration::from_secs(300);
 /// A layer that ran this long is considered healthy; the backoff starts over.
 const HEALTHY_RUN: Duration = Duration::from_secs(60);
 
@@ -111,9 +113,12 @@ pub async fn supervise_layer(mut stop: watch::Receiver<bool>) {
         let mut child = match child {
             Ok(child) => child,
             Err(error) => {
-                tracing::error!(%error, "could not start the layer");
-                tokio::time::sleep(backoff).await;
-                backoff = (backoff * 2).min(MAX_BACKOFF);
+                tracing::error!(%error, ?backoff, "could not start the layer; retrying");
+                tokio::select! {
+                    () = tokio::time::sleep(backoff) => {}
+                    () = stopped(&mut stop) => return,
+                }
+                backoff = next_backoff(backoff);
                 continue;
             }
         };
@@ -140,8 +145,13 @@ pub async fn supervise_layer(mut stop: watch::Receiver<bool>) {
             () = tokio::time::sleep(backoff) => {}
             () = stopped(&mut stop) => return,
         }
-        backoff = (backoff * 2).min(MAX_BACKOFF);
+        backoff = next_backoff(backoff);
     }
+}
+
+/// Doubles the wait between restarts, up to `MAX_BACKOFF`.
+fn next_backoff(current: Duration) -> Duration {
+    (current * 2).min(MAX_BACKOFF)
 }
 
 const EGL_VENDOR_ENV: &str = "__EGL_VENDOR_LIBRARY_FILENAMES";
@@ -192,7 +202,24 @@ async fn stopped(stop: &mut watch::Receiver<bool>) {
 
 #[cfg(test)]
 mod tests {
-    use super::use_mesa_only;
+    use std::time::Duration;
+
+    use super::{MAX_BACKOFF, MIN_BACKOFF, next_backoff, use_mesa_only};
+
+    #[test]
+    fn restart_backoff_doubles_up_to_five_minutes() {
+        let mut b = MIN_BACKOFF;
+        let mut waits = Vec::new();
+        for _ in 0..12 {
+            waits.push(b);
+            b = next_backoff(b);
+        }
+        assert_eq!(waits[1], Duration::from_secs(1));
+        assert_eq!(waits[2], Duration::from_secs(2));
+        assert_eq!(MAX_BACKOFF, Duration::from_secs(300));
+        assert_eq!(b, MAX_BACKOFF);
+        assert!(waits.windows(2).all(|w| w[1] >= w[0]));
+    }
 
     fn v(ids: &[&str]) -> Vec<String> {
         ids.iter().map(|s| format!("{s}\n")).collect()
