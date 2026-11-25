@@ -12,7 +12,7 @@ layout(location = 2) in vec4 a_params;        // radius, tintAlpha, polyStart, p
 layout(location = 3) in vec4 a_tint;          // rgb, dimmed
 layout(location = 4) in vec4 a_hover;         // hovered, pointer x, pointer y, lifted
 layout(location = 5) in vec4 a_look;          // blur lod, refraction, rim, grain (1 = designed look)
-layout(location = 6) in vec4 a_look2;         // shadow (1 = designed), opaque, border width px, -
+layout(location = 6) in vec4 a_look2;         // shadow (1 = designed), opaque, border width px, see mode
 layout(location = 7) in vec4 a_border;        // border rgba
 uniform vec2 u_viewport;                      // css px
 uniform float u_margin;                       // shadow margin, css px
@@ -52,6 +52,8 @@ flat in vec4 v_look2;
 flat in vec4 v_border;
 uniform sampler2D u_wallpaper;    // quarter-res blurred wallpaper of this monitor
 uniform sampler2D u_polys;        // RGBA32F: polygon vertices (x, y in surface-local css px)
+uniform sampler2D u_sharp;        // full-resolution wallpaper (see mode 1), with mipmaps
+uniform float u_hasSharp;
 uniform vec2 u_windowOffset;      // window origin inside the monitor, css px
 uniform vec2 u_monitorSize;       // css px
 uniform float u_hasWallpaper;
@@ -101,6 +103,10 @@ float hash(vec2 p) {
 vec3 wallpaper(vec2 windowPos) {
   if (u_hasWallpaper < 0.5) return vec3(0.12, 0.12, 0.14);
   vec2 uv = clamp((windowPos + u_windowOffset) / u_monitorSize, 0.0, 1.0);
+  // See mode 1 (sharp): blur 0 samples the full-resolution wallpaper; more blur walks its mips.
+  if (v_look2.w > 0.5 && v_look2.w < 1.5 && u_hasSharp > 0.5) {
+    return textureLod(u_sharp, uv, v_look.x * 0.75).rgb;
+  }
   return textureLod(u_wallpaper, uv, v_look.x).rgb;
 }
 
@@ -153,6 +159,17 @@ void main() {
   // Inner shadow along the bottom edge.
   float inner = (1.0 - smoothstep(0.0, 10.0, -d)) * clamp(n.y, 0.0, 1.0) * 0.18;
   col *= 1.0 - inner;
+
+  // See mode 2 (true alpha): no wallpaper sample; the tint and the rim are drawn with real
+  // transparency, so the desktop behind the window shows through.
+  if (v_look2.w > 1.5) {
+    vec3 c = v_tint.rgb * tintAlpha + vec3(rim);
+    float a = clamp(tintAlpha + rim, 0.0, 1.0);
+    vec4 clear = vec4(c * coverage, a * coverage);
+    vec4 clearShade = vec4(0.0, 0.0, 0.0, shadow * 0.5 * (1.0 - coverage));
+    o_color = clear + clearShade * (1.0 - clear.a);
+    return;
+  }
 
   // Grain against banding (2.5 %).
   col += (hash(floor(v_pos * 2.0) + u_time) - 0.5) * 0.025 * v_look.w;

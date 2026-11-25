@@ -2,11 +2,13 @@
 // a mid and a bright one, so glass and legibility can be judged on all three.
 
 export interface LabWallpaper {
-  id: "dusk" | "forest" | "snow";
+  id: "dusk" | "forest" | "snow" | "detail";
   /** Full-size image (CSS background and the fallback). */
   url: string;
   /** Quarter-resolution blurred version, the way core renders it. */
   blurred: HTMLCanvasElement;
+  /** The full-resolution image (glass 2.0 `sharp` see mode). */
+  sharp: HTMLCanvasElement;
   /** 8 × 8 luminance grid of the blurred image. */
   luminance: number[];
   /** Average color, for the scheme's source. */
@@ -40,6 +42,32 @@ const painters: Record<LabWallpaper["id"], Painter> = {
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
     blobs(ctx, w, h, ["#ffffff", "#9fb6d6", "#dfe8f3"], 8);
+  },
+  // Fine detail (spike S1): sharp lines, dots and type, so blur and sharpness are easy to judge.
+  detail(ctx, w, h) {
+    const g = ctx.createLinearGradient(0, 0, w, h);
+    g.addColorStop(0, "#14213d");
+    g.addColorStop(0.5, "#3a2d6b");
+    g.addColorStop(1, "#c0566b");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = "rgb(255 255 255 / 0.22)";
+    ctx.lineWidth = 1;
+    for (let x = -h; x < w; x += 14) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x + h, h);
+      ctx.stroke();
+    }
+    ctx.fillStyle = "#ffd27a";
+    for (let y = 20; y < h; y += 40) {
+      for (let x = 20; x < w; x += 40) ctx.fillRect(x, y, 3, 3);
+    }
+    ctx.fillStyle = "rgb(255 255 255 / 0.85)";
+    ctx.font = "600 22px sans-serif";
+    for (let y = 60; y < h; y += 120) {
+      for (let x = 30; x < w; x += 260) ctx.fillText("Opaline 10:09", x, y);
+    }
   },
 };
 
@@ -113,6 +141,7 @@ export function makeWallpaper(id: LabWallpaper["id"], w: number, h: number): Lab
     id,
     url: full.toDataURL("image/png"),
     blurred,
+    sharp: full,
     luminance: luminanceGrid(bctx, blurred.width, blurred.height),
     pixels: thumb.getImageData(0, 0, 64, 64).data,
   };

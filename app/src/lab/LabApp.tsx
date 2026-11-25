@@ -6,6 +6,7 @@ import type { Variant } from "../design-system/color/scheme";
 import { scheduler, setReducedMotion } from "../design-system/motion";
 import { ComponentsDemo } from "./ComponentsDemo";
 import { DirectionsDemo } from "./directions/DirectionsDemo";
+import { SpikeGlass } from "./spike/SpikeGlass";
 import { SpikeWebkit } from "./spike/SpikeWebkit";
 import { GlassDemo } from "./GlassDemo";
 import styles from "./Lab.module.css";
@@ -156,6 +157,7 @@ export function LabApp() {
       {shows("specimen") ? <Specimen value={value} /> : null}
       {directions ? <DirectionsDemo /> : null}
       {spike === "webkit" ? <SpikeWebkit /> : null}
+      {spike === "glass" ? <SpikeGlass /> : null}
     </main>
   );
 }

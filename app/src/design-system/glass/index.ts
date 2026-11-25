@@ -8,6 +8,7 @@ export {
 export {
   Glass,
   GlassStage,
+  SPIKE_WANTS_SHARP,
   useGlassSync,
   type GlassProps,
   type GlassStageProps,

@@ -418,6 +418,35 @@ fn store(dir: &Path, key: u64, variant: &str, img: &RgbImage) -> Option<String> 
     Some(format!("{ASSET_PREFIX}{name}"))
 }
 
+/// Native pixel size of a monitor from its logical size and scale, capped at 4096 on the long
+/// side (texture memory; WebGL allows 16384 here, ADR 0013).
+fn sharp_size(width: u32, height: u32, scale: f64) -> (u32, u32) {
+    let scale = if scale.is_finite() && scale > 0.0 {
+        scale
+    } else {
+        1.0
+    };
+    let (w, h) = (f64::from(width) * scale, f64::from(height) * scale);
+    let fit = (4096.0 / w.max(h)).min(1.0);
+    (
+        ((w * fit).round() as u32).max(1),
+        ((h * fit).round() as u32).max(1),
+    )
+}
+
+fn store_jpeg(dir: &Path, key: u64, variant: &str, img: &RgbImage) -> Option<String> {
+    let name = format!("{key:016x}-{variant}.jpg");
+    let path = dir.join(&name);
+    if !path.exists() {
+        let mut bytes = Vec::new();
+        image::codecs::jpeg::JpegEncoder::new_with_quality(&mut bytes, 92)
+            .encode_image(img)
+            .ok()?;
+        crate::paths::write_atomic(&path, &bytes).ok()?;
+    }
+    Some(format!("{ASSET_PREFIX}{name}"))
+}
+
 fn prefers_dark() -> bool {
     std::process::Command::new("gsettings")
         .args(["get", "org.gnome.desktop.interface", "color-scheme"])
@@ -495,10 +524,20 @@ fn build(monitors: &[MonitorInfo]) -> Vec<TopicUpdate> {
         let rendered = render(&b, image.as_ref(), mon, union.unwrap_or(mon), w, h);
         let glass = blur(&rendered, GLASS_RADIUS);
         let backdrop = blur(&rendered, BACKDROP_RADIUS);
+        // Glass 2.0 (spike S1): the wallpaper at the monitor's native resolution, so glass at
+        // blur 0 shows it sharp. JPEG keeps the file small; it's only ever sampled.
+        let (sw, sh) = sharp_size(m.width, m.height, m.scale);
+        let sharp = store_jpeg(
+            &dir,
+            key,
+            "sharp",
+            &render(&b, image.as_ref(), mon, union.unwrap_or(mon), sw, sh),
+        );
         per_monitor.insert(
             m.key.clone(),
             Value::map([
                 ("glass", Value::from(store(&dir, key, "glass", &glass))),
+                ("sharp", Value::from(sharp)),
                 (
                     "backdrop",
                     Value::from(store(&dir, key, "backdrop", &backdrop)),
@@ -587,6 +626,19 @@ pub async fn run(hub: Arc<Hub>) -> Result<(), String> {
     monitors.abort();
     let _ = (&mut monitors).await;
     result
+}
+
+#[cfg(test)]
+mod sharp_tests {
+    use super::sharp_size;
+
+    #[test]
+    fn sharp_size_is_native_and_capped() {
+        assert_eq!(sharp_size(1536, 864, 1.25), (1920, 1080));
+        assert_eq!(sharp_size(1920, 1080, 1.0), (1920, 1080));
+        assert_eq!(sharp_size(3840, 2160, 2.0), (4096, 2304));
+        assert_eq!(sharp_size(800, 600, f64::NAN), (800, 600));
+    }
 }
 
 #[cfg(test)]

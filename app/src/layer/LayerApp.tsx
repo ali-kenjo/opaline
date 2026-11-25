@@ -6,7 +6,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { cssVariables } from "../design-system/color/scheme";
 import { ContextMenu, type MenuItem, Snackbar } from "../design-system/components";
-import { GlassStage } from "../design-system/glass";
+import { GlassStage, SPIKE_WANTS_SHARP } from "../design-system/glass";
 import { luminance as lum } from "../design-system/glass/legibility";
 import { applyPalette, scheduler, setReducedMotion } from "../design-system/motion";
 import { resolveStyle, rolesFor, sanitizeStyle } from "../design-system/style";
@@ -567,6 +567,10 @@ export function LayerApp() {
     return typeof e === "object" && e !== null && !Array.isArray(e) ? e : null;
   }, [wallpapers, monitor]);
   const wallpaper = useImage(typeof entry?.glass === "string" ? entry.glass : null);
+  // Glass 2.0 spike S1: the full-resolution wallpaper, loaded only while something samples it.
+  const sharpWallpaper = useImage(
+    SPIKE_WANTS_SHARP && typeof entry?.sharp === "string" ? entry.sharp : null,
+  );
   const luminance = useMemo(
     () =>
       Array.isArray(entry?.luminance)
@@ -662,6 +666,7 @@ export function LayerApp() {
       >
         <GlassStage
           wallpaper={wallpaper}
+          sharpWallpaper={sharpWallpaper}
           wallpaperUrl={typeof entry?.glass === "string" ? entry.glass : null}
           placement={placement}
           tint={tint}

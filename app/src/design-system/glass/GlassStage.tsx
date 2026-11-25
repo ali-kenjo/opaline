@@ -82,6 +82,10 @@ export interface GlassStageProps {
   children: ReactNode;
   /** Blurred wallpaper for the glass (quarter res is plenty). */
   wallpaper: TexImageSource | null;
+  /** The full-resolution wallpaper for surfaces in `sharp` see mode (glass 2.0). */
+  sharpWallpaper?: TexImageSource | null;
+  /** Spike S1: every surface in this see mode at blur 0 with a light tint (default: `?glass=`). */
+  spikeSee?: "sharp" | "alpha" | null;
   /** The same image as a URL, for the CSS fallback. */
   wallpaperUrl: string | null;
   placement: WallpaperPlacement;
@@ -101,10 +105,25 @@ export interface GlassStageProps {
   onCompositor?: (compositor: GlassCompositor | null) => void;
 }
 
+/**
+ * Spike S1 (debug builds only, through `OPALINE_LAYER_PAGE='layer.html?glass=sharp|alpha'`): every
+ * surface switches to that see mode at blur 0 with a light tint, and `&nobackdrop` hides the
+ * Edit/Peek backdrop so the glass can be judged over real windows. The product's URL never has
+ * these parameters.
+ */
+const SPIKE = new URLSearchParams(typeof location === "undefined" ? "" : location.search);
+const SPIKE_SEE: "sharp" | "alpha" | null = ((v) => (v === "sharp" || v === "alpha" ? v : null))(
+  SPIKE.get("glass"),
+);
+const SPIKE_NO_BACKDROP = SPIKE.has("nobackdrop");
+export const SPIKE_WANTS_SHARP = SPIKE_SEE === "sharp";
+
 export function GlassStage(props: GlassStageProps) {
   const {
     children,
     wallpaper,
+    sharpWallpaper,
+    spikeSee = SPIKE_SEE,
     wallpaperUrl,
     placement,
     tint,
@@ -133,7 +152,14 @@ export function GlassStage(props: GlassStageProps) {
   useEffect(() => compositor?.setWallpaper(wallpaper), [compositor, wallpaper]);
   useEffect(() => compositor?.setWallpaper(wallpaper, "backdrop"), [compositor, wallpaper]);
   useEffect(() => compositor?.setOpaque(opaque), [compositor, opaque]);
-  useEffect(() => compositor?.setBackdropOpacity(backdrop), [compositor, backdrop]);
+  useEffect(
+    () => compositor?.setBackdropOpacity(SPIKE_NO_BACKDROP ? 0 : backdrop),
+    [compositor, backdrop],
+  );
+  useEffect(
+    () => compositor?.setWallpaper(sharpWallpaper ?? null, "sharp"),
+    [compositor, sharpWallpaper],
+  );
 
   const base = sliderAlpha(slider);
   const tintLum = useMemo(() => relLum(tint), [tint]);
@@ -216,7 +242,14 @@ export function GlassStage(props: GlassStageProps) {
             item.h / placement.monitorHeight,
           )
         : 0.05;
-      const o = r.options;
+      const o = spikeSee
+        ? {
+            ...r.options,
+            alpha: spikeSee === "alpha" ? 0.1 : 0.12,
+            legibility: false,
+            look: { ...r.options.look, blur: 0, see: spikeSee },
+          }
+        : r.options;
       const t = o.tint ?? tint;
       const a = o.alpha ?? base;
       surfaces.push({
@@ -243,7 +276,18 @@ export function GlassStage(props: GlassStageProps) {
       });
     }
     compositor.setSurfaces(surfaces);
-  }, [compositor, luminance, placement, tint, base, tintLum, textLuminance, backdrop, tightCanvas]);
+  }, [
+    compositor,
+    luminance,
+    placement,
+    tint,
+    base,
+    tintLum,
+    textLuminance,
+    backdrop,
+    tightCanvas,
+    spikeSee,
+  ]);
 
   useLayoutEffect(() => {
     sync();

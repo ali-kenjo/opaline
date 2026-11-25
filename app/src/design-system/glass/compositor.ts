@@ -42,7 +42,15 @@ export interface SurfaceLook {
   borderWidth?: number;
   /** Border color, 0–1 channels with alpha. */
   borderColor?: readonly [number, number, number, number];
+  /**
+   * How the wallpaper shows through (glass 2.0, spike S1): `sampled` (the blurred quarter-res
+   * texture, 1.x), `sharp` (the full-resolution texture: blur 0 is sharp) or `alpha` (no sample;
+   * the real desktop shows through the window's transparency).
+   */
+  see?: "sampled" | "sharp" | "alpha";
 }
+
+const SEE_MODE = { sampled: 0, sharp: 1, alpha: 2 } as const;
 
 /** Mip levels the blur slider spans on the quarter-res wallpaper. */
 const MAX_BLUR_LOD = 4;
@@ -115,6 +123,8 @@ export class GlassCompositor {
   private readonly polyTex: WebGLTexture;
   private wallpaperTex: WebGLTexture | null = null;
   private backdropTex: WebGLTexture | null = null;
+  /** Full-resolution wallpaper (glass 2.0); only loaded while a surface needs it. */
+  private sharpTex: WebGLTexture | null = null;
   private surfaces: Surface[] = [];
   private placement: WallpaperPlacement = {
     offsetX: 0,
@@ -227,12 +237,17 @@ export class GlassCompositor {
     this.invalidate();
   }
 
-  setWallpaper(source: TexImageSource | null, which: "glass" | "backdrop" = "glass"): void {
+  setWallpaper(
+    source: TexImageSource | null,
+    which: "glass" | "backdrop" | "sharp" = "glass",
+  ): void {
     const gl = this.gl;
-    let tex = which === "glass" ? this.wallpaperTex : this.backdropTex;
+    let tex =
+      which === "glass" ? this.wallpaperTex : which === "sharp" ? this.sharpTex : this.backdropTex;
     if (!source) {
       if (tex) gl.deleteTexture(tex);
       if (which === "glass") this.wallpaperTex = null;
+      else if (which === "sharp") this.sharpTex = null;
       else this.backdropTex = null;
       this.invalidate();
       return;
@@ -248,6 +263,7 @@ export class GlassCompositor {
     // Mip levels give each surface its own extra blur (style) without another pass.
     gl.generateMipmap(gl.TEXTURE_2D);
     if (which === "glass") this.wallpaperTex = tex;
+    else if (which === "sharp") this.sharpTex = tex;
     else this.backdropTex = tex;
     this.invalidate();
   }
@@ -357,7 +373,10 @@ export class GlassCompositor {
         [(l?.blur ?? 0) * MAX_BLUR_LOD, l?.refraction ?? 1, l?.rim ?? 1, l?.grain ?? 1],
         o + 16,
       );
-      data.set([l?.shadow ?? 1, l?.opaque ? 1 : 0, l?.borderWidth ?? 0, 0], o + 20);
+      data.set(
+        [l?.shadow ?? 1, l?.opaque ? 1 : 0, l?.borderWidth ?? 0, SEE_MODE[l?.see ?? "sampled"]],
+        o + 20,
+      );
       data.set(l?.borderColor ?? [0, 0, 0, 0], o + 24);
       polyStart += count;
     });
@@ -369,9 +388,13 @@ export class GlassCompositor {
     gl.bindTexture(gl.TEXTURE_2D, this.wallpaperTex);
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, this.polyTex);
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, this.sharpTex);
     const u = (n: string) => gl.getUniformLocation(this.glass, n);
     gl.uniform1i(u("u_wallpaper"), 0);
     gl.uniform1i(u("u_polys"), 1);
+    gl.uniform1i(u("u_sharp"), 2);
+    gl.uniform1f(u("u_hasSharp"), this.sharpTex ? 1 : 0);
     gl.uniform2f(u("u_viewport"), w, h);
     gl.uniform1f(u("u_margin"), SHADOW_MARGIN);
     gl.uniform2f(u("u_windowOffset"), p.offsetX, p.offsetY);
