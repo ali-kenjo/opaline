@@ -13,3 +13,6 @@ node_modules/
 !.vscode/extensions.json
 *.tsbuildinfo
 gschemas.compiled
+
+__pycache__/
+*.pyc
