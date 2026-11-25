@@ -191,6 +191,12 @@ impl Bridge {
             .collect()
     }
 
+    /// Whether Peek or Edit holds the layer above other windows.
+    pub fn raised(&self) -> bool {
+        let inner = self.lock();
+        inner.peek || inner.edit
+    }
+
     /// Toggles Peek across every layer window (exiting Edit if open) and returns whether
     /// the layer should be raised.
     pub fn toggle_peek(&self) -> bool {

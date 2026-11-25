@@ -27,6 +27,7 @@ pub fn run(backend: Backend) -> ExitCode {
         .register_uri_scheme_protocol("opaline-asset", |_ctx, request| assets::handle(&request))
         .manage(bridge.clone())
         .manage(windows::Pins::default())
+        .manage(windows::Recovery::default())
         .manage(match backend {
             Backend::Native => opaline_ipc::BackendKind::Native,
             Backend::Instant => opaline_ipc::BackendKind::Instant,

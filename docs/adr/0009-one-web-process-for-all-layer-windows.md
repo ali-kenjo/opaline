@@ -62,8 +62,8 @@ The first layer window is created normally. Every further window is created with
   (Cache model and page cache were tried and made no difference. WebKit's memory-pressure settings for the web
   process can only be set when its web context is created, which Tauri does for us.)
   If even 280 MB can't be met with the real widget set, I'll bring you numbers and options first.
-- A crash of the shared web process blanks every layer window at once; the layer has to reload them (added in P4
-  with the other robustness work).
+- A crash of the shared web process blanks every layer window at once; the layer has to bring them back (added in
+  P4 with the other robustness work; since 2026-11-25 it recreates them, see "Found on the way" below).
 
 ## Update 2026-11-25 (Opaline 2.0, Phase 0): budget raised to 450 MB
 
@@ -95,6 +95,9 @@ Edit/Peek (about −29 MB), glibc tunables for core, fewer animation frames, or 
 Edit and long use). The levers above stay documented here for later; every 2.0 feature still states its memory
 cost, and `scripts/memory-trend.sh` records long runs.
 
-**Found on the way:** after a crash of the shared web process the layer recovers, but the two windows then run in
-two web processes (about +60 MB until Opaline restarts), because a related view only shares a process when it is
-created.
+**Found on the way:** after a crash of the shared web process the layer recovered, but the two windows then ran in
+two web processes (about +60 MB until Opaline restarted), because a related view only shares a process when it is
+created. **Fixed 2026-11-25:** on termination the layer no longer reloads each window in place; it destroys all layer
+windows and creates them again, the first one normally and the rest as related views of it, so they share one new web
+process (`windows.rs`, `recreate_all`). The termination signal arrives once per window; they are folded into one
+recovery. Backoff: 250 ms before the first recovery, doubling for each further one, at most 5 per minute.

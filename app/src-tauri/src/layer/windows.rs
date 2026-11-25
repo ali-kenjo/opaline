@@ -133,8 +133,8 @@ pub struct Pin {
 /// More corrections than this per second means something else is moving the window on
 /// purpose; we stop fighting and log it.
 const MAX_CORRECTIONS_PER_SECOND: u32 = 4;
-/// Maximum web-process crash reloads per minute before giving up (ADR 0009).
-const MAX_RELOADS_PER_MINUTE: u32 = 5;
+/// Maximum web-process crash recoveries per minute before giving up (ADR 0009).
+const MAX_RECOVERIES_PER_MINUTE: u32 = 5;
 
 fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
     m.lock().unwrap_or_else(PoisonError::into_inner)
@@ -469,46 +469,138 @@ fn show_at(window: &tauri::WebviewWindow, position: LogicalPosition<f64>, size: 
     }
 }
 
-/// Reloads a layer window if the shared WebKit web process crashes or hits its memory limit
-/// (ADR 0009), capped so a deterministic crash can't spin.
+/// Web-process crash recovery shared by every layer window (ADR 0009).
+#[derive(Debug)]
+pub struct Recovery(Mutex<RecoveryState>);
+
+#[derive(Debug)]
+struct RecoveryState {
+    /// A recovery is scheduled or running; further termination signals (one per window, all for
+    /// the same crash) are folded into it.
+    pending: bool,
+    /// When the first recovery of the current minute started (`None` before any crash).
+    burst_start: Option<Instant>,
+    attempts: u32,
+}
+
+impl Default for Recovery {
+    fn default() -> Self {
+        Self(Mutex::new(RecoveryState {
+            pending: false,
+            burst_start: None,
+            attempts: 0,
+        }))
+    }
+}
+
+/// How long to wait before the `attempt`-th recovery within a minute: 250 ms, then doubling.
+fn recovery_delay(attempt: u32) -> Duration {
+    Duration::from_millis(250u64 << attempt.saturating_sub(1).min(6))
+}
+
+/// Recreates every layer window if the shared WebKit web process crashes or hits its memory
+/// limit (ADR 0009), with backoff and a cap so a deterministic crash can't spin.
 fn attach_crash_recovery(window: &tauri::WebviewWindow) {
     let label = window.label().to_owned();
-    let reloads = Arc::new(Mutex::new((Instant::now(), 0u32)));
+    let app = window.app_handle().clone();
     if let Err(error) = window.with_webview(move |platform| {
         let webview = platform.inner();
         // Suppress WebKitGTK's default browser menu (Back/Forward/Stop/Reload) on the desktop layer.
         webview.connect_context_menu(|_, _, _, _| true);
-        webview.connect_web_process_terminated(move |wv, reason| {
-            let attempt = {
-                let mut state = lock(&reloads);
-                if state.0.elapsed() > Duration::from_secs(60) {
-                    *state = (Instant::now(), 0);
-                }
-                if state.1 >= MAX_RELOADS_PER_MINUTE {
-                    tracing::error!(
-                        label,
-                        ?reason,
-                        "shared web process keeps terminating; not reloading"
-                    );
-                    return;
-                }
-                state.1 += 1;
-                state.1
-            };
-            tracing::warn!(
-                label,
-                ?reason,
-                attempt,
-                "shared web process terminated; reloading layer window"
-            );
-            let wv = wv.clone();
-            gtk::glib::timeout_add_local_once(Duration::from_millis(500), move || {
-                wv.reload();
-            });
+        webview.connect_web_process_terminated(move |_, reason| {
+            on_web_process_terminated(&app, &label, reason);
         });
     }) {
         tracing::warn!(%error, "could not attach web-process crash recovery");
     }
+}
+
+fn on_web_process_terminated(
+    app: &AppHandle,
+    label: &str,
+    reason: webkit2gtk::WebProcessTerminationReason,
+) {
+    let attempt = {
+        let recovery = app.state::<Recovery>();
+        let mut state = lock(&recovery.0);
+        if state.pending {
+            return;
+        }
+        if state
+            .burst_start
+            .is_none_or(|start| start.elapsed() > Duration::from_secs(60))
+        {
+            state.burst_start = Some(Instant::now());
+            state.attempts = 0;
+        }
+        if state.attempts >= MAX_RECOVERIES_PER_MINUTE {
+            tracing::error!(
+                label,
+                ?reason,
+                "shared web process keeps terminating; not recreating the layer windows"
+            );
+            return;
+        }
+        state.attempts += 1;
+        state.pending = true;
+        state.attempts
+    };
+    let delay = recovery_delay(attempt);
+    tracing::warn!(
+        label,
+        ?reason,
+        attempt,
+        delay_ms = delay.as_millis(),
+        "shared web process terminated; recreating layer windows"
+    );
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(delay).await;
+        recreate_all(&app).await;
+        lock(&app.state::<Recovery>().0).pending = false;
+    });
+}
+
+/// Destroys every layer window and creates them again, the first one normally and the rest as
+/// related views of it, so they share one new web process.
+///
+/// Reloading in place isn't enough: each reloaded view gets a web process of its own, because a
+/// related view only shares its process when it is created (two processes, about +60 MB).
+async fn recreate_all(app: &AppHandle) {
+    let bridge = app.state::<Arc<Bridge>>().inner().clone();
+    let backend = *app.state::<BackendKind>();
+    let monitors: Vec<MonitorInfo> = bridge
+        .window_monitors()
+        .into_iter()
+        .map(|(_, monitor)| monitor)
+        .collect();
+    for (label, window) in layer_windows(app) {
+        lock(&app.state::<Pins>().0).remove(&label);
+        if let Err(error) = window.destroy() {
+            tracing::warn!(%error, label, "could not close layer window");
+        }
+    }
+    // Tauri destroys windows on its event loop; their labels are only free once that ran.
+    let deadline = Instant::now() + Duration::from_secs(2);
+    while !layer_windows(app).is_empty() {
+        if Instant::now() > deadline {
+            tracing::warn!("old layer windows are still open; recreating anyway");
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    sync(app, &bridge, &monitors, backend);
+    if backend == BackendKind::Instant && bridge.raised() {
+        set_raised_instant(app, true);
+    }
+    tracing::info!(windows = monitors.len(), "layer windows recreated");
+}
+
+fn layer_windows(app: &AppHandle) -> Vec<(String, tauri::WebviewWindow)> {
+    app.webview_windows()
+        .into_iter()
+        .filter(|(label, _)| label.starts_with(LABEL_PREFIX))
+        .collect()
 }
 
 /// Native mode: map the window; the helper sizes, places and stacks it.
@@ -604,5 +696,13 @@ mod tests {
     fn labels_are_tauri_safe() {
         assert_eq!(label_for("eDP-1"), "layer-eDP-1");
         assert_eq!(label_for("HDMI 2"), "layer-HDMI_2");
+    }
+
+    #[test]
+    fn recovery_backs_off() {
+        assert_eq!(recovery_delay(1), Duration::from_millis(250));
+        assert_eq!(recovery_delay(2), Duration::from_millis(500));
+        assert_eq!(recovery_delay(5), Duration::from_millis(4000));
+        assert_eq!(recovery_delay(100), Duration::from_millis(16_000));
     }
 }
