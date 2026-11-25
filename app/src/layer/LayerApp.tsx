@@ -9,7 +9,7 @@ import { ContextMenu, type MenuItem, Snackbar } from "../design-system/component
 import { GlassStage, SPIKE_WANTS_SHARP } from "../design-system/glass";
 import { luminance as lum } from "../design-system/glass/legibility";
 import { applyPalette, scheduler, setReducedMotion } from "../design-system/motion";
-import { resolveStyle, rolesFor, sanitizeStyle } from "../design-system/style";
+import { inksFor, resolveStyle, rolesFor, sanitizeStyle } from "../design-system/style";
 import { type SizeClass, sizes } from "../design-system/tokens/tokens";
 import { applyDocumentLocale, isRtl, resolveLocale, t } from "../i18n";
 import { HostContext } from "../widgets/host";
@@ -137,6 +137,7 @@ export function LayerApp() {
     [host.settings.style],
   );
   const roles = rolesFor(globalStyle, host.colors);
+  const inks = useMemo(() => inksFor(globalStyle, host.colors), [globalStyle, host.colors]);
   useEffect(() => {
     applyPalette(cssVariables(roles));
   }, [roles]);
@@ -670,6 +671,7 @@ export function LayerApp() {
           wallpaper={wallpaper}
           sharpWallpaper={sharpWallpaper}
           onNeedsSharp={setNeedsSharp}
+          inks={inks}
           wallpaperUrl={typeof entry?.glass === "string" ? entry.glass : null}
           placement={placement}
           tint={tint}

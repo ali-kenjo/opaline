@@ -5,6 +5,7 @@ import { sourceColorFromImageBytes } from "@material/material-color-utilities";
 import { useMemo } from "react";
 import { buildRoles, cssVariables } from "../../design-system/color/scheme";
 import { GlassStage } from "../../design-system/glass";
+import { BUILTIN_STYLE, inksFor } from "../../design-system/style";
 import { KIND_HEX, kindColors } from "../directions/data";
 import { OpalineClock, OpalineCpu, OpalineMedia, OpalineWeather } from "../directions/opaline";
 import dstyles from "../directions/Directions.module.css";
@@ -34,6 +35,10 @@ function Column({
   const wallpaper = useMemo(() => makeWallpaper(wallpaperId, w, STAGE_H), [wallpaperId, w]);
   const source = useMemo(() => sourceColorFromImageBytes(wallpaper.pixels), [wallpaper]);
   const tint = useMemo(() => labTint(source, "tonal-spot", dark), [source, dark]);
+  const inks = useMemo(
+    () => inksFor(BUILTIN_STYLE, { wallpaper: source, accent: source, systemDark: dark }),
+    [source, dark],
+  );
   const colors = useMemo(
     () => ({
       clock: kindColors(KIND_HEX.clock, source, dark),
@@ -65,6 +70,7 @@ function Column({
         wallpaper={wallpaper.blurred}
         sharpWallpaper={mode === "sharp" ? wallpaper.sharp : null}
         spikeSee={mode}
+        inks={inks}
         wallpaperUrl={wallpaper.url}
         placement={{ offsetX: 0, offsetY: 0, monitorWidth: w, monitorHeight: STAGE_H }}
         tint={tint.rgb}

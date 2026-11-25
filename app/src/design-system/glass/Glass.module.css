@@ -28,6 +28,11 @@
   position: relative;
 }
 
+/* Legibility 2.0 sets the text ink and halo here (GlassStage.applyInk); it adds no box. */
+.ink {
+  display: contents;
+}
+
 /* CSS fallback (no WebGL2): the blurred wallpaper aligned to the screen plus the tint. The
    background position is set from the element's box by background-attachment: fixed. */
 .fallback {

@@ -14,6 +14,7 @@ export {
   fontStack,
   glassOptions,
   hexToRgba,
+  inksFor,
   isDark,
   radiusFor,
   rolesFor,

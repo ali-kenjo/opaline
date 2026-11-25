@@ -1,6 +1,7 @@
 // The settings sheet of a widget (ADR 0011), built from the widget's fields and options and from
 // the style descriptions: Content (what it shows) and Style (how it looks), the latter for this
 // widget or for all widgets, with "inherited" labels, resets, copying and named styles.
+import { useGlassContrast } from "../../design-system/glass";
 import { useEffect, useMemo, useState } from "react";
 import { Button, Sheet } from "../../design-system/components";
 import { Icon, type IconName } from "../../design-system/icons";
@@ -42,6 +43,24 @@ export interface WidgetSettingsProps {
 }
 
 type Tab = "content" | "style";
+
+/**
+ * The measured contrast of this widget's text against its glass (legibility 2.0, DESIGN-2 §8.4),
+ * with a warning below 4.5 : 1 instead of silently changing the look.
+ */
+function ContrastNote({ id }: { id: string }) {
+  const value = useGlassContrast((s) => s.byKey[id]);
+  if (value === undefined) return null;
+  const low = value < 4.5;
+  return (
+    <p className={`${styles.contrast} ${low ? styles.contrastLow : ""}`} role="status">
+      <Icon name={low ? "warning" : "contrast"} size={18} />
+      {low
+        ? `Text contrast ${value.toFixed(1)} : 1, below 4.5 : 1. Turn on "Keep text readable", add tint or blur, or pick another text color.`
+        : `Text contrast ${value.toFixed(1)} : 1`}
+    </p>
+  );
+}
 type Scope = "widget" | "global";
 
 function argbHex(argb: number): string {
@@ -159,6 +178,7 @@ export function WidgetSettings({
                   save={save}
                 />
               </div>
+              <ContrastNote id={id} />
               {STYLE_GROUPS.map((g) => {
                 const fields = STYLE_FIELDS.filter(
                   (f) => f.group === g.id && (!f.when || f.when(resolution.style)),

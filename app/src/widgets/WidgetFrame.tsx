@@ -278,6 +278,7 @@ export function WidgetFrame({
       lifted={lifted ? 1 : 0}
       noHover={!style.hoverLift}
       {...glass}
+      contrastKey={id}
       className={`${styles.frame} ${level === "crit" ? styles.alert : ""}`}
       style={{
         ...vars,

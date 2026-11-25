@@ -4,7 +4,8 @@
 import { sourceColorFromImageBytes } from "@material/material-color-utilities";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { GNOME_ACCENTS, type Variant } from "../design-system/color/scheme";
-import { GlassStage } from "../design-system/glass";
+import { GlassStage, type StageInks } from "../design-system/glass";
+import { inksFor, resolveStyle, sanitizeStyle } from "../design-system/style";
 import { useLayer } from "../layer/store";
 import type { CommandResult, Value } from "../layer/protocol";
 import { type StoredSettings, HostContext, type WidgetHost } from "../widgets/host";
@@ -102,6 +103,10 @@ export function WidgetsDemo({ wallpaperId, dark, variant, value, still, live }: 
   );
 
   const tint = useMemo(() => labTint(source, variant, dark), [source, variant, dark]);
+  const inks = useMemo(
+    () => inksFor(resolveStyle(sanitizeStyle(settings.style)).style, host.colors),
+    [settings.style, host.colors],
+  );
   const openWidget = open ? settings.widgets[open] : undefined;
   const openDef = openWidget ? widgetByKind(openWidget.kind) : undefined;
 
@@ -113,6 +118,7 @@ export function WidgetsDemo({ wallpaperId, dark, variant, value, still, live }: 
           stage={stage}
           wallpaperId={wallpaperId}
           tint={tint}
+          inks={inks}
           widgets={settings.widgets}
           onOpen={setOpen}
         />
@@ -135,12 +141,14 @@ function LabStageView({
   stage,
   wallpaperId,
   tint,
+  inks,
   widgets,
   onOpen,
 }: {
   stage: LabStage;
   wallpaperId: LabWallpaper["id"];
   tint: ReturnType<typeof labTint>;
+  inks: StageInks;
   widgets: StoredSettings["widgets"];
   onOpen: (id: string) => void;
 }) {
@@ -160,6 +168,7 @@ function LabStageView({
           tint={tint.rgb}
           textLuminance={tint.textLuminance}
           luminance={wallpaper.luminance}
+          inks={inks}
           slider={45}
         >
           <div

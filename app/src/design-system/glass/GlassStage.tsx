@@ -20,7 +20,9 @@ import {
   GlassCompositor,
   type WallpaperPlacement,
 } from "./compositor";
-import { legibleAlpha, luminanceUnder, sliderAlpha } from "./legibility";
+import { create } from "zustand";
+import { BackdropSampler, type InkChoice, chooseInk } from "./backdrop";
+import { contrast, legibleAlpha, luminanceUnder, sliderAlpha } from "./legibility";
 import styles from "./Glass.module.css";
 
 export interface GlassOptions {
@@ -38,6 +40,58 @@ export interface GlassOptions {
   /** Luminance of this widget's text, when its colors differ from the stage's. */
   textLuminance?: number | undefined;
   look?: SurfaceLook | undefined;
+  /** Let legibility 2.0 pick the text ink and halo (off when the user chose a text color). */
+  autoInk?: boolean | undefined;
+  /** Key under which this surface's measured text contrast is published (`useGlassContrast`). */
+  contrastKey?: string | undefined;
+}
+
+/** The two inks legibility 2.0 chooses between (0–255 RGB), from the light and dark schemes. */
+export interface StageInks {
+  light: readonly [number, number, number];
+  lightVariant: readonly [number, number, number];
+  dark: readonly [number, number, number];
+  darkVariant: readonly [number, number, number];
+}
+
+/** Measured text contrast per `contrastKey` (WCAG ratio), for the settings sheet's warning. */
+export const useGlassContrast = create<{ byKey: Readonly<Record<string, number>> }>()(() => ({
+  byKey: {},
+}));
+
+function publishContrast(key: string | undefined, value: number): void {
+  if (!key) return;
+  const rounded = Math.round(value * 10) / 10;
+  if (useGlassContrast.getState().byKey[key] === rounded) return;
+  useGlassContrast.setState((s) => ({ byKey: { ...s.byKey, [key]: rounded } }));
+}
+
+const HALO = {
+  /** Behind light text: a dark halo. */
+  light: "0 0 1px rgb(0 0 0 / 0.35), 0 1px 10px rgb(0 0 0 / 0.32)",
+  dark: "0 0 1px rgb(255 255 255 / 0.5), 0 1px 10px rgb(255 255 255 / 0.45)",
+} as const;
+
+/** The 1.x glass: tint alpha at the default transparency (60). */
+const CLASSIC_ALPHA = 0.472;
+
+function applyInk(el: HTMLElement | null, choice: InkChoice | null, inks: StageInks | undefined) {
+  if (!el) return;
+  if (!choice || !inks) {
+    el.style.removeProperty("--md-on-surface");
+    el.style.removeProperty("--md-on-surface-variant");
+    el.style.removeProperty("text-shadow");
+    el.style.removeProperty("color");
+    return;
+  }
+  const main = choice.ink === "light" ? inks.light : inks.dark;
+  const variant = choice.ink === "light" ? inks.lightVariant : inks.darkVariant;
+  el.style.setProperty("--md-on-surface", main.join(" "));
+  el.style.setProperty("--md-on-surface-variant", variant.join(" "));
+  // The card's own color was computed from the outer variable; text inherits that finished
+  // color, so the wrapper sets it again.
+  el.style.setProperty("color", `rgb(${main.join(" ")})`);
+  el.style.setProperty("text-shadow", choice.halo ? HALO[choice.ink] : "none");
 }
 
 function relLum(c: readonly [number, number, number]): number {
@@ -48,6 +102,8 @@ function relLum(c: readonly [number, number, number]): number {
 
 interface Registration {
   el: HTMLElement;
+  /** The `display: contents` wrapper legibility 2.0 sets the ink and halo on. */
+  ink: HTMLElement | null;
   options: GlassOptions;
   hovered: boolean;
   pointer: [number, number] | null;
@@ -92,6 +148,8 @@ export interface GlassStageProps {
    * loads it only then (ADR 0012).
    */
   onNeedsSharp?: (needed: boolean) => void;
+  /** Inks for legibility 2.0; without them, text keeps the scheme's colors. */
+  inks?: StageInks | undefined;
   /** The same image as a URL, for the CSS fallback. */
   wallpaperUrl: string | null;
   placement: WallpaperPlacement;
@@ -131,6 +189,7 @@ export function GlassStage(props: GlassStageProps) {
     sharpWallpaper,
     spikeSee = SPIKE_SEE,
     onNeedsSharp,
+    inks,
     wallpaperUrl,
     placement,
     tint,
@@ -170,6 +229,13 @@ export function GlassStage(props: GlassStageProps) {
 
   const base = sliderAlpha(slider);
   const tintLum = useMemo(() => relLum(tint), [tint]);
+  // What is behind each widget: brightness and how busy it is (legibility 2.0).
+  const sampler = useMemo(() => {
+    const src = sharpWallpaper ?? wallpaper;
+    return src && "width" in src && "height" in src && !("close" in src && "format" in src)
+      ? BackdropSampler.from(src as CanvasImageSource & { width: number; height: number })
+      : null;
+  }, [sharpWallpaper, wallpaper]);
 
   const sync = useCallback(() => {
     if (!compositor || !canvas.current || !stageRef.current) return;
@@ -253,7 +319,8 @@ export function GlassStage(props: GlassStageProps) {
         ? {
             ...r.options,
             alpha: spikeSee === "alpha" ? 0.1 : 0.12,
-            legibility: false,
+            // The spike shows legibility 2.0 at work: ink, halo, and the tint only as the last step.
+            legibility: true,
             look: {
               ...r.options.look,
               blur: 0,
@@ -269,6 +336,69 @@ export function GlassStage(props: GlassStageProps) {
           : chosen;
       const t = o.tint ?? tint;
       const a = o.alpha ?? base;
+      const surfTintLum = o.tint ? relLum(o.tint) : tintLum;
+      const blur = o.look?.blur ?? CLASSIC_BLUR;
+      const real = o.look?.see === "real";
+      const fx = (item.x + placement.offsetX) / placement.monitorWidth;
+      const fy = (item.y + placement.offsetY) / placement.monitorHeight;
+      const fw = item.w / placement.monitorWidth;
+      const fh = item.h / placement.monitorHeight;
+      // Legibility 2.0 only where the glass is clearer than the 1.x look, so Classic stays 1.x.
+      const seeThrough =
+        !opaque &&
+        !o.look?.opaque &&
+        (a < CLASSIC_ALPHA - 0.01 || blur < CLASSIC_BLUR - 0.01 || real);
+      let tintAlpha = a;
+      let effectiveBlur = blur;
+      let measured: number;
+      if (seeThrough && inks && o.autoInk !== false) {
+        const stats = sampler
+          ? sampler.stats(fx, fy, fw, fh)
+          : { mean: bgLum, spread: 0, low: bgLum, high: bgLum };
+        const lightLum = relLum(inks.light);
+        const darkLum = relLum(inks.dark);
+        const over = (lum: number, alpha: number) => lum + (surfTintLum - lum) * alpha;
+        // Blur hides the backdrop's detail; at the 1.x blur almost none is left.
+        const judge = (b: number, alpha: number) => {
+          const detail = real ? 1 : Math.max(0, 1 - b / CLASSIC_BLUR);
+          const low = stats.mean + (stats.low - stats.mean) * detail;
+          const high = stats.mean + (stats.high - stats.mean) * detail;
+          return {
+            low,
+            high,
+            choice: chooseInk(over(low, alpha), over(high, alpha), lightLum, darkLum),
+          };
+        };
+        let j = judge(blur, a);
+        const target = j.choice.halo ? 3 : 4.5;
+        if (j.choice.contrast < target && o.legibility !== false) {
+          // Ink and halo weren't enough: soften the detail behind the text first (more blur,
+          // up to the 1.x look), and raise the tint only as the last step (DESIGN-2 §8.4).
+          if (!real) {
+            for (let b = blur + 0.05; b <= CLASSIC_BLUR + 1e-6; b += 0.05) {
+              j = judge(b, a);
+              effectiveBlur = b;
+              if (j.choice.contrast >= target) break;
+            }
+          }
+          if (j.choice.contrast < target) {
+            const inkLum = j.choice.ink === "light" ? lightLum : darkLum;
+            const worst = j.choice.ink === "light" ? j.high : j.low;
+            tintAlpha = legibleAlpha(a, worst, surfTintLum, inkLum, target);
+            j = judge(effectiveBlur, tintAlpha);
+          }
+        }
+        const choice = j.choice;
+        applyInk(r.ink, choice, inks);
+        measured = choice.contrast;
+      } else {
+        applyInk(r.ink, null, inks);
+        const textLum = o.textLuminance ?? textLuminance;
+        tintAlpha = o.legibility === false ? a : legibleAlpha(a, bgLum, surfTintLum, textLum);
+        const glassLum = bgLum + (surfTintLum - bgLum) * tintAlpha;
+        measured = contrast(glassLum, textLum);
+      }
+      publishContrast(o.contrastKey, measured);
       surfaces.push({
         x: item.x - cx,
         y: item.y - cy,
@@ -276,20 +406,12 @@ export function GlassStage(props: GlassStageProps) {
         h: item.h,
         radius: o.radius,
         tint: [t[0] / 255, t[1] / 255, t[2] / 255],
-        tintAlpha:
-          o.legibility === false
-            ? a
-            : legibleAlpha(
-                a,
-                bgLum,
-                o.tint ? relLum(o.tint) : tintLum,
-                o.textLuminance ?? textLuminance,
-              ),
+        tintAlpha,
         dimmed: o.dimmed ?? 0,
         hovered: r.hovered,
         lifted: o.lifted ?? 0,
         ...(r.pointer ? { pointer: [r.pointer[0] - cx, r.pointer[1] - cy] as const } : {}),
-        ...(o.look ? { look: o.look } : {}),
+        ...(o.look || effectiveBlur !== blur ? { look: { ...o.look, blur: effectiveBlur } } : {}),
       });
     }
     compositor.setSurfaces(surfaces);
@@ -298,6 +420,9 @@ export function GlassStage(props: GlassStageProps) {
     );
   }, [
     onNeedsSharp,
+    inks,
+    sampler,
+    opaque,
     compositor,
     luminance,
     placement,
@@ -375,11 +500,13 @@ export interface GlassProps extends GlassOptions {
 export function Glass(props: GlassProps) {
   const { children, className, style, label, radius, dimmed, lifted } = props;
   const { tint, alpha, frameless, legibility, textLuminance, look, noHover = false } = props;
+  const { autoInk, contrastKey } = props;
   const stage = useContext(Ctx);
   const el = useRef<HTMLDivElement>(null);
+  const ink = useRef<HTMLDivElement>(null);
   const id = useId();
   // Style objects are new on every render; register again only when their values change.
-  const key = JSON.stringify([tint, alpha, frameless, legibility, textLuminance, look]);
+  const key = JSON.stringify([tint, alpha, frameless, legibility, textLuminance, look, autoInk]);
   const options = useMemo<GlassOptions>(
     () => ({
       radius,
@@ -391,15 +518,18 @@ export function Glass(props: GlassProps) {
       legibility,
       textLuminance,
       look,
+      autoInk,
+      contrastKey,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` stands for the style objects
-    [radius, dimmed, lifted, key],
+    [radius, dimmed, lifted, key, contrastKey],
   );
 
   useLayoutEffect(() => {
     if (!stage?.compositor || !el.current) return;
     return stage.register(id, {
       el: el.current,
+      ink: ink.current,
       options,
       hovered: false,
       pointer: null,
@@ -444,7 +574,9 @@ export function Glass(props: GlassProps) {
       onPointerMove={onMove}
       onPointerLeave={onLeave}
     >
-      {children}
+      <div ref={ink} className={styles.ink}>
+        {children}
+      </div>
     </div>
   );
 }

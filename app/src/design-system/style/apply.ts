@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 import { argbFromHex } from "@material/material-color-utilities";
 import { type Roles, buildRoles, cssName, cssVariables, triple } from "../color/scheme";
 import type { SurfaceLook } from "../glass/compositor";
-import type { GlassOptions } from "../glass/GlassStage";
+import type { GlassOptions, StageInks } from "../glass/GlassStage";
 import { luminance } from "../glass/legibility";
 import { type SizeClass, cardPadding, cardRadius, type SpringToken } from "../tokens/tokens";
 import type { ResolvedStyle } from "./types";
@@ -152,8 +152,21 @@ export function glassOptions(style: ResolvedStyle, roles: Roles): Omit<GlassOpti
     alpha: style.surface === "opaque" ? 1 : transparencyAlpha(style.transparency),
     frameless: style.surface === "clear",
     legibility: style.legibility,
+    autoInk: style.textColor === null,
     textLuminance: luminance(text[0], text[1], text[2]),
     look,
+  };
+}
+
+/** The two inks legibility 2.0 chooses between: on-surface roles of the dark and light scheme. */
+export function inksFor(style: ResolvedStyle, ctx: ColorContext): StageInks {
+  const dark = rolesFor({ ...style, theme: "dark" }, ctx);
+  const light = rolesFor({ ...style, theme: "light" }, ctx);
+  return {
+    light: rgbOf(dark.onSurface),
+    lightVariant: rgbOf(dark.onSurfaceVariant),
+    dark: rgbOf(light.onSurface),
+    darkVariant: rgbOf(light.onSurfaceVariant),
   };
 }
 
