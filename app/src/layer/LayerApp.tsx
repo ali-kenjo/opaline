@@ -5,15 +5,15 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { cssVariables } from "../design-system/color/scheme";
-import { Button, ContextMenu, type MenuItem, Snackbar, Toolbar } from "../design-system/components";
-import { GlassStage, useGlassSync } from "../design-system/glass";
+import { ContextMenu, type MenuItem, Snackbar } from "../design-system/components";
+import { GlassStage } from "../design-system/glass";
 import { luminance as lum } from "../design-system/glass/legibility";
 import { Icon } from "../design-system/icons";
 import { applyPalette, scheduler, setReducedMotion } from "../design-system/motion";
 import { resolveStyle, rolesFor, sanitizeStyle } from "../design-system/style";
 import { type SizeClass, sizes, spanPx } from "../design-system/tokens/tokens";
 import { applyDocumentLocale, isRtl, resolveLocale, t } from "../i18n";
-import { HostContext, type StoredSettings } from "../widgets/host";
+import { HostContext } from "../widgets/host";
 import { toJson } from "../widgets/json";
 import {
   APPEARANCE_TOPIC,
@@ -26,15 +26,12 @@ import {
 } from "../widgets/layerHost";
 import { widgetByKind } from "../widgets/registry";
 import { WidgetSettings } from "../widgets/settings/WidgetSettings";
-import { WidgetFrame } from "../widgets/WidgetFrame";
 import { inTauri, report, setInputRegion } from "./bridge";
 import { DetailModal } from "./DetailModal";
 import {
-  type GridMetrics,
   type LayoutItem,
   type LayoutsDoc,
   type MonitorEdge,
-  type PxRect,
   type StackLayoutItem,
   cellToPx,
   computeGrid,
@@ -45,7 +42,6 @@ import {
   pxToCell,
   refitLayout,
   resolveCollisions,
-  sizeClassForSpan,
   waitingMonitorKeys,
 } from "./grid";
 import {
@@ -57,8 +53,19 @@ import {
   newWidgetId,
 } from "./presets";
 import type { Monitor } from "./protocol";
-import { SpringSlot } from "./SpringSlot";
-import { StackEditor, StackWidget } from "./StackWidget";
+import { StackEditor } from "./StackWidget";
+import type {
+  ContextMenuState,
+  DetailState,
+  DragState,
+  ResizeEdge,
+  ResizeState,
+  UndoToast,
+} from "./editTypes";
+import { EditToolbar } from "./EditToolbar";
+import { GridItems } from "./GridItems";
+import { useEditHistory } from "./useEditHistory";
+import { allowedSizesOf, isInteractiveTarget, snapResizeSpan } from "./layoutRules";
 import { useLayer } from "./store";
 import { WidgetPicker } from "./WidgetPicker";
 import styles from "./LayerApp.module.css";
@@ -75,50 +82,6 @@ const LONG_PRESS_MS = 450;
 const EDGE_HOLD_MS = 600;
 const EDGE_MARGIN_PX = 24;
 const REMOVE_ZONE_H = 72;
-
-type ResizeEdge = "n" | "s" | "e" | "w";
-
-interface DragState {
-  item: LayoutItem;
-  grabX: number;
-  grabY: number;
-  pointerX: number;
-  pointerY: number;
-  preview: LayoutItem[];
-  landing: { x: number; y: number; w: number; h: number };
-  stackTarget: LayoutItem | null;
-  overRemove: boolean;
-  edge: MonitorEdge | null;
-  edgeTarget: Monitor | null;
-  /** True when dragged fresh from the Widget Picker (adds to settings + layout on drop). */
-  fromPicker?: { kind: string; size: SizeClass };
-}
-
-interface ResizeState {
-  item: LayoutItem;
-  edge: ResizeEdge;
-  startX: number;
-  startY: number;
-  preview: LayoutItem[];
-  current: { x: number; y: number; w: number; h: number };
-}
-
-interface ContextMenuState {
-  item: LayoutItem;
-  x: number;
-  y: number;
-}
-
-interface DetailState {
-  widgetId: string;
-  kind: string;
-  origin: PxRect | null;
-}
-
-interface UndoToast {
-  message: string;
-  previous: LayoutsDoc;
-}
 
 function useImage(url: string | null): HTMLImageElement | null {
   const [img, setImg] = useState<HTMLImageElement | null>(null);
@@ -162,271 +125,6 @@ async function setEditActive(active: boolean): Promise<void> {
   await invoke("layer_set_edit", { active });
 }
 
-function allowedSizesOf(
-  item: LayoutItem,
-  widgets: StoredSettings["widgets"],
-): readonly SizeClass[] {
-  if (item.type === "widget") return widgetByKind(item.kind)?.sizes ?? ["S"];
-  let common: SizeClass[] | null = null;
-  for (const cid of item.children) {
-    const kind = widgets[cid]?.kind;
-    const sz = kind ? [...(widgetByKind(kind)?.sizes ?? [])] : [];
-    if (sz.length === 0) continue;
-    common = common ? common.filter((s) => sz.includes(s)) : sz;
-  }
-  return common && common.length > 0 ? common : [sizeClassForSpan(item.w, item.h)];
-}
-
-/** Picks the allowed span closest to the user's resize drag target. */
-function snapResizeSpan(
-  allowed: readonly SizeClass[],
-  targetW: number,
-  targetH: number,
-  maxCols: number,
-  maxRows: number,
-): { w: number; h: number } {
-  const candidates = allowed.map((s) => sizes[s]).filter((s) => s.w <= maxCols && s.h <= maxRows);
-  let best = candidates[0] ?? { w: 2, h: 2 };
-  let bestDist = Infinity;
-  for (const c of candidates) {
-    const d = Math.abs(c.w - targetW) + Math.abs(c.h - targetH);
-    if (d < bestDist) {
-      bestDist = d;
-      best = c;
-    }
-  }
-  return best;
-}
-
-function isInteractiveTarget(el: EventTarget | null): boolean {
-  if (!(el instanceof Element)) return false;
-  return Boolean(
-    el.closest("button, input, select, textarea, a, [role='slider'], [role='switch']"),
-  );
-}
-
-interface GridItemsProps {
-  items: readonly LayoutItem[];
-  g: GridMetrics;
-  edit: boolean;
-  selectedId: string | null;
-  drag: DragState | null;
-  resize: ResizeState | null;
-  autoDimmed: boolean;
-  widgets: StoredSettings["widgets"];
-  onHover: (hovered: boolean) => void;
-  onPointerDownItem: (item: LayoutItem, e: React.PointerEvent<HTMLDivElement>) => void;
-  onClickItem: (item: LayoutItem, e: React.MouseEvent<HTMLDivElement>) => void;
-  onContextItem: (item: LayoutItem, e: React.MouseEvent<HTMLDivElement>) => void;
-  onStartResize: (
-    item: LayoutItem,
-    edge: ResizeEdge,
-    e: React.PointerEvent<HTMLButtonElement>,
-  ) => void;
-  onRemoveItem: (item: LayoutItem) => void;
-  onOpenSettings: (widgetId: string) => void;
-  onEditStack: (stackId: string) => void;
-  onStackActive: (stackId: string, idx: number) => void;
-  contentDir: "ltr" | "rtl";
-}
-
-function GridItems({
-  items,
-  g,
-  edit,
-  selectedId,
-  drag,
-  resize,
-  autoDimmed,
-  widgets,
-  onHover,
-  onPointerDownItem,
-  onClickItem,
-  onContextItem,
-  onStartResize,
-  onRemoveItem,
-  onOpenSettings,
-  onEditStack,
-  onStackActive,
-  contentDir,
-}: GridItemsProps) {
-  const syncGlass = useGlassSync();
-
-  return (
-    <>
-      {items.map((item) => {
-        const isDragging = drag?.item.id === item.id;
-        const isResizing = resize?.item.id === item.id;
-        const rect = isDragging
-          ? {
-              x: drag.pointerX - drag.grabX,
-              y: drag.pointerY - drag.grabY,
-              width: spanPx(item.w),
-              height: spanPx(item.h),
-            }
-          : cellToPx(g, item.x, item.y, item.w, item.h);
-        const size = sizeClassForSpan(item.w, item.h);
-        const isSelected = edit && selectedId === item.id;
-        const isStackTarget = drag?.stackTarget?.id === item.id;
-        const canResize = allowedSizesOf(item, widgets).length > 1;
-
-        const body =
-          item.type === "stack" ? (
-            <StackWidget
-              item={item}
-              size={size}
-              autoDimmed={autoDimmed}
-              lifted={isDragging}
-              editMode={edit}
-              onActiveChange={(idx) => {
-                onStackActive(item.id, idx);
-              }}
-              onOpenSettings={onOpenSettings}
-            />
-          ) : (
-            (() => {
-              const def = widgetByKind(item.kind);
-              return def ? (
-                <WidgetFrame
-                  id={item.id}
-                  def={def}
-                  size={size}
-                  autoDimmed={autoDimmed}
-                  lifted={isDragging}
-                  onOpenSettings={() => {
-                    onOpenSettings(item.id);
-                  }}
-                />
-              ) : null;
-            })()
-          );
-
-        if (!body) return null;
-
-        return (
-          <SpringSlot
-            key={item.id}
-            x={rect.x}
-            y={rect.y}
-            dragging={isDragging || isResizing}
-            onTick={syncGlass}
-            dataItemId={item.id}
-            dir={contentDir}
-            tabIndex={edit ? 0 : undefined}
-            ariaLabel={
-              item.type === "stack" ? `Stack of ${String(item.children.length)} widgets` : item.kind
-            }
-            className={`${styles.widget} ${edit ? styles.widgetEdit : ""} ${isDragging ? styles.widgetDragging : ""} ${isSelected ? styles.widgetSelected : ""} ${isStackTarget ? styles.stackHighlight : ""}`}
-            onPointerEnter={() => {
-              onHover(true);
-            }}
-            onPointerLeave={() => {
-              onHover(false);
-            }}
-            onPointerDown={(e) => {
-              onPointerDownItem(item, e);
-            }}
-            onClick={(e) => {
-              onClickItem(item, e);
-            }}
-            onContextMenu={(e) => {
-              onContextItem(item, e);
-            }}
-          >
-            {body}
-            {edit && !isDragging ? (
-              <>
-                <button
-                  type="button"
-                  className={styles.removeBadge}
-                  aria-label="Remove widget"
-                  onPointerDown={(e) => {
-                    e.stopPropagation();
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRemoveItem(item);
-                  }}
-                >
-                  <Icon name="remove" size={16} />
-                </button>
-                <button
-                  type="button"
-                  className={styles.settingsBadge}
-                  aria-label="Customize widget"
-                  onPointerDown={(e) => {
-                    e.stopPropagation();
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (item.type === "stack") onEditStack(item.id);
-                    else onOpenSettings(item.id);
-                  }}
-                >
-                  <Icon name="tune" size={15} />
-                </button>
-              </>
-            ) : null}
-            {edit && item.type === "stack" && !isDragging ? (
-              <button
-                type="button"
-                className={styles.stackBadge}
-                aria-label="Edit stack"
-                onPointerDown={(e) => {
-                  e.stopPropagation();
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEditStack(item.id);
-                }}
-              >
-                <Icon name="stacks" size={14} />
-                {item.children.length}
-              </button>
-            ) : null}
-            {isSelected && canResize && !isDragging ? (
-              <>
-                <button
-                  type="button"
-                  className={`${styles.handle} ${styles.handleN}`}
-                  aria-label="Resize top"
-                  onPointerDown={(e) => {
-                    onStartResize(item, "n", e);
-                  }}
-                />
-                <button
-                  type="button"
-                  className={`${styles.handle} ${styles.handleS}`}
-                  aria-label="Resize bottom"
-                  onPointerDown={(e) => {
-                    onStartResize(item, "s", e);
-                  }}
-                />
-                <button
-                  type="button"
-                  className={`${styles.handle} ${styles.handleW}`}
-                  aria-label="Resize left"
-                  onPointerDown={(e) => {
-                    onStartResize(item, "w", e);
-                  }}
-                />
-                <button
-                  type="button"
-                  className={`${styles.handle} ${styles.handleE}`}
-                  aria-label="Resize right"
-                  onPointerDown={(e) => {
-                    onStartResize(item, "e", e);
-                  }}
-                />
-              </>
-            ) : null}
-          </SpringSlot>
-        );
-      })}
-    </>
-  );
-}
-
 export function LayerApp() {
   const connection = useLayer((s) => s.connection);
   const monitor = useLayer((s) => s.monitor);
@@ -451,8 +149,6 @@ export function LayerApp() {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
   const [resize, setResize] = useState<ResizeState | null>(null);
-  const [undoStack, setUndoStack] = useState<LayoutsDoc[]>([]);
-  const [redoStack, setRedoStack] = useState<LayoutsDoc[]>([]);
   const [undoToast, setUndoToast] = useState<UndoToast | null>(null);
 
   const root = useRef<HTMLDivElement>(null);
@@ -609,16 +305,14 @@ export function LayerApp() {
   const displayedItems = drag?.preview ?? resize?.preview ?? monitorItems;
 
   // Commit a new LayoutsDoc with undo tracking inside the current Edit session.
-  const commitLayouts = useCallback(
-    (next: LayoutsDoc, recordUndo = true) => {
-      if (recordUndo) {
-        setUndoStack((prev) => [...prev.slice(-29), layouts]);
-        setRedoStack([]);
-      }
-      void updateLayouts(next);
-    },
-    [layouts],
-  );
+  const {
+    commit: commitLayouts,
+    undo: handleUndo,
+    redo: handleRedo,
+    canUndo,
+    canRedo,
+    clear: clearHistory,
+  } = useEditHistory(layouts);
 
   const commitMonitorItems = useCallback(
     (nextItems: LayoutItem[], recordUndo = true) => {
@@ -630,22 +324,6 @@ export function LayerApp() {
     },
     [layouts, layoutKey, commitLayouts],
   );
-
-  const handleUndo = useCallback(() => {
-    const prev = undoStack[undoStack.length - 1];
-    if (!prev) return;
-    setUndoStack((s) => s.slice(0, -1));
-    setRedoStack((s) => [...s, layouts]);
-    void updateLayouts(prev);
-  }, [undoStack, layouts]);
-
-  const handleRedo = useCallback(() => {
-    const next = redoStack[redoStack.length - 1];
-    if (!next) return;
-    setRedoStack((s) => s.slice(0, -1));
-    setUndoStack((s) => [...s, layouts]);
-    void updateLayouts(next);
-  }, [redoStack, layouts]);
 
   const handleRemoveItem = useCallback(
     (item: LayoutItem) => {
@@ -755,8 +433,7 @@ export function LayerApp() {
           setHovered(false);
           setDrag(null);
           setResize(null);
-          setUndoStack([]);
-          setRedoStack([]);
+          clearHistory();
         }
         if (next.alertRule && next.alertRule !== prev.alertRule) {
           const { monitorItems: items, widgets: ws, g: grid } = latestAlertCtx.current;
@@ -786,7 +463,7 @@ export function LayerApp() {
           useLayer.setState({ alertRule: null });
         }
       }),
-    [],
+    [clearHistory],
   );
 
   // Peek Esc handler.
@@ -1512,63 +1189,29 @@ export function LayerApp() {
             />
 
             {edit && !drag ? (
-              <div className={styles.toolbarWrap} dir={contentDir}>
-                <Toolbar label={t(locale, "action.editWidgets")}>
-                  <Button
-                    variant="tonal"
-                    icon="add"
-                    onClick={() => {
-                      setPresetsOpen(false);
-                      setPickerOpen(true);
-                    }}
-                  >
-                    {t(locale, "action.addWidget")}
-                  </Button>
-                  <Button
-                    variant="text"
-                    icon="grid_view"
-                    onClick={() => {
-                      setPresetsOpen((p) => !p);
-                    }}
-                  >
-                    {t(locale, "action.presets")}
-                  </Button>
-                  <Button
-                    variant="text"
-                    icon="settings"
-                    onClick={() => {
-                      setPresetsOpen(false);
-                      void setEditActive(false);
-                      void host.command({ cmd: "open-settings" });
-                    }}
-                  >
-                    {t(locale, "action.settings")}
-                  </Button>
-                  <Button
-                    variant="text"
-                    icon="undo"
-                    label={t(locale, "action.undo")}
-                    disabled={undoStack.length === 0}
-                    onClick={handleUndo}
-                  />
-                  <Button
-                    variant="text"
-                    icon="redo"
-                    label={t(locale, "action.redo")}
-                    disabled={redoStack.length === 0}
-                    onClick={handleRedo}
-                  />
-                  <Button
-                    variant="filled"
-                    icon="check"
-                    onClick={() => {
-                      void setEditActive(false);
-                    }}
-                  >
-                    {t(locale, "action.done")}
-                  </Button>
-                </Toolbar>
-              </div>
+              <EditToolbar
+                locale={locale}
+                dir={contentDir}
+                canUndo={canUndo}
+                canRedo={canRedo}
+                onAdd={() => {
+                  setPresetsOpen(false);
+                  setPickerOpen(true);
+                }}
+                onTogglePresets={() => {
+                  setPresetsOpen((p) => !p);
+                }}
+                onSettings={() => {
+                  setPresetsOpen(false);
+                  void setEditActive(false);
+                  void host.command({ cmd: "open-settings" });
+                }}
+                onUndo={handleUndo}
+                onRedo={handleRedo}
+                onDone={() => {
+                  void setEditActive(false);
+                }}
+              />
             ) : null}
 
             {drag && !drag.fromPicker ? (
