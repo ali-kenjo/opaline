@@ -350,3 +350,40 @@ Post-release work after your first real use of v1.0.0. One commit (`9c4726a`).
 - `fans` provider sample takes ~405 ms (`--diagnose`) while declared `cheap`.
 - No automated UI tests for Edit mode, Settings and Onboarding; the GNOME Shell helper is only linted.
 - See `docs/ANALYSIS_REPORT.md` for the full review.
+
+
+## 2.0 · Phase 0: Stabilize (ready for sign-off 2026-11-25)
+
+Brief: `OPALINE_2_BRIEF.md` §11; plan: `docs/PLAN-2.md` (approved 2026-11-25).
+
+**Done**
+- **0.1–0.4 Memory** (ADR 0009 update): `scripts/memory-breakdown.sh` (PSS per process split into heap, GPU, shared
+  memory, libraries, files) and `scripts/memory-trend.sh` (long runs into a CSV). Measured fresh start, Peek, Edit
+  cycles and long use; isolated the growth to WebKit's web process keeping memory after widgets are shown, updated
+  and edited (not a JS leak, not the channel path, not the visualizer); only a new web process releases it.
+  **Your decision: budget raised to 450 MB PSS.** Fixed on the way: the sparkline reallocated its canvas on every
+  animation frame. Found: after a web-process crash the layer ends up with two web processes (+60 MB).
+- **0.5–0.6 UI tests:** a fake core injected before page load (`app/e2e/stub/`) runs the real `layer.html`,
+  `settings.html` and `onboarding.html`; 23 new Playwright tests cover Edit mode (enter/leave, keyboard, drag,
+  resize handles, stacks, remove + undo snackbar, undo/redo), the picker (search, categories, unavailable reasons,
+  click and drag to place, presets), detail views, the context menu, every Settings section, a settings round trip,
+  quick actions and the whole onboarding flow.
+- **0.7 `LayerApp.tsx` split** (1,808 → 901 lines, behavior unchanged, all UI tests unchanged): `GridItems.tsx`,
+  `EditToolbar.tsx`, `DragFeedback.tsx`, `LayerStackEditor.tsx`, `useDragController.ts`, `useEditKeyboard.ts`,
+  `useEditHistory.ts`, `useLayerPrefs.ts`, `layoutRules.ts`, `editTypes.ts`, `modes.ts`.
+- **0.8 Small fixes:** grid numbers above (84 px / 12 px); `fans`: HP's firmware takes about 200 ms per fan read
+  (waiting, not CPU), so the provider is labelled expensive and samples every 2 s; Instant-mode layer restarts back
+  off to 5 minutes and stop promptly; updater: unverifiable releases are refused before any download (tested), and
+  the release workflow fails instead of publishing unsigned. **The built-in signing key is empty**, so in-app updates
+  can't install until a minisign key is created (needs you).
+- Lab: `?only=glass|widgets|components|specimen` and `?kinds=cpu,clock` for bisecting.
+
+**Acceptance (PLAN-2 P0)**
+
+| Check | Result |
+| - | - |
+| Memory ≤ 280 MB with the default layout, or your decision | ✅ Decision: **450 MB** (ADR 0009). Measured: fresh ~307 MB, after Peek + Edit 430–505 MB (stress), 426–429 MB after hours of normal use; 1-hour trend below |
+| UI tests green | ✅ 35 Playwright (12 before), 70 Vitest |
+| `LayerApp.tsx` split, no behavior change | ✅ 901 lines, all UI tests unchanged |
+| Rust tests, clippy `-D warnings`, rustfmt, ESLint, Prettier, tsc, helper lint | ✅ 163 Rust tests (159 before; NVML test ignored as usual), all lints clean (2026-11-25) |
+| 🧑 Your sign-off | pending |

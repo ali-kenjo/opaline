@@ -1,51 +1,48 @@
 # Handoff: where Opaline stands (2026-11-25)
 
-For whoever continues this work (person or AI tool). Read this first, then `CLAUDE.md`, `OPALINE_BUILD_PROMPT.md`
-(the brief), `docs/PLAN.md`, `docs/PROGRESS.md` and `docs/ANALYSIS_REPORT.md`. Decisions are in `docs/adr/` (0001–0011).
+For whoever continues this work (person or AI tool). Read this first, then `CLAUDE.md`, `OPALINE_2_BRIEF.md` (the
+2.0 brief), `docs/PLAN-2.md`, `docs/DESIGN-2.md`, `docs/PROGRESS.md` and the ADRs in `docs/adr/` (0001–0011).
 
 ## The project in one paragraph
 Opaline is a desktop-widgets app for Ubuntu 26.04 / GNOME 50: glass widgets on the wallpaper, above the desktop
 icons and below windows. Rust core (sensor engine, settings, layouts, IPC, D-Bus) + Tauri 2 layer process (one
-transparent WebKitGTK window per monitor, React 19 frontend) + a small GNOME Shell helper for "Native mode". Built
-phase by phase (P0–P8 in the brief); each phase ended with acceptance checks, a PROGRESS note and the owner's sign-off.
+transparent WebKitGTK window per monitor, React 19 frontend) + a small GNOME Shell helper for "Native mode".
+1.0 and 1.1 are released (`v1.0.0`, `v1.1.0`). **Opaline 2.0** is in progress: phases P0–P10 of `docs/PLAN-2.md`,
+each ending with acceptance checks, a PROGRESS entry and the owner's sign-off.
 
 ## Status
-All phases P0–P8 are done and signed off. **`v1.0.0`** (2026-11-24) and **`v1.1.0`** (2026-11-24, `9c4726a`) are tagged
-and pushed. v1.1.0 is installed from the `.deb` (`/usr/bin/opaline`) and running in Native mode on the reference laptop.
+- **2.0 Phase 0 (stabilize)** is done and waiting for the owner's sign-off (see PROGRESS "2.0 · Phase 0").
+  Commits are on local `main` and **not pushed yet**.
+- Next: **P1, design language and glass 2.0**, starting with three visual directions for the Opaline theme in the
+  Lab (PLAN-2 task 1.1) and spikes S1 (transparency, blur pyramid) and S2 (WebKitGTK features).
+- RAM budget is now **450 MB PSS** (owner's decision, ADR 0009 update). Idle CPU budget unchanged (≤ 0.5 %).
 
-Checks on 2026-11-25: 159 Rust tests, clippy `-D warnings`, rustfmt, tsc, ESLint + Prettier, 70 Vitest and 12 Playwright
-tests all pass.
-
-## Open items (in priority order)
-1. **Memory: 426 MB PSS against the 280 MB budget** (web process 248 MB, core 70 MB). Measure over time (fresh start,
-   after Edit, 1 h, 8 h) with `scripts/measure-budget.sh`, find what grows, then fix or formally raise the budget
-   (ADR 0009 records the history of this budget).
-2. **UI test gap:** no automated tests for Edit mode, Widget Picker, Detail views, Settings or Onboarding. Add Playwright
-   tests against the Lab or a stub host before refactoring.
-3. **Split `app/src/layer/LayerApp.tsx`** (1,808 lines, one ~1,400-line component) once those tests exist.
-4. **`fans` provider** takes ~405 ms per sample but is declared `cheap` (see `opaline --diagnose`).
-5. **Instant-mode layer restart** retries every 30 s with no backoff ceiling (seen in logs on 2026-11-24).
-6. **GNOME 51 readiness:** the helper declares `shell-version: ["50"]`; the nested `gnome-shell --devkit` workflow
-   (task 4.4) was skipped.
-7. **Updater:** confirm it refuses a release without a valid minisign signature (the release workflow signs only when the
-   secrets are configured).
+## Open items
+1. **Updater can't install anything:** `RELEASE_MINISIGN_PUBKEY` in `crates/opaline-core/src/updates.rs` is empty
+   and v1.0/1.1 were published unsigned. Needs the owner: create a minisign key pair, add `MINISIGN_SECRET_KEY` and
+   `MINISIGN_PASSWORD` as GitHub secrets, then put the public key in the code. The release workflow now fails
+   without the secret.
+2. **Two web processes after a crash:** when the shared web process dies, the layer reloads both windows, but they
+   then run in two processes (+60 MB) until Opaline restarts (ADR 0009 update). Fix by recreating the windows with
+   a related view after a crash.
+3. Memory levers documented but not built (ADR 0009 update): recycle the web process while hidden, windows sized
+   to widgets, glibc tunables for core, fewer animation frames.
+4. GNOME 51 readiness: the helper declares `shell-version: ["50"]`; the devkit test (1.0 task 4.4) was skipped.
 
 ## State of the machine
-- Installed: `opaline 1.1.0` from the `.deb`; core, `opaline --layer --backend native` and (when CPU power is on)
-  `opaline-privileged` are running.
-- `~/.config/opaline/layouts.json` holds the owner's layout (currently one widget on `eDP-1`).
-- Helper installed system-wide by the `.deb`; the dev install script (`scripts/install-helper-dev.sh`) puts one in
-  `~/.local` and should not be used at the same time.
-- When launching `opaline` from an integrated VS Code terminal, the Snap environment leaks `GSETTINGS_SCHEMA_DIR` /
-  `GTK_PATH`; launch via `systemd-run --user --unit=<name> --collect <binary>` or a regular GNOME Terminal.
-- `target/` is large (about 63 GB, including old bundle folders); `cargo clean` frees it.
+- Installed: `opaline 1.1.0` from the `.deb`. It was restarted several times on 2026-11-25 for measurements and runs
+  as a transient user unit (`systemd-run --user`); it returns to normal autostart at the next login.
+- A dev copy of the helper is in `~/.local/share/gnome-shell/extensions/` (core logs that path); don't use it at the
+  same time as the system-wide one from the `.deb`.
+- `~/.config/opaline/layouts.json` holds the owner's layout (CPU, Memory, Clock, Visualizer, GPU on `eDP-1`).
+- Docker Desktop is stopped; it holds an exited `n8n` container (needed in P6).
 
 ## How to work here (essentials; details in CLAUDE.md)
 - Commits: conventional, author `ali-kenjo <285495463+ali-kenjo@users.noreply.github.com>` (repo git config),
-  **no Co-Authored-By / "Generated with" lines** (the repo's rule overrides any default attribution). Push to `main`; CI must stay green.
+  **no Co-Authored-By / "Generated with" lines**.
 - Checks: `cargo test --workspace && cargo clippy --workspace --all-targets -- -D warnings && cargo fmt --all --check`;
   `cd app && pnpm lint && pnpm typecheck && pnpm test && pnpm lint:helper && pnpm test:e2e`.
-- Builds: `cd app && pnpm tauri build --debug --no-bundle` (or `--no-bundle` for release, `--bundles deb` for the package).
-- Run: `opaline`, `--quit`, `--peek`, `--edit`, `--settings`, `--diagnose`, `--dump <prefix>`.
-- Never `pkill -f 'opaline --layer'` from a shell command (it matches the shell itself).
+- UI tests run the real pages on a fake core: `app/e2e/stub/` (`openLayer`, `openShellPage`).
+- Memory: `scripts/memory-breakdown.sh` (now), `scripts/memory-trend.sh INTERVAL COUNT out.csv` (over time).
+- Never `pkill -f <pattern>` with the pattern in the same shell command (it matches the shell itself); use PIDs.
 - Real data only in the product; mocks only in tests and the Lab. The owner prefers plain, short explanations.
