@@ -3,12 +3,17 @@
 
 use opaline_ipc::{Availability, TopicUpdate, Value};
 
+use std::time::Duration;
+
 use super::hwmon;
-use crate::engine::{Probe, Provider, ProviderError, SampleCx, TopicDesc, update};
+use crate::engine::{Cost, Probe, Provider, ProviderError, SampleCx, TopicDesc, update};
 use crate::sysfs::{HotFile, Root};
 
 pub const FANS: &str = "fans.list";
-const TOPICS: &[TopicDesc] = &[TopicDesc::new(FANS)];
+/// Fan speed changes slowly, and on many laptops every `fan*_input` read goes through the
+/// firmware (HP's WMI hwmon takes about 200 ms per fan here, measured 2026-11-25), so the list is
+/// sampled at most every 2 s.
+const TOPICS: &[TopicDesc] = &[TopicDesc::every(FANS, Duration::from_secs(2))];
 
 struct Fan {
     name: String,
@@ -56,6 +61,12 @@ impl Provider for Fans {
 
     fn topics(&self) -> &[TopicDesc] {
         TOPICS
+    }
+
+    /// Firmware-backed hwmon reads (WMI, ACPI EC) wait in the kernel for hundreds of
+    /// milliseconds. They cost almost no CPU, but they hold a blocking thread that long.
+    fn cost_hint(&self) -> Cost {
+        Cost::Expensive
     }
 
     fn probe(&mut self) -> Probe {

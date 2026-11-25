@@ -36,7 +36,7 @@ pub enum Cost {
     Cheap,
     /// Many files or a library call (NVML, statvfs on every mount).
     Moderate,
-    /// Walks `/proc` or similar.
+    /// Walks `/proc` or similar, or waits on slow firmware (hwmon fans over WMI/ACPI).
     Expensive,
 }
 
