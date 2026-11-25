@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { Variant } from "../design-system/color/scheme";
 import { scheduler, setReducedMotion } from "../design-system/motion";
 import { ComponentsDemo } from "./ComponentsDemo";
+import { DirectionsDemo } from "./directions/DirectionsDemo";
 import { GlassDemo } from "./GlassDemo";
 import styles from "./Lab.module.css";
 import { Specimen } from "./Specimen";
@@ -21,6 +22,8 @@ const still = params.has("still");
 /** `?only=glass|widgets|components|specimen` shows one section (for memory and perf bisecting). */
 const only = params.get("only");
 const shows = (section: string) => only === null || only === section;
+/** The P1 visual directions are opt-in, so the regular Lab and its baselines stay as they are. */
+const directions = only === "directions";
 if (still) setReducedMotion(true);
 runWebviewCheck();
 const live = params.has("live") && inTauri;
@@ -148,6 +151,7 @@ export function LabApp() {
       ) : null}
       {shows("components") ? <ComponentsDemo dark={dark} value={value} /> : null}
       {shows("specimen") ? <Specimen value={value} /> : null}
+      {directions ? <DirectionsDemo /> : null}
     </main>
   );
 }
