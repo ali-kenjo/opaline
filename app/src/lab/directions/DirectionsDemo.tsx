@@ -9,10 +9,11 @@ import { type LabWallpaper, makeWallpaper } from "../wallpapers";
 import { KIND_HEX, kindColors } from "./data";
 import { InstrumentClock, InstrumentCpu, InstrumentMedia, InstrumentWeather } from "./instrument";
 import { LensClock, LensCpu, LensMedia, LensWeather } from "./lens";
+import { OpalineClock, OpalineCpu, OpalineMedia, OpalineWeather } from "./opaline";
 import { PebbleClock, PebbleCpu, PebbleMedia, PebbleWeather } from "./pebble";
 import styles from "./Directions.module.css";
 
-const STAGE_W = 3 * 756 + 2 * 48 + 80;
+const STAGE_W = 4 * 756 + 3 * 48 + 80;
 const STAGE_H = 690;
 
 const HALO = {
@@ -83,7 +84,21 @@ function Stage({ wallpaperId, dark }: { wallpaperId: LabWallpaper["id"]; dark: b
         <div className={styles.columns}>
           <div className={styles.direction}>
             <h3 className={styles.name}>
-              A · Lens<small>Clear glass; the numbers are the design</small>
+              Opaline (default)
+              <small>The hybrid: Lens type, Pebble shapes, Instrument charts</small>
+            </h3>
+            <OpalineClock size="M" colors={colors} />
+            <OpalineCpu size="M" colors={colors} />
+            <OpalineWeather size="M" colors={colors} />
+            <OpalineMedia size="M" colors={colors} />
+            <OpalineClock size="S" colors={colors} />
+            <OpalineCpu size="S" colors={colors} />
+            <OpalineWeather size="S" colors={colors} />
+            <OpalineMedia size="S" colors={colors} />
+          </div>
+          <div className={styles.direction}>
+            <h3 className={styles.name}>
+              Crystal (A · Lens)<small>Clear glass; the numbers are the design</small>
             </h3>
             <LensClock size="M" />
             <LensCpu size="M" />
@@ -96,7 +111,7 @@ function Stage({ wallpaperId, dark }: { wallpaperId: LabWallpaper["id"]; dark: b
           </div>
           <div className={styles.direction}>
             <h3 className={styles.name}>
-              B · Pebble<small>Tinted per widget; shapes carry the data</small>
+              Bloom (B · Pebble)<small>Tinted per widget; shapes carry the data</small>
             </h3>
             <PebbleClock size="M" colors={colors} />
             <PebbleCpu size="M" colors={colors} />
@@ -109,7 +124,7 @@ function Stage({ wallpaperId, dark }: { wallpaperId: LabWallpaper["id"]; dark: b
           </div>
           <div className={styles.direction}>
             <h3 className={styles.name}>
-              C · Instrument<small>Smoked glass; dials, scales and charts</small>
+              Instrument (C)<small>Smoked glass; dials, scales and charts</small>
             </h3>
             <InstrumentClock size="M" colors={smokedColors} />
             <InstrumentCpu size="M" colors={smokedColors} />
@@ -130,8 +145,9 @@ export function DirectionsDemo() {
   return (
     <section className={styles.page} aria-label="Visual directions">
       <p className={styles.intro}>
-        Three directions for the Opaline theme, each on Clock, CPU, Weather and Now Playing at M
-        (top) and S (bottom). Same data, same wallpapers; only the design differs.
+        The default Opaline look and the three directions it combines, each on Clock, CPU, Weather
+        and Now Playing at M (top) and S (bottom). Same data, same wallpapers; only the design
+        differs.
       </p>
       <Stage wallpaperId="dusk" dark />
       <Stage wallpaperId="snow" dark={false} />

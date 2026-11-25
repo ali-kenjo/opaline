@@ -46,7 +46,15 @@ function InstrumentCard({
   );
 }
 
-function Dial({ size, accent }: { size: number; accent: string }) {
+export function Dial({
+  size,
+  accent,
+  className,
+}: {
+  size: number;
+  accent: string;
+  className?: string | undefined;
+}) {
   const c = D.clock;
   const r = size / 2;
   const ticks = Array.from({ length: 60 }, (_, i) => {
@@ -87,7 +95,7 @@ function Dial({ size, accent }: { size: number; accent: string }) {
       viewBox={`0 0 ${String(size)} ${String(size)}`}
       role="img"
       aria-label="10:09"
-      className={styles.dial}
+      className={className ?? styles.dial}
     >
       <g stroke="currentColor">{ticks}</g>
       <rect

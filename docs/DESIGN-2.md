@@ -1,6 +1,6 @@
 # Opaline 2.0 design language (outline)
 
-Status: **outline** (2026-11-25). Filled in during P1 after you pick one of the three visual directions (PLAN-2 task
+Status: **outline** (2026-11-25; theme decision recorded 2026-11-26 in §11). Filled in during P1 (PLAN-2 task
 1.1); theme chapters are completed in P4. Values marked *proposed* are starting points, not decisions.
 `docs/DESIGN.md` stays the reference for the 1.1 system, which ships as the **Classic** theme.
 
@@ -101,18 +101,29 @@ How a theme is built (maps to `theme.json`, §5.2 of the brief):
 - Material Symbols Rounded, Outlined, Sharp (Apache-2.0), subset per set; fill, weight, grade; app icons from the
   system icon theme for processes, launchers and peripherals.
 
-## 11. The nine looks
+## 11. The ten looks
+
+**Decided 2026-11-26** (P1 task 1.1, Lab page `lab.html?only=directions`, screenshots in `docs/design/`): the owner
+wants all three directions. Lens becomes **Crystal**, Pebble becomes **Bloom**, Instrument becomes a new tenth theme,
+**Instrument**, and the default **Opaline** is the hybrid: Lens's clear glass and bold condensed numerals as the base,
+Pebble's shapes only where they carry meaning (CPU heat badge, weather sky, album-art mask), and Instrument's charts,
+gauges and dial at the larger sizes and as clock faces.
+
 One chapter each, with: character, type, shape language, surface treatment, motion personality, hero visuals, clock
 faces, color handling, starter layouts, Lab sheet.
-- 11.1 **Opaline** (default): the direction chosen in P1.
-- 11.2 **Crystal**: clear glass, squircles, large heavy numerals, almost no labels.
-- 11.3 **Bloom**: library-shape cards, tonal containers, wavy progress, playful morphs.
+- 11.1 **Opaline** (default): the hybrid described above.
+- 11.2 **Crystal** (direction A, Lens): clear glass, squircles, large heavy condensed numerals, almost no labels,
+  text held by a soft halo.
+- 11.3 **Bloom** (direction B, Pebble): glass tinted per widget kind, library-shape badges, tonal containers, wavy
+  progress, playful morphs.
 - 11.4 **Air**: frameless, haloed text, widgets floating on the wallpaper.
 - 11.5 **Terminal**: JetBrains Mono, box-drawing frames, TUI bars and sparklines, ANSI-like palette from the wallpaper.
 - 11.6 **Neon**: dark surfaces, glowing gradient outlines, synthwave palette, Space Grotesk.
 - 11.7 **Paper**: matte and light, Fraunces with a grotesk, hairlines, no glass.
 - 11.8 **Mono**: monochrome, high contrast, e-ink calm; the Dimmed state's natural partner.
 - 11.9 **Classic**: exactly 1.1 (`DESIGN.md`).
+- 11.10 **Instrument** (direction C): smoked glass with a hairline edge, analog dials, arc gauges with ticks, charts
+  with real scales, extended numerals; a watch face or car cluster rather than a dashboard.
 
 ## 12. Signature layouts per widget
 A page per widget (filled in P4): sizes supported, the hero at each size, element priorities, detail view, states

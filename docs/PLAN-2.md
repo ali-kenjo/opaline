@@ -22,8 +22,8 @@ when we get there.
    variable, with optical size), Space Grotesk (Neon). Roboto Flex, Inter and Noto Sans Arabic stay. None of the new
    ones are installed on this machine, so they come from `@fontsource` like today. Licenses get checked file by file
    in P4 and listed in `THIRD_PARTY.md`.
-5. **Baseline strategy for the theme matrix.** 9 themes × 14+ widgets × ~6 sizes × states is thousands of
-   screenshots. Full baselines for **Opaline** and **Classic**; for the other seven, one sheet per theme per wallpaper
+5. **Baseline strategy for the theme matrix.** 10 themes × 14+ widgets × ~6 sizes × states is thousands of
+   screenshots. Full baselines for **Opaline** and **Classic**; for the other eight, one sheet per theme per wallpaper
    (every widget at its default size plus its smallest size). The zero-truncation and contrast checks run on **every**
    combination, without stored screenshots.
 6. **Memory.** 2.0 adds fonts, blur levels, the inspector, workers, photos. The budget was 280 MB PSS and missed by
@@ -123,7 +123,7 @@ regression in behavior or budgets.
 Acceptance: editing a theme in VS Code updates the desktop live, with autocomplete; a broken file never blanks the
 desktop; 1.1 fixtures migrate with nothing lost.
 
-### P4: Redesign the 14 widgets and the nine looks (§3.1, §8.1) — brief's P3
+### P4: Redesign the 14 widgets and the ten looks (§3.1, §8.1) — brief's P3
 
 Each widget gets compositions for every supported size, a detail view built as a composition, its §8.1 content
 additions and the new style controls. Reviewed in rounds of three or four widgets (🧑 sign-off per round).
@@ -144,7 +144,7 @@ additions and the new style controls. Reviewed in rounds of three or four widget
 | 4.12 | **Weather**: condition/time-of-day skies, hourly curve with precipitation, 10-day ranges, AQI/UV/pollen, sun arc, moon phase, tiles, several locations; warnings only if the S-weather check finds a free, keyless, licensed source | Open-Meteo air quality; moon and sun math offline |
 | 4.13 | **Calendar**: date tile, month grid with dots, agenda with color bars, countdown, Join button (Meet/Zoom/Teams/Jitsi), tasks, week view | EDS task lists (VTODO) through `Calendar8` |
 | 4.14 | **Docker**: Compose groups with health, published ports (open in browser), log tail in the detail view, resource charts, Podman parity | logs tail and stats while the detail view is open; Compose labels |
-| 4.15 | **The nine looks** (§3.1): Opaline, Crystal, Bloom, Air, Terminal, Neon, Paper, Mono, Classic, each with tokens, type, shapes, surface, motion, hero visuals, clock faces and its own starter layouts (replacing the five presets). Fonts lazy-loaded |
+| 4.15 | **The ten looks** (§3.1, plus Instrument from P1 task 1.1; DESIGN-2 §11): Opaline (hybrid), Crystal, Bloom, Instrument, Air, Terminal, Neon, Paper, Mono, Classic, each with tokens, type, shapes, surface, motion, hero visuals, clock faces and its own starter layouts (replacing the five presets). Fonts lazy-loaded |
 | 4.16 | Lab baselines per theme (per decision 5); zero-truncation and contrast everywhere |
 
 Acceptance: your sign-off per widget and per theme; Classic matches the 1.1 baselines.

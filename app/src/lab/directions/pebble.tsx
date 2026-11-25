@@ -85,7 +85,7 @@ export function PebbleClock({ size, colors }: { size: CardSize; colors: PebbleCo
 }
 
 /** The CPU badge's shape follows the heat: calm circle, then cookies, then bursts. */
-function heatShape(temp: number) {
+export function heatShape(temp: number) {
   if (temp < 45) return "circle" as const;
   if (temp < 65) return "cookie7Sided" as const;
   if (temp < 80) return "softBurst" as const;
@@ -207,7 +207,7 @@ export function PebbleWeather({ size, colors }: { size: CardSize; colors: Pebble
   );
 }
 
-function MaskedArt({ size }: { size: number }) {
+export function MaskedArt({ size }: { size: number }) {
   const d = cubicsToPath(materialShape("cookie12Sided").cubics, size);
   return (
     <div
