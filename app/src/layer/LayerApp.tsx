@@ -8,7 +8,6 @@ import { cssVariables } from "../design-system/color/scheme";
 import { ContextMenu, type MenuItem, Snackbar } from "../design-system/components";
 import { GlassStage } from "../design-system/glass";
 import { luminance as lum } from "../design-system/glass/legibility";
-import { Icon } from "../design-system/icons";
 import { applyPalette, scheduler, setReducedMotion } from "../design-system/motion";
 import { resolveStyle, rolesFor, sanitizeStyle } from "../design-system/style";
 import { type SizeClass, sizes } from "../design-system/tokens/tokens";
@@ -48,6 +47,7 @@ import {
 import type { Monitor } from "./protocol";
 import { LayerStackEditor } from "./LayerStackEditor";
 import type { ContextMenuState, DetailState, UndoToast } from "./editTypes";
+import { DragFeedback } from "./DragFeedback";
 import { EditToolbar } from "./EditToolbar";
 import { GridItems } from "./GridItems";
 import { setEditActive, setPeekActive } from "./modes";
@@ -651,16 +651,6 @@ export function LayerApp() {
     }
   };
 
-  const ghostRect = drag
-    ? drag.stackTarget
-      ? cellToPx(g, drag.stackTarget.x, drag.stackTarget.y, drag.stackTarget.w, drag.stackTarget.h)
-      : !drag.overRemove
-        ? cellToPx(g, drag.landing.x, drag.landing.y, drag.landing.w, drag.landing.h)
-        : null
-    : resize
-      ? cellToPx(g, resize.current.x, resize.current.y, resize.current.w, resize.current.h)
-      : null;
-
   return (
     <HostContext.Provider value={host}>
       <div
@@ -717,19 +707,14 @@ export function LayerApp() {
               />
             ) : null}
 
-            {ghostRect ? (
-              <div
-                className={`${styles.ghost} ${drag?.stackTarget ? styles.ghostStack : ""}`}
-                style={{
-                  left: ghostRect.x,
-                  top: ghostRect.y,
-                  width: ghostRect.width,
-                  height: ghostRect.height,
-                }}
-              >
-                {drag?.stackTarget ? "Drop to stack" : null}
-              </div>
-            ) : null}
+            <DragFeedback
+              part="ghost"
+              drag={drag}
+              resize={resize}
+              g={g}
+              locale={locale}
+              dir={contentDir}
+            />
 
             <GridItems
               items={displayedItems}
@@ -783,35 +768,14 @@ export function LayerApp() {
               />
             ) : null}
 
-            {drag && !drag.fromPicker ? (
-              <div
-                dir={contentDir}
-                className={`${styles.removeZone} ${drag.overRemove ? styles.removeZoneHot : ""}`}
-              >
-                <Icon name="delete" size={18} />
-                <span>
-                  {drag.overRemove
-                    ? t(locale, "edit.releaseToRemove")
-                    : t(locale, "edit.dropToRemove")}
-                </span>
-              </div>
-            ) : null}
-
-            {drag?.edge && drag.edgeTarget ? (
-              <div
-                className={`${styles.edgeGlow} ${
-                  drag.edge === "left"
-                    ? styles.edgeLeft
-                    : drag.edge === "right"
-                      ? styles.edgeRight
-                      : drag.edge === "top"
-                        ? styles.edgeTop
-                        : styles.edgeBottom
-                }`}
-              >
-                {drag.edgeTarget.connector}
-              </div>
-            ) : null}
+            <DragFeedback
+              part="zones"
+              drag={drag}
+              resize={resize}
+              g={g}
+              locale={locale}
+              dir={contentDir}
+            />
 
             {presetsOpen && edit ? (
               <div
