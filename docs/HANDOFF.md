@@ -11,8 +11,8 @@ transparent WebKitGTK window per monitor, React 19 frontend) + a small GNOME She
 each ending with acceptance checks, a PROGRESS entry and the owner's sign-off.
 
 ## Status
-- **2.0 Phase 0 (stabilize)** is done and waiting for the owner's sign-off (see PROGRESS "2.0 · Phase 0").
-  Commits are on local `main` and **not pushed yet**.
+- **2.0 Phase 0 (stabilize)** is done and signed off (2026-11-25; see PROGRESS "2.0 · Phase 0").
+  Pushed to `origin/main`. The crash-recovery fix (open item 2) is on branch `claude/quizzical-matsumoto-d181cd`, not merged yet.
 - Next: **P1, design language and glass 2.0**, starting with three visual directions for the Opaline theme in the
   Lab (PLAN-2 task 1.1) and spikes S1 (transparency, blur pyramid) and S2 (WebKitGTK features).
 - RAM budget is now **450 MB PSS** (owner's decision, ADR 0009 update). Idle CPU budget unchanged (≤ 0.5 %).

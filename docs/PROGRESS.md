@@ -352,7 +352,7 @@ Post-release work after your first real use of v1.0.0. One commit (`9c4726a`).
 - See `docs/ANALYSIS_REPORT.md` for the full review.
 
 
-## 2.0 · Phase 0: Stabilize (ready for sign-off 2026-11-25)
+## 2.0 · Phase 0: Stabilize (signed off 2026-11-25)
 
 Brief: `OPALINE_2_BRIEF.md` §11; plan: `docs/PLAN-2.md` (approved 2026-11-25).
 
@@ -386,4 +386,4 @@ Brief: `OPALINE_2_BRIEF.md` §11; plan: `docs/PLAN-2.md` (approved 2026-11-25).
 | UI tests green | ✅ 35 Playwright (12 before), 70 Vitest |
 | `LayerApp.tsx` split, no behavior change | ✅ 901 lines, all UI tests unchanged |
 | Rust tests, clippy `-D warnings`, rustfmt, ESLint, Prettier, tsc, helper lint | ✅ 163 Rust tests (159 before; NVML test ignored as usual), all lints clean (2026-11-25) |
-| 🧑 Your sign-off | pending |
+| 🧑 Your sign-off | ✅ 2026-11-25 |
