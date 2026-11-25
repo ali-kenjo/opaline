@@ -16,7 +16,6 @@ import { applyDocumentLocale, isRtl, resolveLocale, t } from "../i18n";
 import { HostContext } from "../widgets/host";
 import { toJson } from "../widgets/json";
 import {
-  APPEARANCE_TOPIC,
   LAYOUTS_TOPIC,
   WALLPAPER_TOPIC,
   attachLayer,
@@ -47,7 +46,7 @@ import {
   newWidgetId,
 } from "./presets";
 import type { Monitor } from "./protocol";
-import { StackEditor } from "./StackWidget";
+import { LayerStackEditor } from "./LayerStackEditor";
 import type { ContextMenuState, DetailState, UndoToast } from "./editTypes";
 import { EditToolbar } from "./EditToolbar";
 import { GridItems } from "./GridItems";
@@ -55,6 +54,7 @@ import { setEditActive, setPeekActive } from "./modes";
 import { useEditHistory } from "./useEditHistory";
 import { useDragController } from "./useDragController";
 import { useEditKeyboard } from "./useEditKeyboard";
+import { useLayerPrefs } from "./useLayerPrefs";
 import { allowedSizesOf, isInteractiveTarget } from "./layoutRules";
 import { useLayer } from "./store";
 import { WidgetPicker } from "./WidgetPicker";
@@ -151,42 +151,7 @@ export function LayerApp() {
 
   const width = geometry?.width ?? window.innerWidth;
   const height = geometry?.height ?? window.innerHeight;
-  const rawSettings = useLayer((s) => s.values.settings);
-  const rawAppearance = useLayer((s) => s.values[APPEARANCE_TOPIC]);
-  const settingsExtra = useMemo(() => {
-    const j = toJson(rawSettings);
-    const obj = typeof j === "object" && j !== null && !Array.isArray(j) ? j : {};
-    const app =
-      typeof obj.appearance === "object" &&
-      obj.appearance !== null &&
-      !Array.isArray(obj.appearance)
-        ? obj.appearance
-        : {};
-    const lay =
-      typeof obj.layout === "object" && obj.layout !== null && !Array.isArray(obj.layout)
-        ? obj.layout
-        : {};
-    const state =
-      app.state === "full" || app.state === "dimmed" || app.state === "automatic"
-        ? app.state
-        : "automatic";
-    const glass = typeof app.glass === "number" ? Math.max(0, Math.min(100, app.glass)) : 45;
-    const marginPx =
-      typeof lay.marginPx === "number" ? Math.max(12, Math.min(64, lay.marginPx)) : 24;
-    const language = typeof obj.language === "string" ? obj.language : "system";
-    return { state, glass, marginPx, language };
-  }, [rawSettings]);
-  const a11y = useMemo(() => {
-    const j = toJson(rawAppearance);
-    const obj = typeof j === "object" && j !== null && !Array.isArray(j) ? j : {};
-    const highContrast = obj.highContrast === true;
-    const reduced = obj.animations === false || obj.reducedMotion === true;
-    const scale =
-      typeof obj.textScale === "number" && Number.isFinite(obj.textScale)
-        ? Math.min(2, Math.max(0.75, obj.textScale))
-        : 1;
-    return { highContrast, reduced, scale };
-  }, [rawAppearance]);
+  const { settingsExtra, a11y } = useLayerPrefs();
   const locale = resolveLocale(settingsExtra.language);
   const rtl = isRtl(locale);
   const contentDir: "rtl" | "ltr" = rtl ? "rtl" : "ltr";
@@ -940,98 +905,15 @@ export function LayerApp() {
       />
 
       {editingStack ? (
-        <StackEditor
+        <LayerStackEditor
           stack={editingStack}
-          open
+          items={monitorItems}
+          widgets={widgets}
+          g={g}
+          onCommit={commitMonitorItems}
+          onRemoveItem={handleRemoveItem}
           onClose={() => {
             setStackEditId(null);
-          }}
-          onReorder={(children) => {
-            commitMonitorItems(
-              monitorItems.map((it) =>
-                it.type === "stack" && it.id === editingStack.id ? { ...it, children } : it,
-              ),
-            );
-          }}
-          onRemoveChild={(childId) => {
-            const remaining = editingStack.children.filter((c) => c !== childId);
-            if (remaining.length === 0) {
-              handleRemoveItem(editingStack);
-              setStackEditId(null);
-            } else if (remaining.length === 1 && remaining[0]) {
-              const lone = remaining[0];
-              const kind = widgets[lone]?.kind ?? "cpu";
-              commitMonitorItems(
-                monitorItems.map((it) =>
-                  it.type === "stack" && it.id === editingStack.id
-                    ? { id: lone, type: "widget", kind, x: it.x, y: it.y, w: it.w, h: it.h }
-                    : it,
-                ),
-              );
-              setStackEditId(null);
-            } else {
-              commitMonitorItems(
-                monitorItems.map((it) =>
-                  it.type === "stack" && it.id === editingStack.id
-                    ? { ...it, children: remaining, activeIndex: 0 }
-                    : it,
-                ),
-              );
-            }
-          }}
-          onUnstackChild={(childId) => {
-            const remaining = editingStack.children.filter((c) => c !== childId);
-            const kind = widgets[childId]?.kind ?? "cpu";
-            const slot = findNearestFree(
-              monitorItems,
-              g.cols,
-              g.rows,
-              editingStack.w,
-              editingStack.h,
-              editingStack.x,
-              editingStack.y,
-            );
-            if (!slot) return;
-            const extracted: LayoutItem = {
-              id: childId,
-              type: "widget",
-              kind,
-              x: slot.x,
-              y: slot.y,
-              w: editingStack.w,
-              h: editingStack.h,
-            };
-            const updated = monitorItems
-              .map((it): LayoutItem | null => {
-                if (it.type !== "stack" || it.id !== editingStack.id) return it;
-                if (remaining.length === 0) return null;
-                if (remaining.length === 1 && remaining[0]) {
-                  const lone = remaining[0];
-                  return {
-                    id: lone,
-                    type: "widget",
-                    kind: widgets[lone]?.kind ?? "cpu",
-                    x: it.x,
-                    y: it.y,
-                    w: it.w,
-                    h: it.h,
-                  };
-                }
-                return { ...it, children: remaining, activeIndex: 0 };
-              })
-              .filter((i): i is LayoutItem => i !== null)
-              .concat(extracted);
-            commitMonitorItems(updated);
-            if (remaining.length <= 1) setStackEditId(null);
-          }}
-          onToggleSmartRotate={(enabled) => {
-            commitMonitorItems(
-              monitorItems.map((it) =>
-                it.type === "stack" && it.id === editingStack.id
-                  ? { ...it, smartRotate: enabled }
-                  : it,
-              ),
-            );
           }}
           onOpenWidgetSettings={(childId) => {
             setStackEditId(null);
