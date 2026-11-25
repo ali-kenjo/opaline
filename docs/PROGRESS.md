@@ -382,7 +382,7 @@ Brief: `OPALINE_2_BRIEF.md` §11; plan: `docs/PLAN-2.md` (approved 2026-11-25).
 
 | Check | Result |
 | - | - |
-| Memory ≤ 280 MB with the default layout, or your decision | ✅ Decision: **450 MB** (ADR 0009). Measured: fresh ~307 MB, after Peek + Edit 430–505 MB (stress), 426–429 MB after hours of normal use; 1-hour trend below |
+| Memory ≤ 280 MB with the default layout, or your decision | ✅ Decision: **450 MB** (ADR 0009). Measured: fresh ~307 MB, after Peek + Edit 430–505 MB (stress), 426–429 MB after hours of normal use; **1-hour trend** (installed 1.1.0, your layout, idle, 2026-11-25 21:18–22:18): 288 → 279 MB, web process flat at 152–154 MB |
 | UI tests green | ✅ 35 Playwright (12 before), 70 Vitest |
 | `LayerApp.tsx` split, no behavior change | ✅ 901 lines, all UI tests unchanged |
 | Rust tests, clippy `-D warnings`, rustfmt, ESLint, Prettier, tsc, helper lint | ✅ 163 Rust tests (159 before; NVML test ignored as usual), all lints clean (2026-11-25) |
