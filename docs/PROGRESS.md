@@ -317,3 +317,36 @@ Docker Desktop stopped) and was seen live where this laptop has it.
 - **8.3 Release workflow (`.github/workflows/release.yml`, `ci.yml`):** Automated `ubuntu:26.04` tag release pipeline that stages auxiliary assets, builds the `.deb`, produces `SHA256SUMS`, signs with `minisign` when `MINISIGN_SECRET_KEY`/`MINISIGN_PASSWORD` secrets are configured, and publishes the GitHub Release.
 - **8.4 Documentation (`README.md`, `.github/ISSUE_TEMPLATE/hardware-report.yml`, `THIRD_PARTY.md`):** Full user-facing README (features, `.deb` install, privacy table, Native vs Instant & NVIDIA troubleshooting, build/test instructions) and hardware-report issue template requesting redacted `opaline --diagnose` output.
 - **8.5 `v1.0.0` release:** Versions bumped to `1.0.0`, `Opaline_1.0.0_amd64.deb` built and verified locally, annotated tag `v1.0.0` pushed to GitHub.
+
+
+## v1.1.0 (tagged 2026-11-24)
+
+Post-release work after your first real use of v1.0.0. One commit (`9c4726a`).
+
+**Done**
+- **Click-through:** outside Edit and Peek, clicks pass through the layer to the desktop. The input region is now set on the
+  `GtkWindow` widget (not only its `GdkWindow`), so GTK3 on Wayland commits `wl_surface.set_input_region` and keeps it across
+  realizes, resizes and configures. WebKitGTK's default browser context menu (Back/Forward/Reload) is suppressed on the layer.
+- **Audio / microphone indicator:** the visualizer's PipeWire stream is now `Stream/Input/Audio/Monitor` with category
+  `Monitor`. WirePlumber still links it to the default sink's monitor ports, but `pipewire-pulse` no longer exposes it as a
+  source-output, so GNOME's microphone indicator stays off (this was an open finding in Phase 1).
+- **Transparency:** a transparent, frameless surface mode and per-widget transparency controls.
+- **Customizer:** an in-app per-widget customizer (`app/src/settings/WidgetCustomizer.tsx`, in Settings → Widgets).
+- **Visualizer:** 10 styles (including spectrum, fire, ocean, gradient and "follow widget style"), colour palettes, optional
+  glow and peak caps, interpolated band counts.
+- **Hardware info fields:** CPU, RAM (slots, speed, DDR type, manufacturer), GPU and storage widgets show more hardware detail.
+- Version bumped to 1.1.0 (workspace, metainfo release entry); `.deb` `Opaline_1.1.0_amd64.deb` built.
+
+**Measured 2026-11-25** (installed 1.1.0, Native mode, up 2 h 43 min, one widget on `eDP-1`, `scripts/measure-budget.sh 15`)
+
+| Metric | Budget | Measured | Status |
+| - | - | - | - |
+| CPU | ≤ 0.5 % | 0.050 % | ✅ |
+| RAM (PSS) | ≤ 280 MB | **426.4 MB** (core 70.5, layer 92.3, network 16.0, web process 247.7) | ❌ |
+
+**Open**
+- **Memory is 146 MB over budget.** One 15 s sample; whether it comes from Edit mode, the 1.1.0 visualizers or uptime is not
+  known. Next step: measure fresh start, after Edit, after 1 h and after 8 h, then fix or formally raise the budget.
+- `fans` provider sample takes ~405 ms (`--diagnose`) while declared `cheap`.
+- No automated UI tests for Edit mode, Settings and Onboarding; the GNOME Shell helper is only linted.
+- See `docs/ANALYSIS_REPORT.md` for the full review.
