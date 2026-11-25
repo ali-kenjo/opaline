@@ -29,9 +29,16 @@ export function Sparkline({ values, min, max, height = 40, color, label }: Spark
       if (!ctx) return;
       const dpr = window.devicePixelRatio || 1;
       const w = el.clientWidth;
-      el.width = Math.round(w * dpr);
-      el.height = Math.round(height * dpr);
-      ctx.scale(dpr, dpr);
+      // Assigning width/height reallocates the backing store even when the size is the same, and
+      // this runs on every frame while the line slides; resize only when the size changed.
+      const pw = Math.round(w * dpr);
+      const ph = Math.round(height * dpr);
+      if (el.width !== pw || el.height !== ph) {
+        el.width = pw;
+        el.height = ph;
+      }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, height);
       const v = latest.current;
       if (v.length < 2) return;
       const lo = min ?? Math.min(...v);
