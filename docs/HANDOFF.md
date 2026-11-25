@@ -12,7 +12,7 @@ each ending with acceptance checks, a PROGRESS entry and the owner's sign-off.
 
 ## Status
 - **2.0 Phase 0 (stabilize)** is done and signed off (2026-11-25; see PROGRESS "2.0 · Phase 0").
-  Pushed to `origin/main`. The crash-recovery fix (open item 2) is on branch `claude/quizzical-matsumoto-d181cd`, not merged yet.
+  Pushed to `origin/main`. The crash-recovery fix (open item 2) is merged into local `main` (16c36cf), not pushed yet.
 - Next: **P1, design language and glass 2.0**, starting with three visual directions for the Opaline theme in the
   Lab (PLAN-2 task 1.1) and spikes S1 (transparency, blur pyramid) and S2 (WebKitGTK features).
 - RAM budget is now **450 MB PSS** (owner's decision, ADR 0009 update). Idle CPU budget unchanged (≤ 0.5 %).
@@ -22,7 +22,7 @@ each ending with acceptance checks, a PROGRESS entry and the owner's sign-off.
    and v1.0/1.1 were published unsigned. Needs the owner: create a minisign key pair, add `MINISIGN_SECRET_KEY` and
    `MINISIGN_PASSWORD` as GitHub secrets, then put the public key in the code. The release workflow now fails
    without the secret.
-2. **Two web processes after a crash:** when the shared web process dies, the layer reloads both windows, but they
+2. **(Fixed in 16c36cf)** Two web processes after a crash: when the shared web process dies, the layer reloads both windows, but they
    then run in two processes (+60 MB) until Opaline restarts (ADR 0009 update). Fix by recreating the windows with
    a related view after a crash.
 3. Memory levers documented but not built (ADR 0009 update): recycle the web process while hidden, windows sized
