@@ -18,6 +18,9 @@ const params = new URLSearchParams(location.search);
 // Screenshot tests read the frame counter to prove that an idle Lab draws nothing.
 (window as unknown as { __labScheduler?: typeof scheduler }).__labScheduler = scheduler;
 const still = params.has("still");
+/** `?only=glass|widgets|components|specimen` shows one section (for memory and perf bisecting). */
+const only = params.get("only");
+const shows = (section: string) => only === null || only === section;
 if (still) setReducedMotion(true);
 runWebviewCheck();
 const live = params.has("live") && inTauri;
@@ -123,24 +126,28 @@ export function LabApp() {
           Opaque
         </label>
       </div>
-      <GlassDemo
-        wallpaperId={wallpaper}
-        dark={dark}
-        slider={slider}
-        opaque={opaque}
-        variant={variant}
-        value={value}
-      />
-      <WidgetsDemo
-        wallpaperId={wallpaper}
-        dark={dark}
-        variant={variant}
-        value={value}
-        still={still}
-        live={live}
-      />
-      <ComponentsDemo dark={dark} value={value} />
-      <Specimen value={value} />
+      {shows("glass") ? (
+        <GlassDemo
+          wallpaperId={wallpaper}
+          dark={dark}
+          slider={slider}
+          opaque={opaque}
+          variant={variant}
+          value={value}
+        />
+      ) : null}
+      {shows("widgets") ? (
+        <WidgetsDemo
+          wallpaperId={wallpaper}
+          dark={dark}
+          variant={variant}
+          value={value}
+          still={still}
+          live={live}
+        />
+      ) : null}
+      {shows("components") ? <ComponentsDemo dark={dark} value={value} /> : null}
+      {shows("specimen") ? <Specimen value={value} /> : null}
     </main>
   );
 }

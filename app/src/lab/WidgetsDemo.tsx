@@ -28,6 +28,10 @@ import {
 import styles from "./Lab.module.css";
 import { type LabWallpaper, makeWallpaper } from "./wallpapers";
 
+/** `?kinds=cpu,clock` limits the Lab to some widget kinds (for memory and perf bisecting). */
+const KINDS = new URLSearchParams(location.search).get("kinds")?.split(",") ?? null;
+const showsKind = (kind: string) => KINDS === null || KINDS.includes(kind);
+
 const STAGE_W = 1100;
 
 /** Mock frames at 30 Hz, or one still frame for screenshots. */
@@ -165,7 +169,7 @@ function LabStageView({
           >
             {stage.items.map(({ id, size }) => {
               const w = widgets[id];
-              const def = w ? widgetByKind(w.kind) : undefined;
+              const def = w && showsKind(w.kind) ? widgetByKind(w.kind) : undefined;
               return def ? (
                 <WidgetFrame
                   key={id}
