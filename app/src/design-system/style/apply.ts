@@ -126,6 +126,7 @@ export function glassOptions(style: ResolvedStyle, roles: Roles): Omit<GlassOpti
   const text = style.textColor ? hexToRgba(style.textColor) : rgbOf(roles.onSurface);
   const look: SurfaceLook = {
     blur: style.blur / 100,
+    see: style.see,
     refraction: style.refraction / 50,
     rim: style.rim / 50,
     grain: style.grain / 50,

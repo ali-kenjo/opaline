@@ -30,7 +30,7 @@ export interface Surface {
 
 /** Glass effects of one surface. Strengths are 0–2 where 1 is the designed look. */
 export interface SurfaceLook {
-  /** Extra blur, 0 (the designed blur) … 1 (much softer). */
+  /** Blur 0 (sharp: the full-resolution wallpaper) … 1 (very soft); 0.6 is the 1.x look. */
   blur?: number;
   refraction?: number;
   rim?: number;
@@ -43,17 +43,31 @@ export interface SurfaceLook {
   /** Border color, 0–1 channels with alpha. */
   borderColor?: readonly [number, number, number, number];
   /**
-   * How the wallpaper shows through (glass 2.0, spike S1): `sampled` (the blurred quarter-res
-   * texture, 1.x), `sharp` (the full-resolution texture: blur 0 is sharp) or `alpha` (no sample;
-   * the real desktop shows through the window's transparency).
+   * How the background shows through (ADR 0012): `wallpaper` samples the wallpaper at the blur
+   * level; `real` draws no wallpaper, so the desktop behind the window shows through (desktop
+   * icons included).
    */
-  see?: "sampled" | "sharp" | "alpha";
+  see?: "wallpaper" | "real";
+  /** Chromatic dispersion at the rim, 0 (none) … 1. */
+  dispersion?: number;
+  /** Where the specular light comes from, degrees clockwise from 12 o'clock (315 = top left). */
+  specularAngle?: number;
+  /** Width of the specular rim (1 = designed, 1.6 px). */
+  specularWidth?: number;
+  /** A soft light along the inner edge, 0 … 1. */
+  innerGlow?: number;
+  /** Drop shadow geometry, CSS px (designed: 8, 24, 0). */
+  shadowOffsetY?: number;
+  shadowBlur?: number;
+  shadowSpread?: number;
+  /** Drop shadow color, 0–1 channels with alpha (designed: black, 1). */
+  shadowColor?: readonly [number, number, number, number];
 }
 
-const SEE_MODE = { sampled: 0, sharp: 1, alpha: 2 } as const;
+/** The 1.x look on the 2.0 blur scale (DESIGN-2 §8). */
+export const CLASSIC_BLUR = 0.6;
 
 /** Mip levels the blur slider spans on the quarter-res wallpaper. */
-const MAX_BLUR_LOD = 4;
 
 export interface WallpaperPlacement {
   /** The layer window's origin inside its monitor (CSS px). */
@@ -64,7 +78,7 @@ export interface WallpaperPlacement {
 }
 
 const SHADOW_MARGIN = 48;
-const INSTANCE_FLOATS = 28;
+const INSTANCE_FLOATS = 40;
 const POLY_TEX_WIDTH = 512;
 const CURVE_STEPS = 8;
 
@@ -125,6 +139,10 @@ export class GlassCompositor {
   private backdropTex: WebGLTexture | null = null;
   /** Full-resolution wallpaper (glass 2.0); only loaded while a surface needs it. */
   private sharpTex: WebGLTexture | null = null;
+  /** Mip level of the sharp texture whose size matches the soft one. */
+  private sharpLod = 2;
+  private softWidth = 0;
+  private sharpWidth = 0;
   private surfaces: Surface[] = [];
   private placement: WallpaperPlacement = {
     offsetX: 0,
@@ -265,6 +283,11 @@ export class GlassCompositor {
     if (which === "glass") this.wallpaperTex = tex;
     else if (which === "sharp") this.sharpTex = tex;
     else this.backdropTex = tex;
+    const width = "width" in source ? source.width : 0;
+    if (which === "glass") this.softWidth = width;
+    if (which === "sharp") this.sharpWidth = width;
+    if (this.softWidth > 0 && this.sharpWidth > 0)
+      this.sharpLod = Math.max(0, Math.log2(this.sharpWidth / this.softWidth));
     this.invalidate();
   }
 
@@ -369,15 +392,18 @@ export class GlassCompositor {
         o + 12,
       );
       const l = s.look;
+      data.set([l?.blur ?? CLASSIC_BLUR, l?.refraction ?? 1, l?.rim ?? 1, l?.grain ?? 1], o + 16);
       data.set(
-        [(l?.blur ?? 0) * MAX_BLUR_LOD, l?.refraction ?? 1, l?.rim ?? 1, l?.grain ?? 1],
-        o + 16,
-      );
-      data.set(
-        [l?.shadow ?? 1, l?.opaque ? 1 : 0, l?.borderWidth ?? 0, SEE_MODE[l?.see ?? "sampled"]],
+        [l?.shadow ?? 1, l?.opaque ? 1 : 0, l?.borderWidth ?? 0, l?.see === "real" ? 2 : 0],
         o + 20,
       );
       data.set(l?.borderColor ?? [0, 0, 0, 0], o + 24);
+      data.set(
+        [l?.dispersion ?? 0, l?.specularAngle ?? 315, l?.specularWidth ?? 1, l?.innerGlow ?? 0],
+        o + 28,
+      );
+      data.set([l?.shadowOffsetY ?? 8, l?.shadowBlur ?? 24, l?.shadowSpread ?? 0, 0], o + 32);
+      data.set(l?.shadowColor ?? [0, 0, 0, 1], o + 36);
       polyStart += count;
     });
     gl.useProgram(this.glass);
@@ -395,6 +421,7 @@ export class GlassCompositor {
     gl.uniform1i(u("u_polys"), 1);
     gl.uniform1i(u("u_sharp"), 2);
     gl.uniform1f(u("u_hasSharp"), this.sharpTex ? 1 : 0);
+    gl.uniform1f(u("u_sharpLod"), this.sharpLod);
     gl.uniform2f(u("u_viewport"), w, h);
     gl.uniform1f(u("u_margin"), SHADOW_MARGIN);
     gl.uniform2f(u("u_windowOffset"), p.offsetX, p.offsetY);

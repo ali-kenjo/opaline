@@ -6,6 +6,8 @@ export type ColorSource = "wallpaper" | "accent" | "custom";
 export type Theme = "auto" | "light" | "dark";
 export type HeroColor = "ramp" | "accent" | "custom";
 export type SurfaceKind = "glass" | "tinted" | "opaque" | "color" | "clear";
+/** How the background shows through glass (ADR 0012). */
+export type See = "wallpaper" | "real";
 export type Density = "compact" | "comfortable" | "spacious";
 export type MotionSpeed = "slow" | "default" | "fast";
 export type AppearanceState = "full" | "dimmed" | "automatic";
@@ -26,7 +28,9 @@ export interface ResolvedStyle {
   surface: SurfaceKind;
   surfaceColor: string | null;
   transparency: number;
+  /** 0 (sharp wallpaper) … 100 (very soft); 60 is the 1.x look (ADR 0012). */
   blur: number;
+  see: See;
   tintColor: string | null;
   refraction: number;
   rim: number;
@@ -83,7 +87,8 @@ export const BUILTIN_STYLE: Readonly<ResolvedStyle> = {
   surface: "glass",
   surfaceColor: null,
   transparency: 60,
-  blur: 0,
+  blur: 60,
+  see: "wallpaper",
   tintColor: null,
   refraction: 50,
   rim: 50,

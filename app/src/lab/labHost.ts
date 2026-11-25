@@ -124,7 +124,8 @@ export const LAB_SETTINGS: StoredSettings = {
       kind: "clock",
       style: {
         transparency: 100,
-        blur: 60,
+        // 60 % extra blur in 1.x, which is 60 + 0.4 × 60 on the 2.0 scale (ADR 0012).
+        blur: 84,
         textShadow: true,
         fontWidth: 40,
         numberFontFamily: "Roboto Flex",

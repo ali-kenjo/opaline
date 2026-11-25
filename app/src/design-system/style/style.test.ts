@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { CLASSIC_BLUR } from "../glass/compositor";
 import { sliderAlpha } from "../glass/legibility";
 import { glassDefault } from "../tokens/tokens";
 import {
@@ -24,8 +25,10 @@ describe("style", () => {
   it("the built-in default is the designed look", () => {
     expect(transparencyAlpha(BUILTIN_STYLE.transparency)).toBeCloseTo(sliderAlpha(glassDefault), 2);
     const g = glassOptions(BUILTIN_STYLE, rolesFor(BUILTIN_STYLE, ctx));
+    // 0.6 on the 2.0 blur scale is the 1.x glass (ADR 0012).
     expect(g.look).toMatchObject({
-      blur: 0,
+      blur: CLASSIC_BLUR,
+      see: "wallpaper",
       refraction: 1,
       rim: 1,
       grain: 1,
@@ -42,7 +45,7 @@ describe("style", () => {
     expect(r.origin.transparency).toBe("widget");
     expect(r.style.fontFamily).toBe("Noto Serif");
     expect(r.origin.fontFamily).toBe("global");
-    expect(r.style.blur).toBe(0);
+    expect(r.style.blur).toBe(CLASSIC_BLUR * 100);
     expect(r.origin.blur).toBe("default");
   });
 

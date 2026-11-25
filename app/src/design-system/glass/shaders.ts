@@ -11,9 +11,12 @@ layout(location = 1) in vec4 a_rect;          // x, y, w, h (css px, window spac
 layout(location = 2) in vec4 a_params;        // radius, tintAlpha, polyStart, polyCount
 layout(location = 3) in vec4 a_tint;          // rgb, dimmed
 layout(location = 4) in vec4 a_hover;         // hovered, pointer x, pointer y, lifted
-layout(location = 5) in vec4 a_look;          // blur lod, refraction, rim, grain (1 = designed look)
+layout(location = 5) in vec4 a_look;          // blur 0–1 (0 sharp), refraction, rim, grain (1 = designed look)
 layout(location = 6) in vec4 a_look2;         // shadow (1 = designed), opaque, border width px, see mode
 layout(location = 7) in vec4 a_border;        // border rgba
+layout(location = 8) in vec4 a_look3;         // dispersion, specular angle (deg), specular width, inner glow
+layout(location = 9) in vec4 a_depth;         // shadow offset y, shadow blur, shadow spread, -
+layout(location = 10) in vec4 a_shadowColor;  // shadow rgb, alpha multiplier
 uniform vec2 u_viewport;                      // css px
 uniform float u_margin;                       // shadow margin, css px
 out vec2 v_pos;                               // css px, window space
@@ -24,6 +27,9 @@ flat out vec4 v_hover;
 flat out vec4 v_look;
 flat out vec4 v_look2;
 flat out vec4 v_border;
+flat out vec4 v_look3;
+flat out vec4 v_depth;
+flat out vec4 v_shadowColor;
 void main() {
   vec2 lo = a_rect.xy - u_margin;
   vec2 hi = a_rect.xy + a_rect.zw + u_margin;
@@ -35,6 +41,9 @@ void main() {
   v_look = a_look;
   v_look2 = a_look2;
   v_border = a_border;
+  v_look3 = a_look3;
+  v_depth = a_depth;
+  v_shadowColor = a_shadowColor;
   vec2 clip = v_pos / u_viewport * 2.0 - 1.0;
   gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);
 }
@@ -50,10 +59,14 @@ flat in vec4 v_hover;
 flat in vec4 v_look;
 flat in vec4 v_look2;
 flat in vec4 v_border;
+flat in vec4 v_look3;
+flat in vec4 v_depth;
+flat in vec4 v_shadowColor;
 uniform sampler2D u_wallpaper;    // quarter-res blurred wallpaper of this monitor
 uniform sampler2D u_polys;        // RGBA32F: polygon vertices (x, y in surface-local css px)
 uniform sampler2D u_sharp;        // full-resolution wallpaper (see mode 1), with mipmaps
 uniform float u_hasSharp;
+uniform float u_sharpLod;         // mip level of the sharp texture that matches the soft texture's size
 uniform vec2 u_windowOffset;      // window origin inside the monitor, css px
 uniform vec2 u_monitorSize;       // css px
 uniform float u_hasWallpaper;
@@ -100,14 +113,19 @@ float hash(vec2 p) {
   return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
 }
 
+// One blur scale (DESIGN-2 §8, ADR 0012): 0–0.4 walks the sharp texture's mips down to the soft
+// texture's size, 0.4–0.6 crossfades into the soft (Gaussian, quarter-res) texture, 0.6–1 walks
+// its mips. 0.6 is exactly the 1.x look. Without the sharp texture, low blur falls back to 0.6.
 vec3 wallpaper(vec2 windowPos) {
   if (u_hasWallpaper < 0.5) return vec3(0.12, 0.12, 0.14);
   vec2 uv = clamp((windowPos + u_windowOffset) / u_monitorSize, 0.0, 1.0);
-  // See mode 1 (sharp): blur 0 samples the full-resolution wallpaper; more blur walks its mips.
-  if (v_look2.w > 0.5 && v_look2.w < 1.5 && u_hasSharp > 0.5) {
-    return textureLod(u_sharp, uv, v_look.x * 0.75).rgb;
+  float b = clamp(v_look.x, 0.0, 1.0);
+  if (b < 0.6 && u_hasSharp > 0.5) {
+    vec3 sharp = textureLod(u_sharp, uv, min(b, 0.4) / 0.4 * u_sharpLod).rgb;
+    if (b <= 0.4) return sharp;
+    return mix(sharp, textureLod(u_wallpaper, uv, 0.0).rgb, (b - 0.4) / 0.2);
   }
-  return textureLod(u_wallpaper, uv, v_look.x).rgb;
+  return textureLod(u_wallpaper, uv, max(b - 0.6, 0.0) / 0.4 * 4.0).rgb;
 }
 
 void main() {
@@ -117,11 +135,11 @@ void main() {
   float d = surfaceDistance(local, halfSize);
   float lifted = v_hover.w;
 
-  // Drop shadow (outside and under): offset down, soft.
-  float shadowY = mix(8.0, 16.0, lifted);
-  float shadowBlur = mix(24.0, 40.0, lifted);
-  float shadowAlpha = mix(0.28, 0.36, lifted) * v_look2.x;
-  float ds = surfaceDistance(local - vec2(0.0, shadowY), halfSize);
+  // Drop shadow (outside and under): offset down, soft; lifting adds depth.
+  float shadowY = v_depth.x + 8.0 * lifted;
+  float shadowBlur = v_depth.y + 16.0 * lifted;
+  float shadowAlpha = mix(0.28, 0.36, lifted) * v_look2.x * v_shadowColor.a;
+  float ds = surfaceDistance(local - vec2(0.0, shadowY), halfSize + v_depth.z);
   float shadow = (1.0 - smoothstep(-shadowBlur * 0.35, shadowBlur, ds)) * shadowAlpha;
 
   float coverage = 1.0 - smoothstep(-0.75, 0.75, d);
@@ -136,6 +154,11 @@ void main() {
   float edge = 1.0 - smoothstep(0.0, 14.0, -d);
   vec2 refract = opaque ? vec2(0.0) : -n * edge * edge * 10.0 * v_look.y;
   vec3 bg = wallpaper(v_pos + refract);
+  // Chromatic dispersion at the rim: red and blue refract a little more and less than green.
+  if (v_look3.x > 0.0 && !opaque) {
+    bg.r = wallpaper(v_pos + refract * (1.0 + 0.35 * v_look3.x)).r;
+    bg.b = wallpaper(v_pos + refract * (1.0 - 0.35 * v_look3.x)).b;
+  }
 
   // Dimmed: desaturated and darker.
   float dimmed = v_tint.a;
@@ -145,16 +168,21 @@ void main() {
   float tintAlpha = opaque ? 1.0 : clamp(v_params.y + dimmed * 0.12 - v_hover.x * 0.04, 0.0, 1.0);
   vec3 col = mix(bg, v_tint.rgb, tintAlpha);
 
-  // Specular rim, lit from the top left; leans toward the pointer while hovered.
-  vec2 lightDir = normalize(vec2(-0.7, -0.75));
+  // Specular rim, lit from the given angle (315° = top left); leans toward the pointer while hovered.
+  float a = radians(v_look3.y);
+  vec2 lightDir = normalize(vec2(sin(a), -cos(a)));
   if (v_hover.x > 0.5) {
     vec2 toPointer = v_hover.yz - center;
     if (length(toPointer) > 1.0) lightDir = normalize(mix(lightDir, normalize(toPointer), 0.35));
   }
-  float rimMask = 1.0 - smoothstep(0.0, 1.6, abs(d + 0.8));
+  float rimWidth = 1.6 * max(v_look3.z, 0.1);
+  float rimMask = 1.0 - smoothstep(0.0, rimWidth, abs(d + rimWidth * 0.5));
   float facing = clamp(dot(n, lightDir), 0.0, 1.0);
   float rim = rimMask * (0.10 + 0.55 * facing) * (1.0 + v_hover.x * 0.4) * (opaque ? 0.3 : 1.0) * v_look.z;
   col += vec3(rim);
+
+  // Inner glow: a soft light along the inside of the edge.
+  col += vec3(1.0) * (1.0 - smoothstep(0.0, 12.0, -d)) * 0.22 * v_look3.w * (opaque ? 0.3 : 1.0);
 
   // Inner shadow along the bottom edge.
   float inner = (1.0 - smoothstep(0.0, 10.0, -d)) * clamp(n.y, 0.0, 1.0) * 0.18;
@@ -166,7 +194,7 @@ void main() {
     vec3 c = v_tint.rgb * tintAlpha + vec3(rim);
     float a = clamp(tintAlpha + rim, 0.0, 1.0);
     vec4 clear = vec4(c * coverage, a * coverage);
-    vec4 clearShade = vec4(0.0, 0.0, 0.0, shadow * 0.5 * (1.0 - coverage));
+    vec4 clearShade = vec4(v_shadowColor.rgb * shadow * 0.5, shadow * 0.5) * (1.0 - coverage);
     o_color = clear + clearShade * (1.0 - clear.a);
     return;
   }
@@ -182,7 +210,7 @@ void main() {
   }
 
   vec4 glass = vec4(col * coverage, coverage);
-  vec4 shade = vec4(0.0, 0.0, 0.0, shadow * (1.0 - coverage));
+  vec4 shade = vec4(v_shadowColor.rgb * shadow, shadow) * (1.0 - coverage);
   o_color = glass + shade * (1.0 - glass.a);
 }
 `;

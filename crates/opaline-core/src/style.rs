@@ -55,6 +55,16 @@ pub enum Surface {
     Clear,
 }
 
+/// How the background shows through glass (ADR 0012).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum See {
+    /// The wallpaper, sampled at the blur level (0 = sharp).
+    Wallpaper,
+    /// Real transparency: the desktop behind the layer window shows through.
+    Real,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Density {
@@ -113,9 +123,11 @@ pub struct Style {
     /// 0 (solid) … 100 (clearest glass).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transparency: Option<f64>,
-    /// 0 … 100.
+    /// 0 (sharp) … 100 (very soft); 60 is the 1.x look (settings v2, ADR 0012).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub blur: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub see: Option<See>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tint_color: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

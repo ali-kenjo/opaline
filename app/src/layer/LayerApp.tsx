@@ -567,9 +567,11 @@ export function LayerApp() {
     return typeof e === "object" && e !== null && !Array.isArray(e) ? e : null;
   }, [wallpapers, monitor]);
   const wallpaper = useImage(typeof entry?.glass === "string" ? entry.glass : null);
-  // Glass 2.0 spike S1: the full-resolution wallpaper, loaded only while something samples it.
+  // The full-resolution wallpaper, loaded only while a widget's blur is below the 1.x level
+  // (ADR 0012); GlassStage reports that.
+  const [needsSharp, setNeedsSharp] = useState(SPIKE_WANTS_SHARP);
   const sharpWallpaper = useImage(
-    SPIKE_WANTS_SHARP && typeof entry?.sharp === "string" ? entry.sharp : null,
+    needsSharp && typeof entry?.sharp === "string" ? entry.sharp : null,
   );
   const luminance = useMemo(
     () =>
@@ -667,6 +669,7 @@ export function LayerApp() {
         <GlassStage
           wallpaper={wallpaper}
           sharpWallpaper={sharpWallpaper}
+          onNeedsSharp={setNeedsSharp}
           wallpaperUrl={typeof entry?.glass === "string" ? entry.glass : null}
           placement={placement}
           tint={tint}

@@ -14,6 +14,7 @@ import {
   useState,
 } from "react";
 import {
+  CLASSIC_BLUR,
   type Surface,
   type SurfaceLook,
   GlassCompositor,
@@ -86,6 +87,11 @@ export interface GlassStageProps {
   sharpWallpaper?: TexImageSource | null;
   /** Spike S1: every surface in this see mode at blur 0 with a light tint (default: `?glass=`). */
   spikeSee?: "sharp" | "alpha" | null;
+  /**
+   * Told whether any surface needs the sharp wallpaper (blur below the 1.x level), so the page
+   * loads it only then (ADR 0012).
+   */
+  onNeedsSharp?: (needed: boolean) => void;
   /** The same image as a URL, for the CSS fallback. */
   wallpaperUrl: string | null;
   placement: WallpaperPlacement;
@@ -124,6 +130,7 @@ export function GlassStage(props: GlassStageProps) {
     wallpaper,
     sharpWallpaper,
     spikeSee = SPIKE_SEE,
+    onNeedsSharp,
     wallpaperUrl,
     placement,
     tint,
@@ -242,14 +249,24 @@ export function GlassStage(props: GlassStageProps) {
             item.h / placement.monitorHeight,
           )
         : 0.05;
-      const o = spikeSee
+      const chosen: GlassOptions = spikeSee
         ? {
             ...r.options,
             alpha: spikeSee === "alpha" ? 0.1 : 0.12,
             legibility: false,
-            look: { ...r.options.look, blur: 0, see: spikeSee },
+            look: {
+              ...r.options.look,
+              blur: 0,
+              see: spikeSee === "alpha" ? ("real" as const) : ("wallpaper" as const),
+            },
           }
         : r.options;
+      // Real transparency would show the windows behind a raised layer (Peek, Edit): sample the
+      // wallpaper there instead (ADR 0012).
+      const o: GlassOptions =
+        backdrop > 0.001 && chosen.look?.see === "real"
+          ? { ...chosen, look: { ...chosen.look, see: "wallpaper" } }
+          : chosen;
       const t = o.tint ?? tint;
       const a = o.alpha ?? base;
       surfaces.push({
@@ -276,7 +293,11 @@ export function GlassStage(props: GlassStageProps) {
       });
     }
     compositor.setSurfaces(surfaces);
+    onNeedsSharp?.(
+      surfaces.some((x) => x.look?.see !== "real" && (x.look?.blur ?? CLASSIC_BLUR) < CLASSIC_BLUR),
+    );
   }, [
+    onNeedsSharp,
     compositor,
     luminance,
     placement,

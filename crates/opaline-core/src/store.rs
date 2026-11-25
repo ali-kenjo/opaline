@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use crate::hub::Hub;
 use crate::style::{Style, WidgetConfig};
 
-pub const VERSION: u32 = 1;
+pub const VERSION: u32 = 2;
 pub const TOPIC: &str = "settings";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -305,6 +305,9 @@ pub fn migrate(mut json: serde_json::Value) -> (Settings, bool) {
         // v0 (unversioned) → v1: nothing renamed yet; just stamp the version.
         obj.insert("version".into(), serde_json::json!(1));
     }
+    if version <= 1 {
+        blur_v1_to_v2(&mut json);
+    }
     let writable = version <= u64::from(VERSION);
     let has_onboarding = json.get("onboardingDone").is_some();
     crate::style::sanitize(&mut json);
@@ -319,6 +322,33 @@ pub fn migrate(mut json: serde_json::Value) -> (Settings, bool) {
         return (Settings::default(), false);
     }
     (settings, writable)
+}
+
+/// v1 → v2: `blur` was extra blur on top of the fixed 1.x glass (0 … 100); on the 2.0 scale 0 is
+/// sharp and 60 is the 1.x look (ADR 0012), so old values move to 60 + 0.4 × old.
+fn blur_v1_to_v2(json: &mut serde_json::Value) {
+    fn fix(style: Option<&mut serde_json::Value>) {
+        // Out-of-range values are left for `sanitize` to drop, not moved into range.
+        if let Some(blur) = style.and_then(|s| s.get_mut("blur"))
+            && let Some(old) = blur.as_f64().filter(|v| (0.0..=100.0).contains(v))
+        {
+            *blur = serde_json::json!(60.0 + 0.4 * old);
+        }
+    }
+    fix(json.get_mut("style"));
+    if let Some(serde_json::Value::Object(named)) = json.get_mut("styles") {
+        for style in named.values_mut() {
+            fix(Some(style));
+        }
+    }
+    if let Some(serde_json::Value::Object(widgets)) = json.get_mut("widgets") {
+        for widget in widgets.values_mut() {
+            fix(widget.get_mut("style"));
+        }
+    }
+    if let Some(obj) = json.as_object_mut() {
+        obj.insert("version".into(), serde_json::json!(2));
+    }
 }
 
 fn path() -> Option<PathBuf> {
@@ -403,7 +433,7 @@ mod tests {
         );
         assert!(patched(&s, &json!({"network": {"billingDay": "x"}})).is_err());
         assert_eq!(
-            patched(&s, &json!({"version": 2})),
+            patched(&s, &json!({"version": 3})),
             Err("version-is-read-only".into())
         );
         let loc = json!({"weather": {"location": {"name": "Berlin", "latitude": 52.52, "longitude": 13.41}}});
@@ -462,6 +492,25 @@ mod tests {
         assert_eq!(s.style.rim, Some(20.0));
         assert_eq!(s.style.blur, None);
         assert!(writable);
+    }
+
+    #[test]
+    fn v1_blur_moves_to_the_2_0_scale() {
+        let (s, writable) = migrate(json!({
+            "version": 1,
+            "style": {"blur": 50},
+            "styles": {"Night": {"blur": 0}},
+            "widgets": {"w1": {"kind": "cpu", "style": {"blur": 100}}, "w2": {"kind": "clock"}}
+        }));
+        assert!(writable);
+        assert_eq!(s.version, VERSION);
+        assert_eq!(s.style.blur, Some(80.0));
+        assert_eq!(s.styles.get("Night").and_then(|n| n.blur), Some(60.0));
+        assert_eq!(s.widgets.get("w1").and_then(|w| w.style.blur), Some(100.0));
+        assert_eq!(s.widgets.get("w2").and_then(|w| w.style.blur), None);
+        // A v2 file is left alone.
+        let (s, _) = migrate(json!({"version": 2, "style": {"blur": 10}}));
+        assert_eq!(s.style.blur, Some(10.0));
     }
 
     #[test]
