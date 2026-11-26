@@ -432,3 +432,42 @@ Brief: `OPALINE_2_BRIEF.md` §11; plan: `docs/PLAN-2.md` (approved 2026-11-25).
 | Budget (release, your layout on a config copy, both monitors, widgets visible) | RAM **415–419 MB** PSS (1.1.0 on the same copy: 414–417 MB; budget 450); the legibility map adds about 5 MB to the web process. Fixed: core re-rendered the sharp wallpaper on every start (+20 MB kept by glibc). CPU with widgets **visible**: about 2 %, the same as 1.1.0 (2.0 %) — the ring and odometer springs on every 1 Hz update; covered stays near 0 (P0). Known issue for P2's Number and Ring blocks |
 | 🧑 Tuning the default see-through look on your desktop | ✅ 2026-11-26, release build on a copy of your settings: **blur 30, transparency 80, "Keep text readable" on** ("Yes, keep it"); the Opaline theme carries these values (DESIGN-2 §8.3) |
 | 🧑 Your sign-off | ✅ 2026-11-26 |
+
+## 2.0 · Phase 2: Composition engine (built 2026-11-26/27, waiting for sign-off)
+
+**Built** (all local, not pushed):
+- **Expression language** (`docs/EXPRESSIONS.md`): `crates/opaline-expr` (Rust) and `app/src/expr` (TS), one grammar,
+  pipes, null propagation, locale formatting (fixed, percent, unit, bytes, duration), colors, `has`, history
+  (`avg/min/max/delta`), `now/until`, layer-only `date` (ICU skeletons via Intl, `'w'` = ISO week) and `ramp`.
+  Shared corpus `spec/expressions/` (~160 cases) passes on both; a differential test agreed on 200,000 random
+  programs; fuzz/property tests; nesting limit 64 (operators count). No `eval`/`new Function` (lint rule).
+- **Composition model** (`docs/COMPOSITION.md`): `crates/opaline-compose` (Rust types are the source) →
+  `spec/composition.schema.json` → `app/src/compose/model.gen.ts` (`pnpm gen:types`); staleness tests both ways.
+  Validation with JSON pointers, limits (1 MiB, 1024 nodes, depth 24, raw JSON depth checked before serde), command
+  allowlist for controls (also in TS, parity test).
+- **Runtime** (`app/src/compose/runtime.ts`): compile once, lazy evaluation remembering inputs, re-evaluate only on
+  change; `now()` wakes at the coarsest step its formats need (a HH:mm clock once a minute). Idle = 0 evaluations
+  (Lab e2e test reads `__labEvaluations`).
+- **Renderer and all blocks** (`app/src/compose/render/`): containers (stack/row/column/grid/overlay/spacer), text
+  with shorter forms, number (odometer), icon, image (core assets/data only), shape (morph), ring/gauge (sweep,
+  caps, segments, wavy, ticks, needle, ramp colors), bar, progress, chart (values or core history + live points),
+  heatmap, list (`$item/$index`, fit rows), divider, canvas (analog clock), button/toggle/slider/input (allowlisted
+  commands, two-click confirm), plugin placeholder. Lab stage "Composition blocks" with screenshot/truncation/contrast.
+- **Clock runs on the engine** (`widgets/clock.composition.ts`, equal to `spec/compositions/clock.json`, which core
+  validates); same options and behavior as before.
+- **Spikes:** S5 plugin sandbox (ADR 0014: worker under an `opaline-plugin://` host page with its own CSP header;
+  iframe `sandbox="allow-scripts allow-same-origin"`), S3 keyboard focus (ADR 0015), S4 Quick Settings APIs
+  (ADR 0016: all controls work from core with the shell's interfaces; volume via `wpctl` + PipeWire).
+- **Fixes from S3:** the layer no longer steals focus at start (focus-on-map off; helper focus guard in Native,
+  verified after re-login); widget buttons/controls take clicks on the desktop (`[data-interactive]` input region,
+  e2e test); buttons hand focus back (`release-focus` → helper `ReleaseFocus`, additive `ApiRevision` 1).
+- **Animation CPU:** fitting no longer re-measures every render (variant toggles 3,050 → 36 per 15 s); springs settle
+  below half a pixel; data-driven animations capped at 30 fps. Lab (headless WebKit): CPU+Clock 22 → 10 frames/s,
+  23 % → 18 % of a core (`app/scripts/measure-lab-cpu.mjs`).
+
+**Checks:** cargo workspace tests, clippy `-D warnings`, fmt; 272 Vitest, 55 Playwright e2e; differential expression
+test; helper lint.
+
+**Not done / deferred:** a real-layer budget run (owner skipped it on 2026-11-27; the animation work is measured only
+headless); the `ensure_enabled` side finding; P7 control widgets.
+
