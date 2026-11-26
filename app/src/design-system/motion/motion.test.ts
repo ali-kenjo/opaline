@@ -122,4 +122,51 @@ describe("scheduler", () => {
     while (frame());
     expect(rendered).toBe(1);
   });
+
+  it("runs ambient animations at 30 fps and everything else at full rate", () => {
+    const { clock, frame } = fakeClock();
+    const sch = new Scheduler(clock);
+    let rendered = 0;
+    sch.onFrame(() => rendered++);
+    // An ambient animator that never settles, for 20 display frames at 16 ms.
+    sch.add({ ambient: true, step: () => true });
+    for (let i = 0; i < 20; i++) frame();
+    expect(rendered).toBeGreaterThanOrEqual(9);
+    expect(rendered).toBeLessThanOrEqual(11);
+
+    // A user-driven animator joins: every display frame renders.
+    rendered = 0;
+    sch.add({ step: () => true });
+    for (let i = 0; i < 10; i++) frame();
+    expect(rendered).toBe(10);
+  });
+
+  it("invalidate draws on the next frame even while ambient animations throttle", () => {
+    const { clock, frame } = fakeClock();
+    const sch = new Scheduler(clock);
+    let rendered = 0;
+    sch.onFrame(() => rendered++);
+    sch.add({ ambient: true, step: () => true });
+    frame();
+    rendered = 0;
+    sch.invalidate();
+    frame();
+    expect(rendered).toBe(1);
+  });
+});
+
+describe("spring rest", () => {
+  it("settles at its own threshold", () => {
+    const fine = new Spring(0, "spatialFast");
+    const coarse = new Spring(0, "spatialFast", { delta: 0.005, velocity: 0.05 });
+    fine.setTarget(1);
+    coarse.setTarget(1);
+    let a = 0;
+    let b = 0;
+    while (fine.step(1 / 60)) a++;
+    while (coarse.step(1 / 60)) b++;
+    expect(fine.value).toBe(1);
+    expect(coarse.value).toBe(1);
+    expect(b).toBeLessThan(a);
+  });
 });

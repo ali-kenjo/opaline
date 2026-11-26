@@ -9,7 +9,9 @@ import styles from "./Odometer.module.css";
 const DIGITS = "0123456789".split("");
 
 class Column implements Animator {
-  readonly spring = new Spring(0, "spatialFast");
+  // Digit positions are in em: settled once within 0.005 em (well under a pixel).
+  readonly spring = new Spring(0, "spatialFast", { delta: 0.005, velocity: 0.05 });
+  readonly ambient = true;
 
   constructor(private readonly strip: HTMLElement) {}
 

@@ -2,7 +2,9 @@
 // variants (longest first: with icon, full label, the field's written short label) and shows the
 // first one that fits; when none fits, the text stays for screen readers and the tooltip only.
 // `fitRows` does the same for label/value rows and drops a row whose value can't fit at all.
-// Measuring happens in layout effects directly on the DOM, so fitting never costs a re-render.
+// Measuring happens in layout effects directly on the DOM, so fitting never costs a re-render;
+// an element whose text and width didn't change since its last fit isn't measured again, and
+// attributes are written only when they change (a data update must not restyle every label).
 import { type ReactNode, useLayoutEffect, useRef } from "react";
 import styles from "./data.module.css";
 
@@ -24,17 +26,40 @@ function overflows(el: HTMLElement): boolean {
   return el.scrollWidth > el.clientWidth + 0.5;
 }
 
-/** Shows the first variant of a `Fit` element that fits; hides the text if none does. */
-export function fitVariants(el: HTMLElement): void {
+function setHidden(el: HTMLElement, hidden: boolean): void {
+  if (el.hidden !== hidden) el.hidden = hidden;
+}
+
+function setFlag(el: HTMLElement, name: string, on: boolean): void {
+  if (el.hasAttribute(name) !== on) el.toggleAttribute(name, on);
+}
+
+/** What a fit depended on last time: the text and the width it had. */
+const lastFit = new WeakMap<HTMLElement, string>();
+
+function unchanged(el: HTMLElement, width: number): boolean {
+  const key = `${String(width)}|${el.textContent}`;
+  if (lastFit.get(el) === key) return true;
+  lastFit.set(el, key);
+  return false;
+}
+
+/**
+ * Shows the first variant of a `Fit` element that fits; hides the text if none does. `force`
+ * fits even if the text and the parent's width are as last time (`fitRows` knows better: a
+ * sibling value may have grown).
+ */
+export function fitVariants(el: HTMLElement, force = false): void {
   const parts = [...el.querySelectorAll<HTMLElement>(":scope > [data-fit-variant]")];
-  el.removeAttribute("data-fit-hidden");
+  if (unchanged(el, el.parentElement?.clientWidth ?? 0) && !force) return;
+  setFlag(el, "data-fit-hidden", false);
   for (let i = 0; i < parts.length; i++) {
     parts.forEach((p, j) => {
-      p.hidden = j !== i;
+      setHidden(p, j !== i);
     });
     if (!overflows(el)) return;
   }
-  el.setAttribute("data-fit-hidden", "");
+  setFlag(el, "data-fit-hidden", true);
 }
 
 /**
@@ -44,10 +69,13 @@ export function fitVariants(el: HTMLElement): void {
  */
 export function fitRows(container: HTMLElement): void {
   const rows = [...container.querySelectorAll<HTMLElement>("[data-fit-row]")];
+  const width = container.clientWidth;
   for (const row of rows) {
-    row.hidden = false;
-    for (const fit of row.querySelectorAll<HTMLElement>("[data-fit]")) fitVariants(fit);
-    if (overflows(row)) row.hidden = true;
+    // A row whose text and the container's width are as last time keeps its result.
+    if (unchanged(row, width)) continue;
+    setHidden(row, false);
+    for (const fit of row.querySelectorAll<HTMLElement>("[data-fit]")) fitVariants(fit, true);
+    if (overflows(row)) setHidden(row, true);
   }
   // Vertically: rows that would end more than ROW_SLACK px into the card's bottom padding are
   // dropped, so a row is never half visible at the bottom edge.
@@ -55,7 +83,7 @@ export function fitRows(container: HTMLElement): void {
   if (!bounds) return;
   const limit = bounds.getBoundingClientRect().bottom + ROW_SLACK;
   for (const row of rows) {
-    if (!row.hidden && row.getBoundingClientRect().bottom > limit) row.hidden = true;
+    if (!row.hidden && row.getBoundingClientRect().bottom > limit) setHidden(row, true);
   }
 }
 
@@ -67,23 +95,37 @@ export interface FitProps {
   className?: string | undefined;
 }
 
+/** Forgets what an element was fitted for, so the next fit measures again (size or fonts). */
+function refit(el: HTMLElement, fit: (el: HTMLElement) => void): () => void {
+  return () => {
+    lastFit.delete(el);
+    for (const child of el.querySelectorAll<HTMLElement>("[data-fit], [data-fit-row]")) {
+      lastFit.delete(child);
+    }
+    fit(el);
+  };
+}
+
 export function Fit({ variants, label, className }: FitProps) {
   const ref = useRef<HTMLSpanElement>(null);
+  // Every render: cheap when nothing it depends on changed.
+  useLayoutEffect(() => {
+    if (ref.current) fitVariants(ref.current);
+  });
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const fit = () => {
-      fitVariants(el);
-    };
-    fit();
-    const ro = new ResizeObserver(fit);
+    const again = refit(el, (e) => {
+      fitVariants(e, true);
+    });
+    const ro = new ResizeObserver(again);
     if (el.parentElement) ro.observe(el.parentElement);
-    const unfonts = refitOnFonts(fit);
+    const unfonts = refitOnFonts(again);
     return () => {
       ro.disconnect();
       unfonts();
     };
-  });
+  }, []);
   return (
     <span
       ref={ref}
@@ -106,19 +148,19 @@ export function Fit({ variants, label, className }: FitProps) {
 export function useFitRows<T extends HTMLElement>() {
   const ref = useRef<T>(null);
   useLayoutEffect(() => {
+    if (ref.current) fitRows(ref.current);
+  });
+  useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const fit = () => {
-      fitRows(el);
-    };
-    fit();
-    const ro = new ResizeObserver(fit);
+    const again = refit(el, fitRows);
+    const ro = new ResizeObserver(again);
     ro.observe(el);
-    const unfonts = refitOnFonts(fit);
+    const unfonts = refitOnFonts(again);
     return () => {
       ro.disconnect();
       unfonts();
     };
-  });
+  }, []);
   return ref;
 }

@@ -20,6 +20,9 @@ scripts/acceptance-p1.sh                       # Opaline next to top/free/nvidia
 scripts/capture-fixtures.sh [name]             # redacted sysfs/procfs/D-Bus snapshot → fixtures/<name>/
 cargo test -p opaline-core -- --ignored nvml   # on NVIDIA machines: NVML holds no /dev/nvidia* after release
 scripts/measure-budget.sh 60                   # CPU/RAM of all Opaline processes vs. the budgets
+cd app && node scripts/measure-lab-cpu.mjs 20 "only=widgets" "only=widgets&motion=off"
+                                               # Lab CPU and frames/s in headless WebKit (Lab served on :4173);
+                                               # software rendering inflates paint, so compare runs, not absolutes
 cargo test --workspace && cargo clippy --workspace --all-targets -- -D warnings && cargo fmt --all --check
 cd app && pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e
 cd app && LAB=1 pnpm exec vite build && pnpm exec vite preview  # Widget Lab at http://localhost:4173/lab.html

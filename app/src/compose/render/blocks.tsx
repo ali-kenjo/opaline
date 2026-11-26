@@ -140,10 +140,11 @@ export function RingBlock({ node, at, attrs }: BlockProps<"ring">) {
       }
     };
     if (!anim.current) {
-      const spring = new Spring(target, "spatialDefault");
+      const spring = new Spring(target, "spatialDefault", { delta: 0.002, velocity: 0.02 });
       anim.current = {
         spring,
         animator: {
+          ambient: true,
           step(dt) {
             const moving = spring.step(dt);
             draw(Math.min(1, Math.max(0, spring.value)));
@@ -430,10 +431,11 @@ export function ShapeBlock({ node, at, attrs }: BlockProps<"shape">) {
     }
     // A new shape: morph from the old one.
     const morph = new Morph(materialShape(s.shape), materialShape(shape));
-    const spring = new Spring(0, "spatialDefault");
+    const spring = new Spring(0, "spatialDefault", { delta: 0.005, velocity: 0.05 });
     spring.setTarget(1);
     state.current = { shape, spring, morph };
     scheduler.add({
+      ambient: true,
       step(dt) {
         const moving = spring.step(dt);
         el.setAttribute("d", cubicsToPath(morph.asCubics(spring.value), size));

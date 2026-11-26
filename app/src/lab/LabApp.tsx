@@ -34,7 +34,8 @@ const shows = (section: string) => (only === null && !params.has("spike")) || on
 const spike = params.get("spike");
 /** The P1 visual directions are opt-in, so the regular Lab and its baselines stay as they are. */
 const directions = only === "directions";
-if (still) setReducedMotion(true);
+// `motion=off`: live values but no animation (to measure what the animations cost).
+if (still || params.get("motion") === "off") setReducedMotion(true);
 runWebviewCheck();
 const live = params.has("live") && inTauri;
 if (live) {

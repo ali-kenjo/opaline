@@ -50,8 +50,13 @@ export function params(token: SpringToken | SpringParams): SpringParams {
   return typeof token === "string" ? springs[token] : token;
 }
 
-function resting(value: number, target: number, velocity: number): boolean {
-  return Math.abs(value - target) < REST_DELTA && Math.abs(velocity) < REST_VELOCITY;
+/**
+ * When a spring counts as settled, in the animated value's own units: pick values just below what
+ * can be seen (half a pixel), so no frames are spent on invisible tails.
+ */
+export interface Rest {
+  delta?: number;
+  velocity?: number;
 }
 
 /** One animated number. */
@@ -60,11 +65,19 @@ export class Spring {
   velocity = 0;
   target: number;
   readonly params: SpringParams;
+  private readonly restDelta: number;
+  private readonly restVelocity: number;
 
-  constructor(initial: number, token: SpringToken | SpringParams = "spatialDefault") {
+  constructor(
+    initial: number,
+    token: SpringToken | SpringParams = "spatialDefault",
+    rest: Rest = {},
+  ) {
     this.value = initial;
     this.target = initial;
     this.params = params(token);
+    this.restDelta = rest.delta ?? REST_DELTA;
+    this.restVelocity = rest.velocity ?? REST_VELOCITY;
   }
 
   /** Retargets; the current velocity carries over, so interruptions stay smooth. */
@@ -80,8 +93,13 @@ export class Spring {
   }
 
   get atRest(): boolean {
+    return this.settled();
+  }
+
+  private settled(): boolean {
     return (
-      Math.abs(this.value - this.target) < REST_DELTA && Math.abs(this.velocity) < REST_VELOCITY
+      Math.abs(this.value - this.target) < this.restDelta &&
+      Math.abs(this.velocity) < this.restVelocity
     );
   }
 
@@ -95,7 +113,7 @@ export class Spring {
     const [d, v] = stepSpring(this.value - this.target, this.velocity, dt, this.params);
     this.value = this.target + d;
     this.velocity = v;
-    if (resting(this.value, this.target, this.velocity)) {
+    if (this.settled()) {
       this.value = this.target;
       this.velocity = 0;
       return false;

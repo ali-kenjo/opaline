@@ -36,9 +36,11 @@ export function Ring({
     const el = arc.current;
     if (!el) return;
     if (!anim.current) {
-      const spring = new Spring(value, token);
+      // 0 … 1 of the circumference: settled within 0.2 % (under half a pixel on these rings).
+      const spring = new Spring(value, token, { delta: 0.002, velocity: 0.02 });
       anim.current = {
         spring,
+        ambient: true,
         step(dt: number) {
           const moving = spring.step(dt);
           el.style.strokeDashoffset = String(

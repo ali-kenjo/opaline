@@ -41,6 +41,7 @@ export function LoadingIndicator({
     const spring = new Spring(0, "spatialFast");
     let alive = true;
     const animator: Animator = {
+      ambient: true,
       step(dt) {
         const morph = morphs[index];
         if (!morph) return false;

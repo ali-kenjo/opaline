@@ -17,7 +17,8 @@ export interface SparklineProps {
 
 export function Sparkline({ values, min, max, height = 40, color, label }: SparklineProps) {
   const canvas = useRef<HTMLCanvasElement>(null);
-  const shift = useRef(new Spring(0, "effectsDefault"));
+  // In steps between samples: settled within 1 % of a step.
+  const shift = useRef(new Spring(0, "effectsDefault", { delta: 0.01, velocity: 0.1 }));
   const latest = useRef(values);
 
   useLayoutEffect(() => {
@@ -70,6 +71,7 @@ export function Sparkline({ values, min, max, height = 40, color, label }: Spark
     };
     const s = shift.current;
     const animator: Animator = {
+      ambient: true,
       step(dt) {
         const moving = s.step(dt);
         draw();

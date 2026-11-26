@@ -5,7 +5,15 @@
 export interface Animator {
   /** Advances by `dt` seconds; returns `true` while it still needs frames. */
   step(dt: number): boolean;
+  /**
+   * Follows data, not the user (rolling digits, rings, charts, the visualizer): while only such
+   * animators run, frames come at most at AMBIENT_FPS. Anything the user drives runs at full rate.
+   */
+  ambient?: boolean;
 }
+
+/** The frame rate for ambient animations alone (desktop widgets, not something being dragged). */
+export const AMBIENT_FPS = 30;
 
 type FrameCallback = (now: number) => void;
 
@@ -31,6 +39,8 @@ export class Scheduler {
   private last: number | null = null;
   private paused = false;
   private pending = false;
+  /** `invalidate` asked for a frame: draw it now, whatever the ambient rate says. */
+  private forced = false;
   /** Frames rendered since creation (for tests and the Lab's frame meter). */
   frames = 0;
 
@@ -76,6 +86,7 @@ export class Scheduler {
 
   /** Requests one frame even if nothing animates (layout or theme changed). */
   invalidate(): void {
+    this.forced = true;
     this.wake();
   }
 
@@ -89,6 +100,16 @@ export class Scheduler {
 
   private readonly tick = (now: number): void => {
     this.frame = null;
+    // Only ambient animations: skip this display frame if the last one was under 1/30 s ago.
+    if (!this.forced && this.last !== null && now - this.last < 1000 / AMBIENT_FPS - 2) {
+      let ambientOnly = this.animators.size > 0;
+      for (const a of this.animators) ambientOnly &&= a.ambient === true;
+      if (ambientOnly) {
+        this.frame = this.clock.request(this.tick);
+        return;
+      }
+    }
+    this.forced = false;
     const dt =
       this.last === null ? 1 / 60 : Math.min(MAX_DT, Math.max(0, (now - this.last) / 1000));
     this.last = now;

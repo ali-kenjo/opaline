@@ -396,6 +396,7 @@ function Visualizer({ ctx }: { ctx: RenderCtx }) {
       }
     };
     const animator: Animator = {
+      ambient: true,
       step() {
         draw();
         return false;
