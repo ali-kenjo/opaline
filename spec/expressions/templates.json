@@ -1,0 +1,199 @@
+{
+ "cases": [
+  {
+   "name": "plain text",
+   "template": "hello",
+   "expect": "hello"
+  },
+  {
+   "name": "one hole",
+   "template": "{cpu.load | round}%",
+   "data": {
+    "cpu.load": 43.4,
+    "cpu.temp": 57,
+    "battery.percent": 76,
+    "weather.current": {
+     "tempC": 7,
+     "condition": "Partly cloudy",
+     "place": "Berlin"
+    },
+    "gpu.list": [
+     {
+      "name": "UHD 630",
+      "load": 5
+     },
+     {
+      "name": "GTX 1660",
+      "load": 51
+     }
+    ],
+    "docker.state": {
+     "status": "running"
+    },
+    "net.ssid": "Lab Wi-Fi",
+    "var.build": "green",
+    "flags": {
+     "on": true,
+     "off": false
+    }
+   },
+   "expect": "43%"
+  },
+  {
+   "name": "two holes",
+   "template": "{weather.current.tempC | unit('°C')} · {weather.current.condition}",
+   "data": {
+    "cpu.load": 43.4,
+    "cpu.temp": 57,
+    "battery.percent": 76,
+    "weather.current": {
+     "tempC": 7,
+     "condition": "Partly cloudy",
+     "place": "Berlin"
+    },
+    "gpu.list": [
+     {
+      "name": "UHD 630",
+      "load": 5
+     },
+     {
+      "name": "GTX 1660",
+      "load": 51
+     }
+    ],
+    "docker.state": {
+     "status": "running"
+    },
+    "net.ssid": "Lab Wi-Fi",
+    "var.build": "green",
+    "flags": {
+     "on": true,
+     "off": false
+    }
+   },
+   "expect": "7 °C · Partly cloudy"
+  },
+  {
+   "name": "missing value renders as a dash",
+   "template": "{cpu.load}%",
+   "expect": "—%"
+  },
+  {
+   "name": "numbers in holes keep at most 3 decimals",
+   "template": "{3.14159}",
+   "expect": "3.142"
+  },
+  {
+   "name": "numbers in holes use grouping",
+   "template": "{1234567}",
+   "expect": "1,234,567"
+  },
+  {
+   "name": "bool in a hole",
+   "template": "{flags.on}",
+   "data": {
+    "cpu.load": 43.4,
+    "cpu.temp": 57,
+    "battery.percent": 76,
+    "weather.current": {
+     "tempC": 7,
+     "condition": "Partly cloudy",
+     "place": "Berlin"
+    },
+    "gpu.list": [
+     {
+      "name": "UHD 630",
+      "load": 5
+     },
+     {
+      "name": "GTX 1660",
+      "load": 51
+     }
+    ],
+    "docker.state": {
+     "status": "running"
+    },
+    "net.ssid": "Lab Wi-Fi",
+    "var.build": "green",
+    "flags": {
+     "on": true,
+     "off": false
+    }
+   },
+   "expect": "true"
+  },
+  {
+   "name": "escaped braces",
+   "template": "{{literal}} {1 + 1}",
+   "expect": "{literal} 2"
+  },
+  {
+   "name": "string hole",
+   "template": "Wi-Fi: {net.ssid}",
+   "data": {
+    "cpu.load": 43.4,
+    "cpu.temp": 57,
+    "battery.percent": 76,
+    "weather.current": {
+     "tempC": 7,
+     "condition": "Partly cloudy",
+     "place": "Berlin"
+    },
+    "gpu.list": [
+     {
+      "name": "UHD 630",
+      "load": 5
+     },
+     {
+      "name": "GTX 1660",
+      "load": 51
+     }
+    ],
+    "docker.state": {
+     "status": "running"
+    },
+    "net.ssid": "Lab Wi-Fi",
+    "var.build": "green",
+    "flags": {
+     "on": true,
+     "off": false
+    }
+   },
+   "expect": "Wi-Fi: Lab Wi-Fi"
+  },
+  {
+   "name": "hole with a condition",
+   "template": "{if(docker.state.status == 'running', 'Up', 'Down')}",
+   "data": {
+    "cpu.load": 43.4,
+    "cpu.temp": 57,
+    "battery.percent": 76,
+    "weather.current": {
+     "tempC": 7,
+     "condition": "Partly cloudy",
+     "place": "Berlin"
+    },
+    "gpu.list": [
+     {
+      "name": "UHD 630",
+      "load": 5
+     },
+     {
+      "name": "GTX 1660",
+      "load": 51
+     }
+    ],
+    "docker.state": {
+     "status": "running"
+    },
+    "net.ssid": "Lab Wi-Fi",
+    "var.build": "green",
+    "flags": {
+     "on": true,
+     "off": false
+    }
+   },
+   "expect": "Up"
+  }
+ ]
+}

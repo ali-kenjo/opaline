@@ -1,0 +1,230 @@
+{
+ "cases": [
+  {
+   "name": "round half away from zero",
+   "expr": "round(2.5)",
+   "expect": 3
+  },
+  {
+   "name": "round negative half",
+   "expr": "round(-2.5)",
+   "expect": -3
+  },
+  {
+   "name": "round digits",
+   "expr": "round(3.14159, 2)",
+   "expect": 3.14
+  },
+  {
+   "name": "round null",
+   "expr": "round(null)",
+   "expect": null
+  },
+  {
+   "name": "floor",
+   "expr": "floor(2.7)",
+   "expect": 2
+  },
+  {
+   "name": "ceil",
+   "expr": "ceil(2.1)",
+   "expect": 3
+  },
+  {
+   "name": "abs",
+   "expr": "abs(-4)",
+   "expect": 4
+  },
+  {
+   "name": "sqrt",
+   "expr": "sqrt(16)",
+   "expect": 4
+  },
+  {
+   "name": "sqrt of negative is null",
+   "expr": "sqrt(-1)",
+   "expect": null
+  },
+  {
+   "name": "min of several",
+   "expr": "min(3, 1, 2)",
+   "expect": 1
+  },
+  {
+   "name": "max of several",
+   "expr": "max(3, 1, 2)",
+   "expect": 3
+  },
+  {
+   "name": "min with null",
+   "expr": "min(1, null)",
+   "expect": null
+  },
+  {
+   "name": "clamp below",
+   "expr": "clamp(-5, 0, 10)",
+   "expect": 0
+  },
+  {
+   "name": "clamp above",
+   "expr": "clamp(15, 0, 10)",
+   "expect": 10
+  },
+  {
+   "name": "clamp inside",
+   "expr": "clamp(5, 0, 10)",
+   "expect": 5
+  },
+  {
+   "name": "map",
+   "expr": "map(5, 0, 10, 0, 100)",
+   "expect": 50
+  },
+  {
+   "name": "map not clamped",
+   "expr": "map(20, 0, 10, 0, 100)",
+   "expect": 200
+  },
+  {
+   "name": "map empty range is null",
+   "expr": "map(1, 2, 2, 0, 1)",
+   "expect": null
+  },
+  {
+   "name": "if true",
+   "expr": "if(true, 'a', 'b')",
+   "expect": "a"
+  },
+  {
+   "name": "if false",
+   "expr": "if(1 > 2, 'a', 'b')",
+   "expect": "b"
+  },
+  {
+   "name": "if evaluates only the chosen branch",
+   "expr": "if(true, 1, 1 / 0)",
+   "expect": 1
+  },
+  {
+   "name": "if with null condition",
+   "expr": "if(null, 'a', 'b')",
+   "expect": "b"
+  },
+  {
+   "name": "upper",
+   "expr": "upper('abc')",
+   "expect": "ABC"
+  },
+  {
+   "name": "lower",
+   "expr": "lower('ABC')",
+   "expect": "abc"
+  },
+  {
+   "name": "trim",
+   "expr": "trim('  x ')",
+   "expect": "x"
+  },
+  {
+   "name": "len of string",
+   "expr": "len('héllo')",
+   "expect": 5
+  },
+  {
+   "name": "len of list",
+   "expr": "len(gpu.list)",
+   "data": {
+    "cpu.load": 43.4,
+    "cpu.temp": 57,
+    "battery.percent": 76,
+    "weather.current": {
+     "tempC": 7,
+     "condition": "Partly cloudy",
+     "place": "Berlin"
+    },
+    "gpu.list": [
+     {
+      "name": "UHD 630",
+      "load": 5
+     },
+     {
+      "name": "GTX 1660",
+      "load": 51
+     }
+    ],
+    "docker.state": {
+     "status": "running"
+    },
+    "net.ssid": "Lab Wi-Fi",
+    "var.build": "green",
+    "flags": {
+     "on": true,
+     "off": false
+    }
+   },
+   "expect": 2
+  },
+  {
+   "name": "len of number is null",
+   "expr": "len(5)",
+   "expect": null
+  },
+  {
+   "name": "string of number",
+   "expr": "string(42)",
+   "expect": "42"
+  },
+  {
+   "name": "string of bool",
+   "expr": "string(true)",
+   "expect": "true"
+  },
+  {
+   "name": "string of null",
+   "expr": "string(null)",
+   "expect": "—"
+  },
+  {
+   "name": "pad",
+   "expr": "pad(7, 2)",
+   "expect": "07"
+  },
+  {
+   "name": "pad with char",
+   "expr": "pad('x', 3, '-')",
+   "expect": "--x"
+  },
+  {
+   "name": "join",
+   "expr": "join(tags)",
+   "data": {
+    "tags": [
+     "a",
+     "b",
+     "c"
+    ]
+   },
+   "expect": "a, b, c"
+  },
+  {
+   "name": "join with separator",
+   "expr": "join(tags, ' / ')",
+   "data": {
+    "tags": [
+     "a",
+     "b"
+    ]
+   },
+   "expect": "a / b"
+  },
+  {
+   "name": "join of a non-list is a type error",
+   "expr": "join(tags)",
+   "data": {
+    "tags": "ab"
+   },
+   "expect": null,
+   "error": "type-error"
+  }
+ ]
+}

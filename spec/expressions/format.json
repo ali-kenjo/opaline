@@ -1,0 +1,340 @@
+{
+ "cases": [
+  {
+   "name": "fixed",
+   "expr": "fixed(3.14159, 2)",
+   "expect": "3.14"
+  },
+  {
+   "name": "fixed pads zeros",
+   "expr": "fixed(2, 1)",
+   "expect": "2.0"
+  },
+  {
+   "name": "fixed grouping",
+   "expr": "fixed(1234.5, 1)",
+   "expect": "1,234.5"
+  },
+  {
+   "name": "fixed in German",
+   "expr": "fixed(1234.5, 1)",
+   "locale": "de",
+   "expect": "1.234,5"
+  },
+  {
+   "name": "percent",
+   "expr": "percent(42.4)",
+   "expect": "42 %"
+  },
+  {
+   "name": "percent digits",
+   "expr": "percent(42.46, 1)",
+   "expect": "42.5 %"
+  },
+  {
+   "name": "unit",
+   "expr": "unit(7, '°C')",
+   "expect": "7 °C"
+  },
+  {
+   "name": "unit drops trailing zeros",
+   "expr": "unit(2.50, 'GHz')",
+   "expect": "2.5 GHz"
+  },
+  {
+   "name": "unit with digits",
+   "expr": "unit(2.5, 'GHz', 2)",
+   "expect": "2.50 GHz"
+  },
+  {
+   "name": "bytes below a kilobyte",
+   "expr": "bytes(999)",
+   "expect": "999 B"
+  },
+  {
+   "name": "bytes SI",
+   "expr": "bytes(1500000)",
+   "expect": "1.5 MB"
+  },
+  {
+   "name": "bytes SI keeps one decimal",
+   "expr": "bytes(268000000000)",
+   "expect": "268.0 GB"
+  },
+  {
+   "name": "bytes IEC",
+   "expr": "bytes(1536, 'iec')",
+   "expect": "1.5 KiB"
+  },
+  {
+   "name": "bytes null",
+   "expr": "bytes(null)",
+   "expect": null
+  },
+  {
+   "name": "duration hours and minutes",
+   "expr": "duration(12300)",
+   "expect": "3 h 25 min"
+  },
+  {
+   "name": "duration minutes",
+   "expr": "duration(1500)",
+   "expect": "25 min"
+  },
+  {
+   "name": "duration seconds",
+   "expr": "duration(45)",
+   "expect": "45 s"
+  },
+  {
+   "name": "duration clock",
+   "expr": "duration(12307, 'clock')",
+   "expect": "3:25:07"
+  },
+  {
+   "name": "duration clock under an hour",
+   "expr": "duration(1507, 'clock')",
+   "expect": "25:07"
+  },
+  {
+   "name": "mix halfway",
+   "expr": "mix('#000000', '#ffffff', 0.5)",
+   "expect": "#808080"
+  },
+  {
+   "name": "mix clamps t",
+   "expr": "mix('#ff0000', '#0000ff', 2)",
+   "expect": "#0000ff"
+  },
+  {
+   "name": "alpha",
+   "expr": "alpha('#ff0000', 0.5)",
+   "expect": "#ff000080"
+  },
+  {
+   "name": "alpha 1 drops the alpha",
+   "expr": "alpha('#ff000080', 1)",
+   "expect": "#ff0000"
+  },
+  {
+   "name": "lighten",
+   "expr": "lighten('#000000', 0.25)",
+   "expect": "#404040"
+  },
+  {
+   "name": "darken",
+   "expr": "lighten('#ffffff', -0.5)",
+   "expect": "#808080"
+  },
+  {
+   "name": "now from the test host",
+   "expr": "now()",
+   "now": 1795600000000,
+   "expect": 1795600000000
+  },
+  {
+   "name": "until",
+   "expr": "until(1795600060000)",
+   "now": 1795600000000,
+   "expect": 60
+  },
+  {
+   "name": "history average",
+   "expr": "avg(cpu.load, '5m')",
+   "data": {
+    "cpu.load": 43.4,
+    "cpu.temp": 57,
+    "battery.percent": 76,
+    "weather.current": {
+     "tempC": 7,
+     "condition": "Partly cloudy",
+     "place": "Berlin"
+    },
+    "gpu.list": [
+     {
+      "name": "UHD 630",
+      "load": 5
+     },
+     {
+      "name": "GTX 1660",
+      "load": 51
+     }
+    ],
+    "docker.state": {
+     "status": "running"
+    },
+    "net.ssid": "Lab Wi-Fi",
+    "var.build": "green",
+    "flags": {
+     "on": true,
+     "off": false
+    }
+   },
+   "history": {
+    "cpu.load": [
+     30,
+     40,
+     50
+    ]
+   },
+   "expect": 40
+  },
+  {
+   "name": "history max",
+   "expr": "max(cpu.load, '5m')",
+   "data": {
+    "cpu.load": 43.4,
+    "cpu.temp": 57,
+    "battery.percent": 76,
+    "weather.current": {
+     "tempC": 7,
+     "condition": "Partly cloudy",
+     "place": "Berlin"
+    },
+    "gpu.list": [
+     {
+      "name": "UHD 630",
+      "load": 5
+     },
+     {
+      "name": "GTX 1660",
+      "load": 51
+     }
+    ],
+    "docker.state": {
+     "status": "running"
+    },
+    "net.ssid": "Lab Wi-Fi",
+    "var.build": "green",
+    "flags": {
+     "on": true,
+     "off": false
+    }
+   },
+   "history": {
+    "cpu.load": [
+     30,
+     40,
+     50
+    ]
+   },
+   "expect": 50
+  },
+  {
+   "name": "history min",
+   "expr": "min(cpu.load, '15m')",
+   "data": {
+    "cpu.load": 43.4,
+    "cpu.temp": 57,
+    "battery.percent": 76,
+    "weather.current": {
+     "tempC": 7,
+     "condition": "Partly cloudy",
+     "place": "Berlin"
+    },
+    "gpu.list": [
+     {
+      "name": "UHD 630",
+      "load": 5
+     },
+     {
+      "name": "GTX 1660",
+      "load": 51
+     }
+    ],
+    "docker.state": {
+     "status": "running"
+    },
+    "net.ssid": "Lab Wi-Fi",
+    "var.build": "green",
+    "flags": {
+     "on": true,
+     "off": false
+    }
+   },
+   "history": {
+    "cpu.load": [
+     30,
+     40,
+     50
+    ]
+   },
+   "expect": 30
+  },
+  {
+   "name": "history delta",
+   "expr": "delta(cpu.load, '1h')",
+   "data": {
+    "cpu.load": 43.4,
+    "cpu.temp": 57,
+    "battery.percent": 76,
+    "weather.current": {
+     "tempC": 7,
+     "condition": "Partly cloudy",
+     "place": "Berlin"
+    },
+    "gpu.list": [
+     {
+      "name": "UHD 630",
+      "load": 5
+     },
+     {
+      "name": "GTX 1660",
+      "load": 51
+     }
+    ],
+    "docker.state": {
+     "status": "running"
+    },
+    "net.ssid": "Lab Wi-Fi",
+    "var.build": "green",
+    "flags": {
+     "on": true,
+     "off": false
+    }
+   },
+   "history": {
+    "cpu.load": [
+     30,
+     40,
+     50
+    ]
+   },
+   "expect": 20
+  },
+  {
+   "name": "history without data is null",
+   "expr": "avg(cpu.load, '5m')",
+   "data": {
+    "cpu.load": 43.4,
+    "cpu.temp": 57,
+    "battery.percent": 76,
+    "weather.current": {
+     "tempC": 7,
+     "condition": "Partly cloudy",
+     "place": "Berlin"
+    },
+    "gpu.list": [
+     {
+      "name": "UHD 630",
+      "load": 5
+     },
+     {
+      "name": "GTX 1660",
+      "load": 51
+     }
+    ],
+    "docker.state": {
+     "status": "running"
+    },
+    "net.ssid": "Lab Wi-Fi",
+    "var.build": "green",
+    "flags": {
+     "on": true,
+     "off": false
+    }
+   },
+   "expect": null
+  }
+ ]
+}
