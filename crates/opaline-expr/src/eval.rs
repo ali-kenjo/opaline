@@ -434,7 +434,8 @@ impl Cx<'_> {
                 } else {
                     "yMMMd".to_owned()
                 };
-                let zone = if v.len() > 2 {
+                // A missing or null zone is the system's.
+                let zone = if v.len() > 2 && !arg(2).is_null() {
                     Some(string!(2).to_owned())
                 } else {
                     None

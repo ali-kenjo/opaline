@@ -328,7 +328,8 @@ class Cx {
       case "date": {
         const ms = number(0);
         const skeleton = has(1) ? string(1) : "yMMMd";
-        const zone = has(2) ? string(2) : undefined;
+        // A missing or null zone is the system's.
+        const zone = has(2) && arg(2) !== null ? string(2) : undefined;
         return this.host.date?.(ms, skeleton, zone) ?? null;
       }
       case "ramp": {

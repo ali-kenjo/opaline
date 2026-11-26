@@ -132,7 +132,7 @@ Colors are `#rrggbb` or `#rrggbbaa` strings; results are lowercase `#rrggbb`, or
 | `now()` | current time in ms; templates that use it re-evaluate at the coarsest step their formats need |
 | `until(ms)` | seconds from now until `ms` (negative when past) |
 | `avg(path, window)`, `min(path, window)`, `max(path, window)`, `delta(path, window)` | over core's history of that path; `window` a duration string; `null` without history. `min`/`max` with a path and a duration literal are the history form |
-| `date(ms, [skeleton], [zone])` | ICU skeleton, default `'yMMMd'` (`Nov 23, 2026`); `'Hm'` → `10:09`, `'jm'` → `10:09 AM`; `zone` an IANA name, default the system's. **Layer only**: core knows the signature (so it can check a composition) but returns `null` |
+| `date(ms, [skeleton], [zone])` | ICU skeleton, default `'yMMMd'` (`Nov 23, 2026`); `'Hm'` → `10:09`, `'jm'` → `10:09 AM`; `zone` an IANA name; missing or `null` is the system's. **Layer only**: core knows the signature (so it can check a composition) but returns `null` |
 | `ramp(t, name)` | color on the scheme's `'thermal'`, `'load'` or `'health'` ramp, `t` 0 … 1. **Layer only** (needs the scheme; `null` in core) |
 
 The conformance corpus runs the host functions against a fixed test host: `now()` returns the case's `now`, and the
