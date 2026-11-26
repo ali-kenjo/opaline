@@ -61,6 +61,7 @@ pub async fn execute(hub: &Arc<Hub>, command: Command) -> CommandResult {
         Command::SetRaised { raised } => {
             crate::desktop::set_raised(hub, raised).await.map(|()| None)
         }
+        Command::ReleaseFocus => crate::desktop::release_focus(hub).await.map(|()| None),
         Command::OpenSettings => {
             hub.request(crate::app_service::AppRequest::OpenSettings);
             Ok(None)
@@ -117,6 +118,7 @@ async fn run(command: Command) -> Result<(), String> {
         | Command::History { .. }
         | Command::ListFonts
         | Command::SetRaised { .. }
+        | Command::ReleaseFocus
         | Command::OpenSettings => Err("handled-above".into()),
     }
 }

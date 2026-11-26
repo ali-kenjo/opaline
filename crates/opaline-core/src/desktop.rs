@@ -21,6 +21,10 @@ pub const SHELL1_NAME: &str = "io.github.ali_kenjo.Opaline.Shell1";
 /// The helper API this core speaks; N−1 is supported too (version skew after updates).
 pub const API_VERSION: u32 = 1;
 
+/// The running helper's `ApiRevision`: additive features within a version (1: `ReleaseFocus`,
+/// ADR 0015). 0 for an older helper without the property, or while there is none.
+static HELPER_REVISION: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+
 #[proxy(
     interface = "io.github.ali_kenjo.Opaline.Shell1",
     default_service = "io.github.ali_kenjo.Opaline.Shell1",
@@ -30,9 +34,12 @@ pub trait Shell1 {
     #[zbus(property)]
     fn api_version(&self) -> zbus::Result<u32>;
     #[zbus(property)]
+    fn api_revision(&self) -> zbus::Result<u32>;
+    #[zbus(property)]
     fn desktop_focused(&self) -> zbus::Result<bool>;
     fn get_work_areas(&self) -> zbus::Result<Vec<(String, i32, i32, i32, i32)>>;
     fn set_raised(&self, raised: bool) -> zbus::Result<()>;
+    fn release_focus(&self) -> zbus::Result<()>;
     #[zbus(signal)]
     fn work_areas_changed(&self) -> zbus::Result<()>;
     #[zbus(signal)]
@@ -221,6 +228,20 @@ pub async fn set_raised(hub: &Hub, raised: bool) -> Result<(), String> {
     shell.set_raised(raised).await.map_err(|e| e.to_string())
 }
 
+/// Asks the helper to give keyboard focus back from the layer to the window that had it (a
+/// widget button acted, ADR 0015). Needs helper revision 1; a no-op in Instant mode and with
+/// an older helper.
+pub async fn release_focus(hub: &Hub) -> Result<(), String> {
+    if hub.backend() != BackendKind::Native
+        || HELPER_REVISION.load(std::sync::atomic::Ordering::Relaxed) < 1
+    {
+        return Ok(());
+    }
+    let conn = BUS.get().ok_or("no-session-bus")?;
+    let shell = Shell1Proxy::new(conn).await.map_err(|e| e.to_string())?;
+    shell.release_focus().await.map_err(|e| e.to_string())
+}
+
 /// The backend to start in: Native if a compatible helper answers right now.
 pub async fn initial_backend(conn: &Connection) -> BackendKind {
     let Ok(shell) = Shell1Proxy::new(conn).await else {
@@ -269,6 +290,8 @@ pub async fn run(conn: Connection, hub: Arc<Hub>, requests: mpsc::UnboundedSende
         }
     };
     loop {
+        // Set again by the next Native session.
+        HELPER_REVISION.store(0, std::sync::atomic::Ordering::Relaxed);
         let present = match zbus::names::BusName::try_from(SHELL1_NAME) {
             Ok(name) => dbus.name_has_owner(name).await.unwrap_or(false),
             Err(_) => false,
@@ -340,6 +363,8 @@ async fn native_session(
         return;
     }
     tracing::info!(version, "desktop integration helper found; Native mode");
+    let revision = shell.api_revision().await.unwrap_or(0);
+    HELPER_REVISION.store(revision, std::sync::atomic::Ordering::Relaxed);
     if let Ok(raw) = shell.get_work_areas().await {
         hub.set_work_areas(parse_work_areas(raw));
     }

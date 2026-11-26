@@ -6,6 +6,9 @@ import GLib from "gi://GLib";
 import * as Main from "resource:///org/gnome/shell/ui/main.js";
 
 export const API_VERSION = 1;
+// Additive changes within a version, so older cores keep working with a newer helper.
+// 1: ReleaseFocus, and the layer no longer takes focus when it appears (ADR 0015).
+export const API_REVISION = 1;
 const NAME = "io.github.ali_kenjo.Opaline.Shell1";
 const PATH = "/io/github/ali_kenjo/Opaline/Shell1";
 
@@ -13,6 +16,7 @@ const XML = `
 <node>
   <interface name="io.github.ali_kenjo.Opaline.Shell1">
     <property name="ApiVersion" type="u" access="read"/>
+    <property name="ApiRevision" type="u" access="read"/>
     <property name="DesktopFocused" type="b" access="read"/>
     <property name="OverviewVisible" type="b" access="read"/>
     <property name="LayerWindows" type="u" access="read"/>
@@ -25,6 +29,7 @@ const XML = `
     <method name="SetRaised">
       <arg type="b" direction="in" name="raised"/>
     </method>
+    <method name="ReleaseFocus"/>
     <signal name="MonitorsChanged"/>
     <signal name="WorkAreasChanged"/>
     <signal name="DesktopFocusChanged"><arg type="b" name="focused"/></signal>
@@ -47,6 +52,7 @@ function connectorOf(index) {
 export class ShellService {
   constructor() {
     this.onSetRaised = null;
+    this.onReleaseFocus = null;
     this._desktopFocused = true;
     this._overview = false;
     this._layerWindows = 0;
@@ -64,6 +70,10 @@ export class ShellService {
 
   get ApiVersion() {
     return API_VERSION;
+  }
+
+  get ApiRevision() {
+    return API_REVISION;
   }
 
   get DesktopFocused() {
@@ -101,6 +111,11 @@ export class ShellService {
 
   SetRaised(raised) {
     this.onSetRaised?.(raised);
+  }
+
+  /** A widget button acted: give keyboard focus back to the window that had it (ADR 0015). */
+  ReleaseFocus() {
+    this.onReleaseFocus?.();
   }
 
   setDesktopFocused(focused) {

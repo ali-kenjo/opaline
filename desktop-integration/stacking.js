@@ -6,6 +6,8 @@ import GLib from "gi://GLib";
 import Meta from "gi://Meta";
 
 const DING_WM_CLASS = "ding";
+/** A layer window that gets focus this soon after appearing took it by itself (ADR 0015). */
+const MAP_GRACE_US = 1500 * 1000;
 
 export class Stacking {
   constructor(layer, service) {
@@ -17,11 +19,16 @@ export class Stacking {
     this._covered = new Map();
     this._signals = [];
     this._dingWarned = false;
+    // The last other window that had focus, to give it back to.
+    this._lastOther = null;
+    this._lastOtherGone = 0;
+    this._mappedAt = 0;
     const on = (obj, sig, fn) => this._signals.push([obj, obj.connect(sig, fn)]);
     on(global.display, "restacked", () => this._schedule());
     on(global.display, "notify::focus-window", () => {
       this._schedule();
       this._service.setDesktopFocused(this._desktopFocused());
+      this._trackFocus();
     });
     on(global.display, "in-fullscreen-changed", () => this._schedule());
     on(global.workspace_manager, "active-workspace-changed", () => this._schedule());
@@ -29,7 +36,10 @@ export class Stacking {
     on(global.window_manager, "minimize", () => this._schedule());
     on(global.window_manager, "unminimize", () => this._schedule());
     on(global.window_manager, "destroy", () => this._schedule());
-    this._layer.onWindowsChanged = () => this._schedule();
+    this._layer.onWindowsChanged = () => {
+      this._mappedAt = GLib.get_monotonic_time();
+      this._schedule();
+    };
     this._schedule();
   }
 
@@ -75,6 +85,41 @@ export class Stacking {
     if (ding && ding.get_window_type() !== Meta.WindowType.DESKTOP) {
       this._dingWarned = true;
       console.warn("Opaline: DING's window is no longer a DESKTOP window; lowering the layer could hide the desktop icons' area (ADR 0006).");
+    }
+  }
+
+  /** Remembers the last other window with focus; takes focus back from a layer window that got
+   * it just by appearing (Wayland ignores GTK's focus-on-map hint). */
+  _trackFocus() {
+    const f = global.display.focus_window;
+    if (!f) return;
+    if (!this._layer.owns(f)) {
+      if (this._isOther(f)) this._remember(f);
+      return;
+    }
+    if (!this._raised && GLib.get_monotonic_time() - this._mappedAt < MAP_GRACE_US) this.releaseFocus();
+  }
+
+  _remember(win) {
+    if (this._lastOther === win) return;
+    if (this._lastOther && this._lastOtherGone) this._lastOther.disconnect(this._lastOtherGone);
+    this._lastOther = win;
+    this._lastOtherGone = win.connect("unmanaged", () => {
+      this._lastOther = null;
+      this._lastOtherGone = 0;
+    });
+  }
+
+  /** Gives keyboard focus back from the layer to the window that had it, or to no window. */
+  releaseFocus() {
+    const f = global.display.focus_window;
+    if (this._raised || !f || !this._layer.owns(f)) return;
+    const prev = this._lastOther;
+    const time = global.get_current_time();
+    if (prev && !prev.minimized && prev.located_on_workspace(global.workspace_manager.get_active_workspace())) {
+      prev.activate(time);
+    } else {
+      global.display.unset_input_focus(time);
     }
   }
 
@@ -145,6 +190,8 @@ export class Stacking {
 
   destroy() {
     this._layer.onWindowsChanged = null;
+    if (this._lastOther && this._lastOtherGone) this._lastOther.disconnect(this._lastOtherGone);
+    this._lastOther = null;
     if (this._idle) GLib.source_remove(this._idle);
     this._idle = 0;
     for (const [obj, id] of this._signals) obj.disconnect(id);

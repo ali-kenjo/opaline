@@ -275,6 +275,9 @@ pub enum Command {
     /// Peek or Edit started (`true`) or ended: in Native mode core asks the helper to raise or
     /// lower the layer; in Instant mode the layer does it itself and this is a no-op.
     SetRaised { raised: bool },
+    /// A widget button acted: give keyboard focus back to the window that had it (Native mode
+    /// with helper revision 1; otherwise a no-op). Never sent by compositions (ADR 0015).
+    ReleaseFocus,
     /// Ask core to open (or focus) the Settings window.
     OpenSettings,
 }

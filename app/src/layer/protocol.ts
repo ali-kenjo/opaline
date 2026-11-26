@@ -62,7 +62,8 @@ export type Command =
   | { cmd: "geocode-search"; query: string; language: string }
   | { cmd: "history"; series: string; seconds: number }
   | { cmd: "list-fonts" }
-  | { cmd: "open-settings" };
+  | { cmd: "open-settings" }
+  | { cmd: "release-focus" };
 
 export type MediaAction = "play" | "pause" | "play-pause" | "next" | "previous";
 
