@@ -1,0 +1,3076 @@
+{
+  "$defs": {
+    "ActionKind": {
+      "enum": [
+        "none",
+        "detail",
+        "open-app",
+        "open-url",
+        "command",
+        "toggle",
+        "step"
+      ],
+      "type": "string"
+    },
+    "ActionSpec": {
+      "description": "One interaction action on a widget (click, double-click, middle-click, scroll).",
+      "properties": {
+        "delta": {
+          "description": "Numeric delta for `step` actions.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "kind": {
+          "$ref": "#/$defs/ActionKind"
+        },
+        "target": {
+          "description": "App desktop ID, URL (`https://…`), or allowlisted command/variable name.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "type": "object"
+    },
+    "Align": {
+      "enum": [
+        "start",
+        "center",
+        "end",
+        "stretch",
+        "baseline"
+      ],
+      "type": "string"
+    },
+    "AnchorCorner": {
+      "enum": [
+        "top-left",
+        "top-right",
+        "bottom-left",
+        "bottom-right",
+        "center"
+      ],
+      "type": "string"
+    },
+    "AnchoredItem": {
+      "description": "Work-area-anchored layout item so a shared rice adapts across monitor resolutions and scales.",
+      "properties": {
+        "anchor": {
+          "$ref": "#/$defs/AnchorCorner"
+        },
+        "dxRatio": {
+          "description": "Horizontal offset from `anchor` as a fraction of the grid width (0.0 … 1.0).",
+          "format": "double",
+          "type": "number"
+        },
+        "dyRatio": {
+          "description": "Vertical offset from `anchor` as a fraction of the grid height (0.0 … 1.0).",
+          "format": "double",
+          "type": "number"
+        },
+        "h": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "w": {
+          "description": "Span in grid cells.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "anchor",
+        "dxRatio",
+        "dyRatio",
+        "w",
+        "h"
+      ],
+      "type": "object"
+    },
+    "AppearanceState": {
+      "enum": [
+        "full",
+        "dimmed",
+        "automatic"
+      ],
+      "type": "string"
+    },
+    "Axis": {
+      "enum": [
+        "horizontal",
+        "vertical"
+      ],
+      "type": "string"
+    },
+    "BackgroundImage": {
+      "description": "A local or theme-bundled background image for a widget surface.",
+      "properties": {
+        "blur": {
+          "description": "Extra blur, 0 … 100.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "dim": {
+          "description": "Darkening overlay, 0 … 100 %.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fit": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageFit"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "path": {
+          "description": "Asset URL (`opaline-asset://…`) or relative path inside a theme package.",
+          "type": "string"
+        },
+        "position": {
+          "description": "CSS object-position (`center`, `top`, `50% 30%`, …).",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "type": "object"
+    },
+    "Caps": {
+      "enum": [
+        "round",
+        "butt"
+      ],
+      "type": "string"
+    },
+    "CardShape": {
+      "description": "Card silhouette: a rounded rectangle (default) or any of the 35 Material 3 Expressive shapes.",
+      "enum": [
+        "rounded-rect",
+        "circle",
+        "square",
+        "slanted",
+        "arch",
+        "fan",
+        "arrow",
+        "semi-circle",
+        "oval",
+        "pill",
+        "triangle",
+        "diamond",
+        "clam-shell",
+        "pentagon",
+        "gem",
+        "sunny",
+        "very-sunny",
+        "cookie-4-sided",
+        "cookie-6-sided",
+        "cookie-7-sided",
+        "cookie-9-sided",
+        "cookie-12-sided",
+        "ghostish",
+        "clover-4-leaf",
+        "clover-8-leaf",
+        "burst",
+        "soft-burst",
+        "boom",
+        "soft-boom",
+        "flower",
+        "puffy",
+        "puffy-diamond",
+        "pixel-circle",
+        "pixel-triangle",
+        "bun",
+        "heart"
+      ],
+      "type": "string"
+    },
+    "ColorSource": {
+      "enum": [
+        "wallpaper",
+        "accent",
+        "custom"
+      ],
+      "type": "string"
+    },
+    "CommandRef": {
+      "description": "A command for core, which validates it before acting (ARCHITECTURE §3.7). `cmd` is a command\nname of the IPC protocol; the arguments are expressions, and `$value` is the control's new\nvalue (slider, toggle, text input).",
+      "properties": {
+        "args": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Expr"
+          },
+          "type": "object"
+        },
+        "cmd": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "cmd"
+      ],
+      "type": "object"
+    },
+    "Composition": {
+      "description": "A widget as a tree of containers and blocks, with one layout per size.",
+      "properties": {
+        "bindings": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Expr"
+          },
+          "description": "Named values shared by every layout, read in expressions as `bind.<name>`. A widget's\nfields become bindings. Bindings may read other bindings, but not in a circle.",
+          "type": "object"
+        },
+        "layouts": {
+          "description": "Layouts, tried in order; the first that matches the widget's size is used.",
+          "items": {
+            "$ref": "#/$defs/Layout"
+          },
+          "type": "array"
+        },
+        "version": {
+          "description": "Format version (1).",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "version",
+        "layouts"
+      ],
+      "type": "object"
+    },
+    "ConditionalStyle": {
+      "description": "An ordered conditional style rule: when `when` evaluates truthy, apply `set` over the style.",
+      "properties": {
+        "animate": {
+          "description": "Animate transitioning into and out of this rule (default true).",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "set": {
+          "additionalProperties": true,
+          "description": "Style keys to override when the expression is truthy (no nested `conditions`).",
+          "type": "object"
+        },
+        "when": {
+          "description": "Expression in the Opaline expression language (docs/EXPRESSIONS.md).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "when",
+        "set"
+      ],
+      "type": "object"
+    },
+    "ContentAlign": {
+      "enum": [
+        "start",
+        "center",
+        "end",
+        "stretch"
+      ],
+      "type": "string"
+    },
+    "Density": {
+      "enum": [
+        "compact",
+        "comfortable",
+        "spacious"
+      ],
+      "type": "string"
+    },
+    "EntranceEffect": {
+      "enum": [
+        "spring",
+        "fade",
+        "none"
+      ],
+      "type": "string"
+    },
+    "Expr": {
+      "description": "An expression (docs/EXPRESSIONS.md): `cpu.load >= 90`, `clamp(battery.percent / 100, 0, 1)`.",
+      "type": "string"
+    },
+    "Fit": {
+      "enum": [
+        "cover",
+        "contain"
+      ],
+      "type": "string"
+    },
+    "GradientKind": {
+      "enum": [
+        "linear",
+        "radial",
+        "conic"
+      ],
+      "type": "string"
+    },
+    "GradientSpec": {
+      "description": "A 2–4 stop gradient used for backgrounds, tints, or borders.",
+      "properties": {
+        "angle": {
+          "description": "Angle in degrees (0 … 360) for linear and conic gradients.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "kind": {
+          "$ref": "#/$defs/GradientKind"
+        },
+        "stops": {
+          "items": {
+            "$ref": "#/$defs/GradientStop"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "stops"
+      ],
+      "type": "object"
+    },
+    "GradientStop": {
+      "properties": {
+        "at": {
+          "description": "Stop position, 0 … 100 %.",
+          "format": "double",
+          "type": "number"
+        },
+        "color": {
+          "description": "Hex color (`#rrggbb` or `#rrggbbaa`).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "color",
+        "at"
+      ],
+      "type": "object"
+    },
+    "HeaderStyle": {
+      "enum": [
+        "icon-title",
+        "title",
+        "icon",
+        "none"
+      ],
+      "type": "string"
+    },
+    "HeroColor": {
+      "oneOf": [
+        {
+          "enum": [
+            "accent",
+            "custom"
+          ],
+          "type": "string"
+        },
+        {
+          "const": "ramp",
+          "description": "The meaning ramp (thermal, load, health).",
+          "type": "string"
+        }
+      ]
+    },
+    "HeroOptions": {
+      "description": "Options for hero visuals (rings, gauges, bars, charts).",
+      "properties": {
+        "cap": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StrokeCap"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fill": {
+          "description": "Filled area under charts.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "gradient": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "needle": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "segments": {
+          "description": "Segmented ring/bar count, 0 (continuous) … 64.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "smoothing": {
+          "description": "Curve smoothing for charts, 0 … 100 %.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "thickness": {
+          "description": "Stroke or bar thickness in px, 1 … 24.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "ticks": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "track": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "wave": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "HeroVisual": {
+      "description": "Hero visual presentation choice (brief §5.1).",
+      "enum": [
+        "auto",
+        "ring",
+        "gauge",
+        "bar",
+        "chart",
+        "number",
+        "shape-badge",
+        "liquid-fill",
+        "dot-matrix"
+      ],
+      "type": "string"
+    },
+    "HistoryRef": {
+      "description": "Core's history of a path over a window (`'5m'`), for charts.",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "window": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "window"
+      ],
+      "type": "object"
+    },
+    "HoverEffect": {
+      "enum": [
+        "lift",
+        "tilt",
+        "glow",
+        "none"
+      ],
+      "type": "string"
+    },
+    "IconSet": {
+      "description": "Material Symbols icon set (all Apache-2.0) or none.",
+      "enum": [
+        "rounded",
+        "outlined",
+        "sharp",
+        "none"
+      ],
+      "type": "string"
+    },
+    "ImageFit": {
+      "enum": [
+        "cover",
+        "contain",
+        "fill"
+      ],
+      "type": "string"
+    },
+    "Justify": {
+      "enum": [
+        "start",
+        "center",
+        "end",
+        "between",
+        "around",
+        "evenly"
+      ],
+      "type": "string"
+    },
+    "Layout": {
+      "description": "One layout: the sizes it's for and its tree.",
+      "properties": {
+        "minH": {
+          "description": "For free sizes: the smallest height in grid cells this layout fits.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "minW": {
+          "description": "For free sizes: the smallest width in grid cells this layout fits.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "root": {
+          "$ref": "#/$defs/Node"
+        },
+        "sizes": {
+          "description": "Size classes this layout is for; empty means any.",
+          "items": {
+            "$ref": "#/$defs/SizeClass"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "root"
+      ],
+      "type": "object"
+    },
+    "MotionPersonality": {
+      "enum": [
+        "standard",
+        "expressive",
+        "calm",
+        "playful",
+        "instant"
+      ],
+      "type": "string"
+    },
+    "MotionSpeed": {
+      "enum": [
+        "slow",
+        "default",
+        "fast"
+      ],
+      "type": "string"
+    },
+    "Node": {
+      "description": "A container or a block.",
+      "oneOf": [
+        {
+          "description": "Children side by side when the box is wider than tall, else one under the other.",
+          "properties": {
+            "align": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Align"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cross-axis alignment of the children."
+            },
+            "children": {
+              "items": {
+                "$ref": "#/$defs/Node"
+              },
+              "type": "array"
+            },
+            "gap": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "grow": {
+              "description": "Share of the free space this container takes in its parent (like flex-grow).",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "justify": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Justify"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Main-axis distribution of the children."
+            },
+            "padding": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "stack",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "children"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Children side by side.",
+          "properties": {
+            "align": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Align"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cross-axis alignment of the children."
+            },
+            "children": {
+              "items": {
+                "$ref": "#/$defs/Node"
+              },
+              "type": "array"
+            },
+            "gap": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "grow": {
+              "description": "Share of the free space this container takes in its parent (like flex-grow).",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "justify": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Justify"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Main-axis distribution of the children."
+            },
+            "padding": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "row",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "children"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Children one under the other.",
+          "properties": {
+            "align": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Align"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cross-axis alignment of the children."
+            },
+            "children": {
+              "items": {
+                "$ref": "#/$defs/Node"
+              },
+              "type": "array"
+            },
+            "gap": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "grow": {
+              "description": "Share of the free space this container takes in its parent (like flex-grow).",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "justify": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Justify"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Main-axis distribution of the children."
+            },
+            "padding": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "column",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "children"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Children in a grid of equal columns.",
+          "properties": {
+            "align": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Align"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cross-axis alignment of the children."
+            },
+            "children": {
+              "items": {
+                "$ref": "#/$defs/Node"
+              },
+              "type": "array"
+            },
+            "columns": {
+              "description": "1 … 12.",
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "gap": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "grow": {
+              "description": "Share of the free space this container takes in its parent (like flex-grow).",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "justify": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Justify"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Main-axis distribution of the children."
+            },
+            "padding": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "grid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "columns",
+            "children"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Children on top of each other (a value over a ring).",
+          "properties": {
+            "align": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Align"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cross-axis alignment of the children."
+            },
+            "children": {
+              "items": {
+                "$ref": "#/$defs/Node"
+              },
+              "type": "array"
+            },
+            "gap": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "grow": {
+              "description": "Share of the free space this container takes in its parent (like flex-grow).",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "justify": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Justify"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Main-axis distribution of the children."
+            },
+            "padding": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "overlay",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "children"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Empty space that takes a share of what's left.",
+          "properties": {
+            "grow": {
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "spacer",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Text from a template.",
+          "properties": {
+            "maxLines": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "shorter": {
+              "description": "Shorter forms, used in order when the text doesn't fit (it's never cut).",
+              "items": {
+                "$ref": "#/$defs/Template"
+              },
+              "type": "array"
+            },
+            "text": {
+              "$ref": "#/$defs/Template"
+            },
+            "type": {
+              "const": "text",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "text"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "motion": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/NumberMotion"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "text": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Template"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The text shown; default: the value with at most 3 decimals."
+            },
+            "type": {
+              "const": "number",
+              "type": "string"
+            },
+            "unit": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Template"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "value": {
+              "$ref": "#/$defs/Expr"
+            }
+          },
+          "required": [
+            "type",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "filled": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Expr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "icon": {
+              "$ref": "#/$defs/Template",
+              "description": "A Material Symbols name."
+            },
+            "type": {
+              "const": "icon",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "icon"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "fit": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Fit"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "src": {
+              "$ref": "#/$defs/Expr"
+            },
+            "type": {
+              "const": "image",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "src"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "One of the library's shapes; it morphs when the name changes.",
+          "properties": {
+            "color": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Expr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shape": {
+              "$ref": "#/$defs/Template"
+            },
+            "type": {
+              "const": "shape",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "shape"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "caps": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Caps"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "color": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Expr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "needle": {
+              "type": "boolean"
+            },
+            "segments": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "sweep": {
+              "description": "Arc length in degrees (1 … 360, default 360).",
+              "format": "uint16",
+              "maximum": 65535,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "thickness": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "ticks": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "ring",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/Expr",
+              "description": "0 … 1."
+            },
+            "wavy": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "type",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "axis": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Axis"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "color": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Expr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "segments": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "bar",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/Expr",
+              "description": "0 … 1, or a list of parts for a stacked bar."
+            }
+          },
+          "required": [
+            "type",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "history": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/HistoryRef"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "max": {
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "min": {
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "plot": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Plot"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "smooth": {
+              "type": "boolean"
+            },
+            "type": {
+              "const": "chart",
+              "type": "string"
+            },
+            "values": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Expr"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "A list of numbers; or use `history`."
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "columns": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "max": {
+              "description": "The value that is full heat (default 1).",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "heatmap",
+              "type": "string"
+            },
+            "values": {
+              "$ref": "#/$defs/Expr",
+              "description": "Values 0 … `max`."
+            }
+          },
+          "required": [
+            "type",
+            "values",
+            "columns"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Repeats `item` for each element of `items`; inside, `$item` and `$index`.",
+          "properties": {
+            "axis": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Axis"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "gap": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "item": {
+              "$ref": "#/$defs/Node"
+            },
+            "items": {
+              "$ref": "#/$defs/Expr"
+            },
+            "max": {
+              "format": "uint16",
+              "maximum": 65535,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "list",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "items",
+            "item"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "progress",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/Expr"
+            },
+            "wavy": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "type",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "axis": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Axis"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "const": "divider",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "A built-in visual (analog clock, visualizer, weather sky, photo frame).",
+          "properties": {
+            "params": {
+              "additionalProperties": {
+                "$ref": "#/$defs/Expr"
+              },
+              "type": "object"
+            },
+            "type": {
+              "const": "canvas",
+              "type": "string"
+            },
+            "visual": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "visual"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "command": {
+              "$ref": "#/$defs/CommandRef"
+            },
+            "confirm": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Template"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Ask first (\"Power off the drive?\")."
+            },
+            "enabled": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Expr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "icon": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Template"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "text": {
+              "$ref": "#/$defs/Template"
+            },
+            "type": {
+              "const": "button",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "text",
+            "command"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "command": {
+              "$ref": "#/$defs/CommandRef"
+            },
+            "text": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Template"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "const": "toggle",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/Expr"
+            }
+          },
+          "required": [
+            "type",
+            "value",
+            "command"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "command": {
+              "$ref": "#/$defs/CommandRef"
+            },
+            "max": {
+              "format": "double",
+              "type": "number"
+            },
+            "min": {
+              "format": "double",
+              "type": "number"
+            },
+            "step": {
+              "format": "double",
+              "type": "number"
+            },
+            "type": {
+              "const": "slider",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/Expr"
+            }
+          },
+          "required": [
+            "type",
+            "value",
+            "min",
+            "max",
+            "step",
+            "command"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "command": {
+              "$ref": "#/$defs/CommandRef"
+            },
+            "maxLength": {
+              "format": "uint16",
+              "maximum": 65535,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "placeholder": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Template"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "const": "input",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/Expr"
+            }
+          },
+          "required": [
+            "type",
+            "value",
+            "command",
+            "maxLength"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "A plugin's block (P9).",
+          "properties": {
+            "plugin": {
+              "type": "string"
+            },
+            "props": {
+              "additionalProperties": {
+                "$ref": "#/$defs/Expr"
+              },
+              "type": "object"
+            },
+            "type": {
+              "const": "plugin",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "plugin"
+          ],
+          "type": "object"
+        }
+      ],
+      "properties": {
+        "id": {
+          "description": "Stable id (`[a-z][a-z0-9-]*`, unique in its layout). The same id in two layouts is the\nsame block, so resizing morphs it.",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Template"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The accessible name; generated from the content when absent."
+        },
+        "priority": {
+          "description": "When space runs out, lower priorities go first (0 … 100, default 50).",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "role": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Role"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "What the block is for; themes style roles, not elements."
+        },
+        "style": {
+          "additionalProperties": true,
+          "description": "Style keys for this node (the style model, ADR 0011), applied over its role's style.",
+          "type": "object"
+        },
+        "visible": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Expr"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Shown only while this is true."
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "NumberMotion": {
+      "oneOf": [
+        {
+          "enum": [
+            "fade",
+            "none"
+          ],
+          "type": "string"
+        },
+        {
+          "const": "odometer",
+          "description": "Digits roll (the default).",
+          "type": "string"
+        }
+      ]
+    },
+    "Plot": {
+      "enum": [
+        "line",
+        "area",
+        "bars",
+        "step",
+        "dots"
+      ],
+      "type": "string"
+    },
+    "RiceSourceRef": {
+      "description": "Custom data source entry in a rice; always imported with `approved = false` (brief §4.5).",
+      "properties": {
+        "approved": {
+          "default": false,
+          "description": "Always forced to `false` on import until the user explicitly approves it.",
+          "type": "boolean"
+        },
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "spec": {
+          "description": "Definition payload with secret values stripped."
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "spec"
+      ],
+      "type": "object"
+    },
+    "Role": {
+      "description": "Roles themes target (brief §4.1).",
+      "enum": [
+        "hero",
+        "title",
+        "label",
+        "value",
+        "unit",
+        "caption",
+        "accent",
+        "badge",
+        "meter",
+        "decoration"
+      ],
+      "type": "string"
+    },
+    "RoleTypography": {
+      "description": "Per-role typography overrides (brief §5.1).",
+      "properties": {
+        "color": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fontFamily": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fontSize": {
+          "description": "Font size in CSS px, 8 … 180.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fontWeight": {
+          "description": "100 … 1000.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fontWidth": {
+          "description": "Variable font `wdth` axis, 25 … 151.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "letterSpacing": {
+          "description": "Letter spacing in em, −0.1 … 0.5.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "lineHeight": {
+          "description": "Unitless line-height multiplier, 0.7 … 2.5.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "opacity": {
+          "description": "Text opacity, 0 … 100 %.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "slashedZero": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "stylisticSet": {
+          "description": "OpenType stylistic set (`ss01` … `ss20`), 0 = off.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "tabularNumbers": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "textCase": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextCase"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "See": {
+      "description": "How the background shows through glass (ADR 0012).",
+      "oneOf": [
+        {
+          "const": "wallpaper",
+          "description": "The wallpaper, sampled at the blur level (0 = sharp).",
+          "type": "string"
+        },
+        {
+          "const": "real",
+          "description": "Real transparency: the desktop behind the layer window shows through.",
+          "type": "string"
+        }
+      ]
+    },
+    "ShapeLanguage": {
+      "enum": [
+        "rounded",
+        "squircle",
+        "meaningful",
+        "expressive",
+        "sharp"
+      ],
+      "type": "string"
+    },
+    "SizeClass": {
+      "description": "Grid spans: `1x1`, `2x1`, `4x1`, `S` (2×2), `M` (4×2), `L` (4×4), `XL` (8×4).",
+      "enum": [
+        "1x1",
+        "2x1",
+        "4x1",
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
+      "type": "string"
+    },
+    "StrokeCap": {
+      "enum": [
+        "round",
+        "butt"
+      ],
+      "type": "string"
+    },
+    "Style": {
+      "properties": {
+        "accentColor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "actions": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WidgetActions"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ambientMotion": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "animations": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "appearance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AppearanceState"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "autoHideEmpty": {
+          "description": "Hide the widget and reflow when empty (e.g. Now Playing with nothing playing).",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "backgroundGradient": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GradientSpec"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "backgroundImage": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BackgroundImage"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "blur": {
+          "description": "0 (sharp) … 100 (very soft); 60 is the 1.x look (settings v2, ADR 0012).",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "borderColor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "borderGlow": {
+          "description": "Outer glow along the border, 0 … 100.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "borderGradient": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GradientSpec"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "borderWidth": {
+          "description": "CSS px, 0 … 8.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "cardShape": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CardShape"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "colorSource": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ColorSource"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "conditions": {
+          "description": "Ordered \"when <expression> → set <style keys>\" rules (at most 16).",
+          "items": {
+            "$ref": "#/$defs/ConditionalStyle"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "contentAlign": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContentAlign"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "contrast": {
+          "description": "−1 (reduced) … 0 (standard) … 1 (high).",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "cornerRadii": {
+          "description": "Per-corner radii `[topLeft, topRight, bottomRight, bottomLeft]` in CSS px (0 … 64).",
+          "items": {
+            "format": "double",
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "cornerSmoothing": {
+          "description": "Continuous squircle corner smoothing, 0 (circular arc) … 100 (squircle).",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "density": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Density"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dimLevel": {
+          "description": "0 … 100: how far Dimmed fades.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "dispersion": {
+          "description": "Chromatic dispersion at the glass edge, 0 … 100.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "entrance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EntranceEffect"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fontFamily": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fontWeight": {
+          "description": "100 … 1000.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fontWidth": {
+          "description": "Roboto Flex `wdth`, 25 … 151.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "gap": {
+          "description": "Explicit gap between rows/elements in CSS px (0 … 32); unset follows density.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "grain": {
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "headerStyle": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HeaderStyle"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "heroColor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HeroColor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "heroCustomColor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "heroOptions": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HeroOptions"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "heroVisual": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HeroVisual"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hoverEffect": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HoverEffect"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hoverLift": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "iconColor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "iconFill": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "iconGrade": {
+          "description": "Material Symbols `GRAD` axis, −25 … 200.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "iconSet": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/IconSet"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "iconSize": {
+          "description": "Base icon size in CSS px, 10 … 64.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "iconWeight": {
+          "description": "100 … 700.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "icons": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "innerGlow": {
+          "description": "Inner edge glow strength, 0 … 100.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "innerShadow": {
+          "description": "Inner shadow strength, 0 … 100.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "legibility": {
+          "description": "Adaptive legibility (DESIGN.md §4); off shows a contrast warning instead.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "letterSpacing": {
+          "description": "em, −0.05 … 0.2.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "lineHeight": {
+          "description": "Unitless line height, 0.8 … 2.2.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "motionSpeed": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MotionSpeed"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "numberFontFamily": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "odometer": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "opacity": {
+          "description": "Overall widget opacity, 0 … 100 %.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "padding": {
+          "description": "Explicit inner padding in CSS px (0 … 48); unset follows size + density.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "pressScale": {
+          "description": "Scale on press, 0.9 … 1.0 (default 0.97).",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "radius": {
+          "description": "CSS px, 0 … 48; unset follows the size class (28 / 32).",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "refraction": {
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "refractionWidth": {
+          "description": "Refraction band width in CSS px, 0 … 40.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "rim": {
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "roles": {
+          "additionalProperties": false,
+          "description": "Per-role typography overrides (`hero`, `title`, `label`, `value`, `caption`, `unit`, `accent`).",
+          "properties": {
+            "accent": {
+              "$ref": "#/$defs/RoleTypography"
+            },
+            "caption": {
+              "$ref": "#/$defs/RoleTypography"
+            },
+            "hero": {
+              "$ref": "#/$defs/RoleTypography"
+            },
+            "label": {
+              "$ref": "#/$defs/RoleTypography"
+            },
+            "title": {
+              "$ref": "#/$defs/RoleTypography"
+            },
+            "unit": {
+              "$ref": "#/$defs/RoleTypography"
+            },
+            "value": {
+              "$ref": "#/$defs/RoleTypography"
+            }
+          },
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "secondaryTextColor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "see": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/See"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "seedColor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "shadow": {
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "shadowBlur": {
+          "description": "Drop shadow blur radius in CSS px, 0 … 64.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "shadowColor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "shadowOffsetX": {
+          "description": "Drop shadow horizontal offset in CSS px, −32 … 32.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "shadowOffsetY": {
+          "description": "Drop shadow vertical offset in CSS px, −32 … 32.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "shadowSpread": {
+          "description": "Drop shadow spread in CSS px, −16 … 32.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "slashedZero": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "specularAngle": {
+          "description": "Specular light angle in degrees clockwise from 12 o'clock (0 … 360, default 315).",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "specularWidth": {
+          "description": "Specular rim width in percent (10 … 200, default 100).",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "stylisticSet": {
+          "description": "OpenType stylistic set (`ss01` … `ss20`), 0 = off.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "surface": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Surface"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "surfaceColor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tabularNumbers": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "textCase": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextCase"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "textColor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "textScale": {
+          "description": "0.75 … 1.5.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "textShadow": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "theme": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Theme"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tintColor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tintGradient": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GradientSpec"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tooltip": {
+          "description": "Custom tooltip shown on hover (max 200 characters).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "transparency": {
+          "description": "0 (solid) … 100 (clearest glass).",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "uppercaseLabels": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "valueAnimation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ValueAnimation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "variant": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Variant"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "vibrancyText": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Surface": {
+      "oneOf": [
+        {
+          "enum": [
+            "glass",
+            "tinted",
+            "opaque"
+          ],
+          "type": "string"
+        },
+        {
+          "const": "color",
+          "description": "A solid custom color (`surfaceColor`), still with the chosen transparency.",
+          "type": "string"
+        },
+        {
+          "const": "clear",
+          "description": "Completely transparent / frameless: widget content floats directly on the wallpaper.",
+          "type": "string"
+        },
+        {
+          "const": "gradient",
+          "description": "A 2–4 stop linear, radial, or conic gradient (`backgroundGradient`).",
+          "type": "string"
+        },
+        {
+          "const": "image",
+          "description": "A local image background (`backgroundImage`).",
+          "type": "string"
+        },
+        {
+          "const": "album-art",
+          "description": "The currently playing track's blurred album art.",
+          "type": "string"
+        }
+      ]
+    },
+    "Template": {
+      "description": "A template: text with expressions in braces, `\"{cpu.load | round}%\"`.",
+      "type": "string"
+    },
+    "TextCase": {
+      "enum": [
+        "none",
+        "uppercase",
+        "lowercase",
+        "capitalize"
+      ],
+      "type": "string"
+    },
+    "Theme": {
+      "enum": [
+        "auto",
+        "light",
+        "dark"
+      ],
+      "type": "string"
+    },
+    "ThemeFont": {
+      "description": "A font bundled inside a theme package; a license file is mandatory (brief §5.2).",
+      "properties": {
+        "family": {
+          "type": "string"
+        },
+        "file": {
+          "description": "Relative path inside the theme package (e.g. `fonts/MyFont.woff2`).",
+          "type": "string"
+        },
+        "license": {
+          "description": "Relative path to the font's license file inside the package (e.g. `fonts/OFL.txt`).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "family",
+        "file",
+        "license"
+      ],
+      "type": "object"
+    },
+    "ThemePackage": {
+      "description": "The `theme.json` manifest (brief §5.2).",
+      "properties": {
+        "$schema": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "author": {
+          "default": "",
+          "type": "string"
+        },
+        "css": {
+          "description": "Optional relative path to a stylesheet inside the package (defaults to `theme.css` if present).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "default": "",
+          "type": "string"
+        },
+        "elements": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Style"
+          },
+          "description": "Per-element style layers keyed by role (`hero`, `label`) or `#block-id`.",
+          "type": "object"
+        },
+        "fonts": {
+          "description": "Optional bundled fonts (each must include its license file).",
+          "items": {
+            "$ref": "#/$defs/ThemeFont"
+          },
+          "type": "array"
+        },
+        "id": {
+          "default": "",
+          "description": "Unique identifier (`[a-z0-9_-]+`, max 64).",
+          "type": "string"
+        },
+        "images": {
+          "description": "Relative paths to bundled images.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "kinds": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Style"
+          },
+          "description": "Per-widget-kind style layers (`cpu`, `clock`, …).",
+          "type": "object"
+        },
+        "layouts": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Composition"
+          },
+          "description": "Optional composition layouts per widget kind.",
+          "type": "object"
+        },
+        "license": {
+          "default": "",
+          "type": "string"
+        },
+        "minOpalineVersion": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "default": "",
+          "type": "string"
+        },
+        "previews": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "schemaVersion": {
+          "default": 0,
+          "description": "Schema format version (1).",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "style": {
+          "$ref": "#/$defs/Style",
+          "default": {},
+          "description": "Base style layer applied to every widget under this theme."
+        },
+        "tokens": {
+          "$ref": "#/$defs/ThemeTokens",
+          "default": {}
+        },
+        "version": {
+          "default": "",
+          "description": "Theme package version (semver, e.g. `\"2.0.0\"`).",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "ThemeTokens": {
+      "description": "Design-level theme tokens (color source or fixed palette, motion, shape language).",
+      "properties": {
+        "colorSource": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ColorSource"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "motionPersonality": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MotionPersonality"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "palette": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Optional fixed palette overrides keyed by M3 role (`primary`, `surface`, …) → `#rrggbb`.",
+          "type": "object"
+        },
+        "seedColor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "shapeLanguage": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ShapeLanguage"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "variant": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Variant"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "ValueAnimation": {
+      "enum": [
+        "odometer",
+        "fade",
+        "none"
+      ],
+      "type": "string"
+    },
+    "Variant": {
+      "enum": [
+        "tonal-spot",
+        "vibrant",
+        "expressive",
+        "fidelity",
+        "neutral",
+        "monochrome"
+      ],
+      "type": "string"
+    },
+    "WidgetActions": {
+      "description": "Per-gesture actions on a widget card (brief §5.1).",
+      "properties": {
+        "click": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ActionSpec"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "doubleClick": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ActionSpec"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "middleClick": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ActionSpec"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scrollDown": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ActionSpec"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scrollUp": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ActionSpec"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "WidgetConfig": {
+      "description": "One placed widget: its kind, own style, per-element style overrides (role or `#block-id`),\nand content options (validated by the widget's `settingsSchema` in the frontend).",
+      "properties": {
+        "content": {
+          "additionalProperties": true,
+          "default": {},
+          "type": "object"
+        },
+        "elements": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Style"
+          },
+          "description": "Per-element overrides keyed by role (`hero`, `label`, …) or block id (`#clock-date`).",
+          "type": "object"
+        },
+        "kind": {
+          "default": "",
+          "type": "string"
+        },
+        "style": {
+          "$ref": "#/$defs/Style",
+          "default": {}
+        }
+      },
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "A complete shareable desktop setup (theme + anchored layout + widgets + sources + profiles).",
+  "properties": {
+    "$schema": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "customWidgets": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Composition"
+      },
+      "description": "Optional custom widget compositions.",
+      "type": "object"
+    },
+    "monitors": {
+      "default": [],
+      "description": "Anchored layout items for the primary monitor (and optional secondary monitors).",
+      "items": {
+        "items": {
+          "$ref": "#/$defs/AnchoredItem"
+        },
+        "type": "array"
+      },
+      "type": "array"
+    },
+    "opalineVersion": {
+      "type": "string"
+    },
+    "profiles": {
+      "description": "Optional profile definitions (P8).",
+      "items": true,
+      "type": "array"
+    },
+    "sources": {
+      "description": "Optional custom source definitions (disabled until user approval).",
+      "items": {
+        "$ref": "#/$defs/RiceSourceRef"
+      },
+      "type": "array"
+    },
+    "theme": {
+      "$ref": "#/$defs/ThemePackage"
+    },
+    "version": {
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "widgets": {
+      "additionalProperties": {
+        "$ref": "#/$defs/WidgetConfig"
+      },
+      "description": "Per-widget styles and non-secret content options (locations, calendars, IPs stripped).",
+      "type": "object"
+    }
+  },
+  "required": [
+    "version",
+    "opalineVersion",
+    "theme"
+  ],
+  "title": "RiceBundle",
+  "type": "object"
+}

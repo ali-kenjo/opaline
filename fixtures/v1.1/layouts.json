@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "showMissingOnPrimary": false,
+  "monitors": {
+    "REDACTED-PANEL-0001:eDP-1": {
+      "items": [
+        {
+          "id": "a-clock",
+          "type": "widget",
+          "kind": "clock",
+          "x": 0,
+          "y": 0,
+          "w": 4,
+          "h": 2
+        },
+        {
+          "id": "stack-sys",
+          "type": "stack",
+          "x": 0,
+          "y": 2,
+          "w": 4,
+          "h": 2,
+          "children": ["b-cpu", "c-memory"],
+          "activeIndex": 0,
+          "smartRotate": true
+        }
+      ]
+    },
+    "REDACTED-EXT-0002:HDMI-2": {
+      "items": [
+        {
+          "id": "d-visualizer",
+          "type": "widget",
+          "kind": "visualizer",
+          "x": 12,
+          "y": 6,
+          "w": 4,
+          "h": 2
+        }
+      ]
+    }
+  }
+}

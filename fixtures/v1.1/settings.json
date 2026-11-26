@@ -1,0 +1,121 @@
+{
+  "version": 1,
+  "onboardingDone": true,
+  "language": "en",
+  "appearance": {
+    "state": "automatic",
+    "glass": 45,
+    "density": "comfortable"
+  },
+  "layout": {
+    "marginPx": 24
+  },
+  "performance": {
+    "mode": "balanced",
+    "pauseOnBattery": false
+  },
+  "weather": {
+    "location": {
+      "name": "Example City",
+      "latitude": 52.52,
+      "longitude": 13.405,
+      "country": "DE"
+    },
+    "automatic": false
+  },
+  "network": {
+    "billingDay": 15,
+    "latencyTarget": "1.1.1.1",
+    "publicIp": false
+  },
+  "calendar": {
+    "system": true,
+    "subscriptions": []
+  },
+  "privacy": {
+    "updateChecks": true,
+    "privilegedSensors": false
+  },
+  "alerts": [
+    {
+      "id": "cpu-hot",
+      "series": "cpu.temp",
+      "comparator": "above",
+      "threshold": 90.0,
+      "clear": 82.0,
+      "forS": 10,
+      "cooldownS": 900,
+      "enabled": true
+    }
+  ],
+  "style": {
+    "surface": "glass",
+    "transparency": 70,
+    "blur": 25,
+    "rim": 60,
+    "fontFamily": "Inter",
+    "numberFontFamily": "Roboto Flex",
+    "legibility": true
+  },
+  "styles": {
+    "Night Glass": {
+      "theme": "dark",
+      "transparency": 50,
+      "blur": 50,
+      "accentColor": "#8f7cf0"
+    },
+    "Minimal Clear": {
+      "surface": "clear",
+      "icons": false,
+      "uppercaseLabels": true
+    }
+  },
+  "widgets": {
+    "a-clock": {
+      "kind": "clock",
+      "style": {
+        "blur": 0,
+        "textScale": 1.15,
+        "odometer": true
+      },
+      "content": {
+        "showTitle": false,
+        "format24h": true,
+        "showSeconds": false
+      }
+    },
+    "b-cpu": {
+      "kind": "cpu",
+      "style": {
+        "blur": 100,
+        "heroColor": "ramp",
+        "borderWidth": 1,
+        "borderColor": "#f2903a"
+      },
+      "content": {
+        "title": "Processor",
+        "fields": ["load", "temp", "freq"],
+        "hero": "load",
+        "heroStyle": "ring"
+      }
+    },
+    "c-memory": {
+      "kind": "memory",
+      "style": {},
+      "content": {
+        "unit": "GiB"
+      }
+    },
+    "d-visualizer": {
+      "kind": "visualizer",
+      "style": {
+        "surface": "clear",
+        "transparency": 90
+      },
+      "content": {
+        "style": "spectrum",
+        "bands": 16
+      }
+    }
+  }
+}
