@@ -55,6 +55,9 @@ A plain `cargo build -p opaline` produces a binary that loads the frontend from 
   Core side: `desktop.rs` (Native/Instant selection, live switching), `shortcuts.rs` (portal shortcuts in Instant).
 - `crates/opaline-expr`: the expression language (docs/EXPRESSIONS.md); its TypeScript twin is `app/src/expr/`. Both
   pass `spec/expressions/*.json`; change the corpus first, then both sides.
+- `crates/opaline-compose`: the composition model (docs/COMPOSITION.md). Its JSON Schema (`spec/composition.schema.json`)
+  and the layer's types (`app/src/compose/model.gen.ts`) are generated from it; tests fail when either is stale:
+  `OPALINE_UPDATE_SCHEMA=1 cargo test -p opaline-compose`, then `cd app && pnpm gen:types`.
 - `crates/opaline-privileged`: the root helper (RAPL only); its D-Bus/polkit files are in `packaging/`.
 - `app/src-tauri`: the `opaline` binary. `core_mode.rs` (tray, D-Bus, IPC server, layer supervisor), `layer/`
   (windows per monitor, IPC client, bridge to the webviews), `instant.rs`.
