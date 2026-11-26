@@ -8,6 +8,7 @@ import { evaluationCount } from "../compose/runtime";
 import { ComponentsDemo } from "./ComponentsDemo";
 import { DirectionsDemo } from "./directions/DirectionsDemo";
 import { SpikeGlass } from "./spike/SpikeGlass";
+import { SpikeFocus } from "./spike/SpikeFocus";
 import { SpikeSandbox } from "./spike/SpikeSandbox";
 import { SpikeWebkit } from "./spike/SpikeWebkit";
 import { GlassDemo } from "./GlassDemo";
@@ -164,6 +165,7 @@ export function LabApp() {
       {spike === "webkit" ? <SpikeWebkit /> : null}
       {spike === "glass" ? <SpikeGlass /> : null}
       {spike === "sandbox" ? <SpikeSandbox /> : null}
+      {spike === "focus" ? <SpikeFocus /> : null}
     </main>
   );
 }

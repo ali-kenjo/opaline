@@ -46,3 +46,39 @@ pub fn plugin_scheme<R: Runtime>(
         None => respond(StatusCode::NOT_FOUND, "text/plain", Vec::new()),
     }
 }
+
+/// Spike S3: logs the button presses and focus changes the GTK widgets themselves receive, to see
+/// where a click on the layer ends up.
+pub fn log_input(webview: &webkit2gtk::WebView) {
+    use gtk::prelude::*;
+    webview.connect_button_press_event(|_, e| {
+        let (x, y) = e.position();
+        tracing::info!(x, y, "spike focus: webview button press");
+        gtk::glib::Propagation::Proceed
+    });
+    webview.connect_focus_in_event(|_, _| {
+        tracing::info!("spike focus: webview focus in");
+        gtk::glib::Propagation::Proceed
+    });
+    if let Some(toplevel) = webview.toplevel() {
+        toplevel.connect_button_press_event(|w, e| {
+            let (x, y) = e.position();
+            tracing::info!(
+                x,
+                y,
+                width = w.allocated_width(),
+                height = w.allocated_height(),
+                "spike focus: window button press"
+            );
+            gtk::glib::Propagation::Proceed
+        });
+        toplevel.connect_focus_in_event(|_, _| {
+            tracing::info!("spike focus: window focus in");
+            gtk::glib::Propagation::Proceed
+        });
+        toplevel.connect_focus_out_event(|_, _| {
+            tracing::info!("spike focus: window focus out");
+            gtk::glib::Propagation::Proceed
+        });
+    }
+}

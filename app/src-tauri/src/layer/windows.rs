@@ -513,6 +513,10 @@ fn attach_crash_recovery(window: &tauri::WebviewWindow) {
     let app = window.app_handle().clone();
     if let Err(error) = window.with_webview(move |platform| {
         let webview = platform.inner();
+        #[cfg(debug_assertions)]
+        if layer_page().contains("spike=focus") {
+            super::spike::log_input(&webview);
+        }
         // Suppress WebKitGTK's default browser menu (Back/Forward/Stop/Reload) on the desktop layer.
         webview.connect_context_menu(|_, _, _, _| true);
         webview.connect_web_process_terminated(move |_, reason| {
