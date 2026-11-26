@@ -16,8 +16,8 @@ export interface Host {
   nowMs?(): number | null;
   history?(path: string, agg: Agg, windowSecs: number): number | null;
   locale?(): Locale;
-  /** Layer only: an ICU skeleton date (`date()`). */
-  date?(ms: number, skeleton: string): string | null;
+  /** Layer only: a date by ICU skeleton, in a time zone (`undefined` = the system's). */
+  date?(ms: number, skeleton: string, zone: string | undefined): string | null;
   /** Layer only: a color on one of the scheme's ramps (`ramp()`). */
   ramp?(t: number, name: string): string | null;
 }
@@ -327,7 +327,9 @@ class Cx {
       }
       case "date": {
         const ms = number(0);
-        return this.host.date?.(ms, has(1) ? string(1) : "yMMMd") ?? null;
+        const skeleton = has(1) ? string(1) : "yMMMd";
+        const zone = has(2) ? string(2) : undefined;
+        return this.host.date?.(ms, skeleton, zone) ?? null;
       }
       case "ramp": {
         const t = number(0);

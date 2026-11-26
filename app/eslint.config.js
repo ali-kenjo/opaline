@@ -21,6 +21,10 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
       "no-warning-comments": ["error", { terms: ["todo", "fixme", "xxx"], location: "start" }],
+      // Expressions have their own evaluator (docs/EXPRESSIONS.md); nothing runs strings as code.
+      "no-eval": "error",
+      "no-new-func": "error",
+      "@typescript-eslint/no-implied-eval": "error",
     },
   },
   {

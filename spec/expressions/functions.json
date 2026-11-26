@@ -225,6 +225,36 @@
    },
    "expect": null,
    "error": "type-error"
+  },
+  {
+   "name": "date without the layer's ICU data is null",
+   "expr": "date(0)",
+   "expect": null
+  },
+  {
+   "name": "date with a skeleton and a zone",
+   "expr": "date(0, 'Hm', 'Europe/Berlin')",
+   "expect": null
+  },
+  {
+   "name": "date checks its arguments",
+   "expr": "date('x')",
+   "error": "type-error"
+  },
+  {
+   "name": "date takes at most three arguments",
+   "expr": "date(0, 'Hm', 'UTC', 1)",
+   "error": "arity"
+  },
+  {
+   "name": "ramp without the layer's scheme is null",
+   "expr": "ramp(0.5, 'thermal')",
+   "expect": null
+  },
+  {
+   "name": "ramp needs a name",
+   "expr": "ramp(0.5)",
+   "error": "arity"
   }
  ]
 }

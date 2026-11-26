@@ -37,7 +37,7 @@ self.onmessage = (event: MessageEvent<{ canvas?: OffscreenCanvas }>) => {
     }
     const evalAllowed = (() => {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-implied-eval -- the point is to see CSP block it
+        // eslint-disable-next-line no-new-func, @typescript-eslint/no-implied-eval -- the point is to see CSP block it
         return (new Function("return 1") as () => number)() === 1;
       } catch {
         return false;

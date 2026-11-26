@@ -58,7 +58,7 @@ const TABLE: Record<string, Sig> = {
   lighten: sig("lighten", ["str", "num"], 0, "str"),
   now: sig("now", [], 0, "num"),
   until: sig("until", ["num"], 0, "num"),
-  date: sig("date", ["num", "str"], 1, "str"),
+  date: sig("date", ["num", "str", "str"], 2, "str"),
   ramp: sig("ramp", ["num", "str"], 0, "str"),
 };
 

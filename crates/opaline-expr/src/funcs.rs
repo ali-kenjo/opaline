@@ -31,6 +31,9 @@ pub enum Func {
     Lighten,
     Now,
     Until,
+    /// Layer only (ICU data, the scheme): `null` unless the host provides them.
+    Date,
+    Ramp,
     /// History forms: the first argument is a path, the second a duration literal, folded into
     /// the call at compile time (see `parser`).
     HistAvg,
@@ -107,6 +110,8 @@ pub fn lookup(name: &str) -> Option<Sig> {
         "lighten" => sig(Func::Lighten, &[Str, Num], 0, Type::Str),
         "now" => sig(Func::Now, &[], 0, Type::Num),
         "until" => sig(Func::Until, &[Num], 0, Type::Num),
+        "date" => sig(Func::Date, &[Num, Str, Str], 2, Type::Str),
+        "ramp" => sig(Func::Ramp, &[Num, Str], 0, Type::Str),
         "avg" => sig(Func::HistAvg, &[Any, Str], 0, Type::Num),
         "delta" => sig(Func::HistDelta, &[Any, Str], 0, Type::Num),
         _ => return None,

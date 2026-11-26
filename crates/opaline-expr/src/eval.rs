@@ -427,6 +427,25 @@ impl Cx<'_> {
                 let ms = num!(0);
                 Value::num((ms - self.host.now_ms()?) / 1000.0)
             }
+            Func::Date => {
+                let ms = num!(0);
+                let skeleton = if v.len() > 1 {
+                    string!(1).to_owned()
+                } else {
+                    "yMMMd".to_owned()
+                };
+                let zone = if v.len() > 2 {
+                    Some(string!(2).to_owned())
+                } else {
+                    None
+                };
+                Value::Str(self.host.date(ms, &skeleton, zone.as_deref())?)
+            }
+            Func::Ramp => {
+                let t = num!(0).clamp(0.0, 1.0);
+                let name = string!(1).to_owned();
+                Value::Str(self.host.ramp(t, &name)?)
+            }
             Func::If | Func::HistAvg | Func::HistMin | Func::HistMax | Func::HistDelta => {
                 return None;
             }

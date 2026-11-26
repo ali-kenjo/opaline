@@ -128,6 +128,14 @@ pub trait Host {
     fn locale(&self) -> Locale {
         Locale::En
     }
+    /// Layer only: a date by ICU skeleton, in a time zone (`None` = the system's).
+    fn date(&self, _ms: f64, _skeleton: &str, _zone: Option<&str>) -> Option<String> {
+        None
+    }
+    /// Layer only: a color on one of the scheme's ramps, `t` 0 … 1.
+    fn ramp(&self, _t: f64, _name: &str) -> Option<String> {
+        None
+    }
 }
 
 /// The result of one evaluation.
