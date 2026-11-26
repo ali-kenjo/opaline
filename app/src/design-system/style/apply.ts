@@ -43,8 +43,18 @@ export interface ColorContext {
   systemDark: boolean;
 }
 
+/**
+ * Whether a widget uses the dark scheme. "Automatic" follows the system, except on a solid custom
+ * surface color, where the text scheme follows that color's brightness, so text never ends up
+ * dark on a dark surface (0.18 is where black and white text contrast equally).
+ */
 export function isDark(style: ResolvedStyle, ctx: ColorContext): boolean {
-  return style.theme === "auto" ? ctx.systemDark : style.theme === "dark";
+  if (style.theme !== "auto") return style.theme === "dark";
+  if (style.surface === "color" && style.surfaceColor) {
+    const [r, g, b] = hexToRgba(style.surfaceColor);
+    return luminance(r, g, b) < 0.18;
+  }
+  return ctx.systemDark;
 }
 
 export function sourceColor(style: ResolvedStyle, ctx: ColorContext): number {
@@ -123,7 +133,13 @@ export function glassOptions(style: ResolvedStyle, roles: Roles): Omit<GlassOpti
       : style.surface === "tinted"
         ? custom(style.tintColor, roles.primaryContainer)
         : custom(style.tintColor, roles.surfaceContainer);
-  const text = style.textColor ? hexToRgba(style.textColor) : rgbOf(roles.onSurface);
+  // Legibility is judged on the weaker text: secondary labels use on-surface-variant, which sits
+  // closer to the glass than on-surface in both light and dark schemes.
+  const text = style.secondaryTextColor
+    ? hexToRgba(style.secondaryTextColor)
+    : style.textColor
+      ? hexToRgba(style.textColor)
+      : rgbOf(roles.onSurfaceVariant);
   const look: SurfaceLook = {
     blur: style.blur / 100,
     see: style.see,

@@ -51,7 +51,9 @@ export function legibleAlpha(
   backgroundLum: number,
   tintLum: number,
   textLum: number,
-  target = 4.5,
+  // 4.5 : 1 plus a margin: the wallpaper luminance under a widget is an estimate (a coarse grid
+  // of the blurred image), and the screenshot check measures what is really painted.
+  target = 4.7,
 ): number {
   const glass = (a: number) => backgroundLum + (tintLum - backgroundLum) * a;
   if (contrast(glass(base), textLum) >= target) return base;
