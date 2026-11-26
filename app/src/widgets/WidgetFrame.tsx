@@ -279,6 +279,8 @@ export function WidgetFrame({
         values={values}
         size={size}
         animate={style.animations && style.odometer}
+        colorSource={sourceColor(style, host.colors)}
+        dark={isDark(style, host.colors)}
       />
     ) : def.render ? (
       def.render(render)

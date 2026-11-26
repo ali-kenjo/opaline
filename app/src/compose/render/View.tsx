@@ -2,40 +2,43 @@
 // which evaluates only what changed; layout is CSS (flex, grid, a container query for `stack`).
 // Every node carries data attributes themes and tests target: data-block, data-type, data-role,
 // data-state.
-import {
-  type CSSProperties,
-  type ReactNode,
-  createContext,
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
-import { Fit, Ring, WavyProgress, useFitRows } from "../../design-system/components";
+import { type ReactNode, useEffect, useState } from "react";
+import { Fit, WavyProgress, useFitRows } from "../../design-system/components";
 import { ICONS, Icon, type IconName } from "../../design-system/icons";
 import { Odometer } from "../../design-system/motion";
-import { space } from "../../design-system/tokens/tokens";
 import type { Value } from "../../expr";
-import { NNBSP, plain, text } from "../../expr/format";
+import { NNBSP, plain } from "../../expr/format";
 import type { Composition, Node, SizeClass } from "../model.gen";
-import type { Runtime, Scope } from "../runtime";
+import type { Runtime } from "../runtime";
+import {
+  ChartBlock,
+  ButtonBlock,
+  HeatmapBlock,
+  ImageBlock,
+  InputBlock,
+  PluginBlock,
+  RingBlock,
+  ShapeBlock,
+  SliderBlock,
+  ToggleBlock,
+} from "./blocks";
+import {
+  type Attrs,
+  type CSSVars,
+  Ctx,
+  type Services,
+  asString,
+  cssColor,
+  px,
+  ratio,
+  useField,
+  useView,
+  vars,
+} from "./context";
 import styles from "./View.module.css";
 import { VISUALS } from "./visuals";
 
-interface ViewCtx {
-  rt: Runtime;
-  scope: Scope | undefined;
-  animate: boolean;
-}
-
-const Ctx = createContext<ViewCtx | null>(null);
-
-function useView(): ViewCtx {
-  const v = useContext(Ctx);
-  if (!v) throw new Error("composition node rendered outside a CompositionView");
-  return v;
-}
+export type { Services } from "./context";
 
 /** The layout for a size: the first that lists it, or has no sizes. */
 export function pickLayout(c: Composition, size: SizeClass): number {
@@ -47,10 +50,12 @@ export interface CompositionViewProps {
   size: SizeClass;
   /** Numbers roll and rings ease (the widget's animation setting). */
   animate: boolean;
+  /** Commands, history and ramps from where it runs (none: controls do nothing). */
+  services?: Services | undefined;
 }
 
 /** Renders a composition and re-renders itself when a clock-reading value goes stale. */
-export function CompositionView({ runtime, size, animate }: CompositionViewProps) {
+export function CompositionView({ runtime, size, animate, services }: CompositionViewProps) {
   const [, setTick] = useState(0);
   const index = pickLayout(runtime.composition, size);
   const layout = runtime.composition.layouts[index];
@@ -69,23 +74,12 @@ export function CompositionView({ runtime, size, animate }: CompositionViewProps
   }, [wake]);
   if (!layout) return null;
   return (
-    <Ctx.Provider value={{ rt: runtime, scope: undefined, animate }}>
+    <Ctx.Provider value={{ rt: runtime, scope: undefined, animate, services }}>
       <div className={styles.root} data-size={size} data-composition="">
         <NodeView node={layout.root} at={`/layouts/${String(index)}/root`} />
       </div>
     </Ctx.Provider>
   );
-}
-
-/** Reads one field of the node at `at`: its value, and whether it errored. */
-function useField(at: string) {
-  const { rt, scope } = useView();
-  return (key: string): { value: Value; failed: boolean; present: boolean } => {
-    const id = `${at}/${key}`;
-    if (!rt.has(id)) return { value: null, failed: false, present: false };
-    const o = rt.read(id, scope);
-    return { value: o.value, failed: o.errors.length > 0, present: true };
-  };
 }
 
 const ALIGN = {
@@ -104,11 +98,6 @@ const JUSTIFY = {
   around: "space-around",
   evenly: "space-evenly",
 } as const;
-
-const px = (step: number | undefined) =>
-  step === undefined ? undefined : `${String(space[Math.min(8, Math.max(0, step))] ?? 0)}px`;
-
-const asString = (v: Value) => (typeof v === "string" ? v : v === null ? "" : text(v, "en"));
 
 function NodeView({ node, at }: { node: Node; at: string }) {
   const field = useField(at);
@@ -181,12 +170,6 @@ function NodeView({ node, at }: { node: Node; at: string }) {
   }
 }
 
-type Attrs = Record<string, string | undefined>;
-
-/** Inline style with the renderer's custom properties. */
-type CSSVars = CSSProperties & Record<`--${string}`, string | number | undefined>;
-const vars = (o: CSSVars): CSSProperties => o;
-
 function ListView({
   node,
   at,
@@ -226,29 +209,6 @@ function ListView({
     </div>
   );
 }
-
-/** The side of the box a block is given (rings and canvases fill it). */
-function useBoxSize<T extends HTMLElement>() {
-  const ref = useRef<T>(null);
-  const [box, setBox] = useState({ w: 0, h: 0 });
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const measure = () => {
-      const r = el.getBoundingClientRect();
-      setBox((b) => (b.w === r.width && b.h === r.height ? b : { w: r.width, h: r.height }));
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => {
-      ro.disconnect();
-    };
-  }, []);
-  return [ref, box] as const;
-}
-
-const ratio = (v: Value) => (typeof v === "number" ? Math.min(1, Math.max(0, v)) : null);
 
 function BlockView({ node, at, attrs }: { node: Node; at: string; attrs: Attrs }) {
   const { animate } = useView();
@@ -303,6 +263,24 @@ function BlockView({ node, at, attrs }: { node: Node; at: string; attrs: Attrs }
     }
     case "ring":
       return <RingBlock node={node} at={at} attrs={attrs} />;
+    case "chart":
+      return <ChartBlock node={node} at={at} attrs={attrs} />;
+    case "heatmap":
+      return <HeatmapBlock node={node} at={at} attrs={attrs} />;
+    case "shape":
+      return <ShapeBlock node={node} at={at} attrs={attrs} />;
+    case "image":
+      return <ImageBlock node={node} at={at} attrs={attrs} />;
+    case "button":
+      return <ButtonBlock node={node} at={at} attrs={attrs} />;
+    case "toggle":
+      return <ToggleBlock node={node} at={at} attrs={attrs} />;
+    case "slider":
+      return <SliderBlock node={node} at={at} attrs={attrs} />;
+    case "input":
+      return <InputBlock node={node} at={at} attrs={attrs} />;
+    case "plugin":
+      return <PluginBlock node={node} at={at} attrs={attrs} />;
     case "bar":
     case "progress": {
       const v = ratio(read("value"));
@@ -320,7 +298,7 @@ function BlockView({ node, at, attrs }: { node: Node; at: string; attrs: Attrs }
           aria-valuemin={0}
           aria-valuemax={1}
           aria-valuenow={v ?? undefined}
-          style={vars({ "--c-color": typeof color === "string" ? color : undefined })}
+          style={vars({ "--c-color": cssColor(color ?? null) })}
         >
           <div
             className={styles.bar}
@@ -341,7 +319,6 @@ function BlockView({ node, at, attrs }: { node: Node; at: string; attrs: Attrs }
       break;
     }
     default:
-      // Image, shape, chart, heatmap and the controls arrive with the rest of the blocks.
       content = null;
   }
   return (
@@ -351,44 +328,6 @@ function BlockView({ node, at, attrs }: { node: Node; at: string; attrs: Attrs }
       {...attrs}
     >
       {content}
-    </div>
-  );
-}
-
-function RingBlock({
-  node,
-  at,
-  attrs,
-}: {
-  node: Node & { type: "ring" };
-  at: string;
-  attrs: Attrs;
-}) {
-  const { animate } = useView();
-  const field = useField(at);
-  const value = field("value");
-  const color = node.color !== undefined ? field("color").value : null;
-  const [ref, box] = useBoxSize<HTMLDivElement>();
-  const side = Math.floor(Math.min(box.w, box.h));
-  const v = ratio(value.value);
-  return (
-    <div
-      ref={ref}
-      className={`${styles.block ?? ""} ${styles.fill ?? ""}`}
-      style={{ flex: 1, alignSelf: "stretch" }}
-      data-state={value.failed || v === null ? "unavailable" : undefined}
-      {...attrs}
-    >
-      {side > 0 ? (
-        <Ring
-          value={v ?? 0}
-          size={side}
-          thickness={node.thickness ?? Math.max(4, Math.round(side / 10))}
-          {...(typeof color === "string" ? { color } : {})}
-          label={attrs["aria-label"] ?? `${String(Math.round((v ?? 0) * 100))} %`}
-          instant={!animate}
-        />
-      ) : null}
     </div>
   );
 }

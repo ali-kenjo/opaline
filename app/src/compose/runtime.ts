@@ -72,6 +72,9 @@ interface Memo {
 
 const converted = new WeakMap<object, Value>();
 
+/** Evaluations by every runtime in this window (the Lab shows it; spike S10). */
+export const evaluationCount = { total: 0 };
+
 /** A wire value as an expression value (cached per object, so identity means "unchanged"). */
 export function fromWire(w: Wire | undefined): Value {
   if (w === undefined) return null;
@@ -159,9 +162,17 @@ export class Runtime {
       }
     });
     const topics = new Set<string>();
+    const paths: string[] = [];
     for (const p of this.sources.values()) {
-      if (p instanceof Diagnostic) continue;
-      for (const path of p.paths()) {
+      if (!(p instanceof Diagnostic)) paths.push(...p.paths());
+    }
+    // Charts over core's history follow their path's live value too.
+    composition.layouts.forEach((layout) => {
+      for (const [n] of nodes(layout.root, ""))
+        if (n.type === "chart" && n.history) paths.push(n.history.path);
+    });
+    {
+      for (const path of paths) {
         if (/^(bind|opt)\./.test(path) || path.startsWith("$")) continue;
         const segs = path.split(".");
         for (let n = segs.length; n >= 1; n--) topics.add(segs.slice(0, n).join("."));
@@ -173,6 +184,20 @@ export class Runtime {
   /** The topics to subscribe to: every prefix a path could resolve to (§5 of EXPRESSIONS.md). */
   topics(): readonly string[] {
     return this.topicNames;
+  }
+
+  /** A data path's current value (longest topic prefix), without remembering anything. */
+  value(path: string): Value {
+    const segs = path.split(".");
+    for (let n = segs.length; n >= 1; n--) {
+      const w = this.env.topics[segs.slice(0, n).join(".")];
+      if (w !== undefined)
+        return valueAt(
+          fromWire(w),
+          segs.slice(n).map((field) => ({ field })),
+        );
+    }
+    return null;
   }
 
   setEnv(env: Env): void {
@@ -292,6 +317,7 @@ export class Runtime {
         ramp: (t, name) => env.ramp?.(t, name) ?? null,
       };
       this.evaluations++;
+      evaluationCount.total++;
       const outcome = p.eval(host);
       if (memoize) {
         let nextAt = Infinity;
