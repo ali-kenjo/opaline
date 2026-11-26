@@ -1,0 +1,208 @@
+/* The composition renderer (docs/COMPOSITION.md). Roles carry the type; themes (P3) restyle them
+   through the same data attributes: [data-role], [data-type], [data-size], [data-state]. */
+
+.root {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.root > * {
+  flex: 1;
+}
+
+.box {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  gap: var(--c-gap, 0);
+  padding: var(--c-pad, 0);
+}
+
+.row {
+  flex-direction: row;
+}
+
+.column {
+  flex-direction: column;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(var(--c-columns, 1), minmax(0, 1fr));
+}
+
+.overlay {
+  display: grid;
+  place-items: center;
+}
+
+.overlay > * {
+  grid-area: 1 / 1;
+}
+
+/* A stack is a row when wider than tall, else a column. */
+.stackOuter {
+  container-type: size;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+
+.stackOuter > .box {
+  flex: 1;
+  flex-direction: column;
+}
+
+@container (orientation: landscape) {
+  .stackOuter > .box {
+    flex-direction: row;
+  }
+}
+
+.spacer {
+  flex: 1;
+}
+
+.divider {
+  flex: none;
+  align-self: stretch;
+  background: rgb(var(--md-on-surface) / 0.12);
+  min-width: 1px;
+  min-height: 1px;
+}
+
+.block {
+  min-width: 0;
+  min-height: 0;
+}
+
+.text {
+  display: block;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.number {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  white-space: nowrap;
+  font-family: var(--w-num-font);
+  font-variant-numeric: var(--w-nums);
+}
+
+.fill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.track {
+  position: relative;
+  border-radius: 999px;
+  background: rgb(var(--md-on-surface) / 0.12);
+  overflow: hidden;
+}
+
+.track[data-axis="horizontal"] {
+  height: 8px;
+  align-self: stretch;
+}
+
+.track[data-axis="vertical"] {
+  width: 8px;
+  align-self: stretch;
+}
+
+.bar {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--c-color, rgb(var(--md-primary)));
+  transform-origin: left center;
+}
+
+.track[data-axis="vertical"] .bar {
+  transform-origin: center bottom;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--c-gap, 0);
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.list[data-axis="horizontal"] {
+  flex-direction: row;
+}
+
+/* Roles. Sizes follow the size class; --w-scale is the widget's text size. */
+
+[data-role="hero"] {
+  font-family: var(--w-num-font);
+  font-variant-numeric: var(--w-nums);
+  font-weight: max(var(--w-weight), 300);
+  font-size: calc(44px * var(--w-scale));
+  line-height: 1;
+  white-space: nowrap;
+}
+
+[data-size="1x1"] [data-role="hero"] {
+  font-size: calc(20px * var(--w-scale));
+}
+
+[data-size="2x1"] [data-role="hero"],
+[data-size="4x1"] [data-role="hero"],
+[data-size="S"] [data-role="hero"] {
+  font-size: calc(30px * var(--w-scale));
+}
+
+[data-size="L"] [data-role="hero"],
+[data-size="XL"] [data-role="hero"] {
+  font-size: calc(72px * var(--w-scale));
+}
+
+[data-role="title"] {
+  font-size: calc(15px * var(--w-scale));
+  font-weight: max(var(--w-weight), 600);
+}
+
+[data-role="value"] {
+  font-size: calc(16px * var(--w-scale));
+  font-variant-numeric: var(--w-nums);
+}
+
+[data-role="label"],
+[data-role="caption"],
+[data-role="unit"] {
+  color: rgb(var(--md-on-surface-variant));
+  font-size: calc(14px * var(--w-scale));
+  text-transform: var(--w-label-case);
+}
+
+[data-role="unit"] {
+  font-size: 0.5em;
+  text-transform: none;
+}
+
+[data-role="accent"] {
+  color: rgb(var(--md-primary));
+}
+
+[data-role="badge"] {
+  font-size: calc(12px * var(--w-scale));
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgb(var(--md-secondary-container));
+  color: rgb(var(--md-on-secondary-container));
+}
+
+[data-state="unavailable"] {
+  color: rgb(var(--md-on-surface-variant));
+}

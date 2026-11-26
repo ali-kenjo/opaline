@@ -195,11 +195,12 @@ export class Runtime {
     return Number.isFinite(next) ? next : null;
   }
 
-  /** Forgets remembered list items from `count` on (the list got shorter). */
-  trimItems(source: string, count: number): void {
+  /** Forgets remembered list items from `count` on for every field under `prefix` (the list's
+   * item, `/layouts/0/root/item`): the list got shorter. */
+  trimItems(prefix: string, count: number): void {
     for (const key of this.memo.keys()) {
       const hash = key.lastIndexOf("#");
-      if (hash > 0 && key.slice(0, hash) === source && Number(key.slice(hash + 1)) >= count) {
+      if (hash > 0 && key.startsWith(`${prefix}/`) && Number(key.slice(hash + 1)) >= count) {
         this.memo.delete(key);
       }
     }
