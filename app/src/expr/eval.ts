@@ -3,7 +3,17 @@
 import { Diagnostic } from "./diagnostic";
 import * as fmt from "./format";
 import type { BinOp, Expr, Part, PathRef } from "./parser";
-import { compareStrings, get, isList, num, same, type Key, type Locale, type Value } from "./value";
+import {
+  compareStrings,
+  get,
+  isList,
+  isMap,
+  num,
+  same,
+  type Key,
+  type Locale,
+  type Value,
+} from "./value";
 
 export type Agg = "avg" | "min" | "max" | "delta";
 
@@ -255,6 +265,17 @@ class Cx {
           return null;
         }
         return x.map((y) => fmt.text(y, loc)).join(sep);
+      }
+      case "has": {
+        const c = arg(0);
+        const x = arg(1);
+        if (c === null) return null;
+        if (isList(c)) return c.some((y) => same(y, x));
+        if (isMap(c) && typeof x === "string") return Object.hasOwn(c, x);
+        if (typeof c === "string" && typeof x === "string") return c.includes(x);
+        if ((isMap(c) || typeof c === "string") && x === null) return null;
+        this.error(pos(0), "has() looks in a list, a map or a string");
+        return null;
       }
       case "pad": {
         if (arg(0) === null) return null;

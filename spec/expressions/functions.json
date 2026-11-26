@@ -255,6 +255,81 @@
    "name": "ramp needs a name",
    "expr": "ramp(0.5)",
    "error": "arity"
+  },
+  {
+   "name": "has in a list",
+   "expr": "has(tags, 'b')",
+   "data": {
+    "tags": [
+     "a",
+     "b",
+     "c"
+    ],
+    "m": {
+     "k": 1
+    },
+    "n": 5
+   },
+   "expect": true
+  },
+  {
+   "name": "has not in a list",
+   "expr": "has(tags, 'z')",
+   "data": {
+    "tags": [
+     "a",
+     "b",
+     "c"
+    ],
+    "m": {
+     "k": 1
+    },
+    "n": 5
+   },
+   "expect": false
+  },
+  {
+   "name": "has a map key",
+   "expr": "has(m, 'k')",
+   "data": {
+    "tags": [
+     "a",
+     "b",
+     "c"
+    ],
+    "m": {
+     "k": 1
+    },
+    "n": 5
+   },
+   "expect": true
+  },
+  {
+   "name": "has in a string",
+   "expr": "has('Partly cloudy', 'cloud')",
+   "expect": true
+  },
+  {
+   "name": "has with null",
+   "expr": "has(missing, 'x')",
+   "expect": null
+  },
+  {
+   "name": "has needs a container",
+   "expr": "has(n, 1)",
+   "data": {
+    "tags": [
+     "a",
+     "b",
+     "c"
+    ],
+    "m": {
+     "k": 1
+    },
+    "n": 5
+   },
+   "expect": null,
+   "error": "type-error"
   }
  ]
 }

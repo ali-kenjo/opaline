@@ -3,7 +3,7 @@ import type { Type } from "./value";
 
 export type Func =
   | "round" | "floor" | "ceil" | "abs" | "sqrt" | "min" | "max" | "clamp" | "map" | "if"
-  | "upper" | "lower" | "trim" | "len" | "string" | "join" | "pad"
+  | "upper" | "lower" | "trim" | "len" | "string" | "join" | "has" | "pad"
   | "fixed" | "percent" | "unit" | "bytes" | "duration"
   | "mix" | "alpha" | "lighten" | "now" | "until"
   // Layer only (they need ICU data and the scheme).
@@ -47,6 +47,7 @@ const TABLE: Record<string, Sig> = {
   len: sig("len", ["any"], 0, "num"),
   string: sig("string", ["any"], 0, "str"),
   join: sig("join", ["list", "str"], 1, "str"),
+  has: sig("has", ["any", "any"], 0, "bool"),
   pad: sig("pad", ["any", "num", "str"], 1, "str"),
   fixed: sig("fixed", ["num", "num"], 0, "str"),
   percent: sig("percent", ["num", "num"], 1, "str"),

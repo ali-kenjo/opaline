@@ -337,6 +337,17 @@ impl Cx<'_> {
                     }
                 }
             }
+            Func::Has => match (arg(0), arg(1)) {
+                (Value::Null, _) => return None,
+                (Value::List(l), x) => Value::Bool(l.iter().any(|y| y.same(x))),
+                (Value::Map(m), Value::Str(k)) => Value::Bool(m.contains_key(k)),
+                (Value::Str(s), Value::Str(x)) => Value::Bool(s.contains(x.as_str())),
+                (Value::Map(_) | Value::Str(_), Value::Null) => return None,
+                _ => {
+                    self.error(pos(0), "has() looks in a list, a map or a string");
+                    return None;
+                }
+            },
             Func::Pad => {
                 if arg(0).is_null() {
                     return None;

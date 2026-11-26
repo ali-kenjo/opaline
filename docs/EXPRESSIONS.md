@@ -103,6 +103,7 @@ Arguments in `[]` are optional. "num?" means the result is `null` when an input 
 | `len(x)` | number of characters of a string or elements of a list; `null` otherwise |
 | `string(x)` | the value as text (same rules as template holes) |
 | `join(list, [sep])` | the elements as text, `sep` default `", "` |
+| `has(c, x)` | bool?: a list holds `x` (by value), a map has key `x`, or a string contains `x` |
 | `pad(x, width, [char])` | left-pads to `width` (default char `'0'`) |
 
 ### Formatting (locale-aware; the locale comes from the host)
