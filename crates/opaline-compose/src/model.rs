@@ -334,8 +334,12 @@ pub enum Kind {
         max: Option<f64>,
     },
     Heatmap {
+        /// Values 0 … `max`.
         values: Expr,
         columns: u8,
+        /// The value that is full heat (default 1).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        max: Option<f64>,
     },
     /// Repeats `item` for each element of `items`; inside, `$item` and `$index`.
     List {

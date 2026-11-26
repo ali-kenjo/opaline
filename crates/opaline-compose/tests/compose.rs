@@ -158,6 +158,30 @@ fn limits_keep_hostile_files_cheap() {
 }
 
 #[test]
+fn controls_send_only_allowed_commands() {
+    let ps = problems(one(serde_json::json!({
+        "id": "r", "type": "column", "children": [
+            { "id": "ok", "type": "button", "text": "Play", "command": { "cmd": "media",
+              "args": { "player": "'org.mpris.MediaPlayer2.x'", "action": "'play-pause'" } } },
+            { "id": "settings", "type": "button", "text": "x", "command": { "cmd": "update-settings" } },
+            { "id": "kill", "type": "button", "text": "End", "command": { "cmd": "end-task" } },
+            { "id": "kill-ok", "type": "button", "text": "End", "confirm": "Really?",
+              "command": { "cmd": "end-task" } },
+            { "id": "t", "type": "toggle", "value": "true", "command": { "cmd": "drive-power-off" } }
+        ]
+    })));
+    assert_eq!(
+        at(&ps),
+        [
+            "/layouts/0/root/children/1/command/cmd",
+            "/layouts/0/root/children/2/command/cmd",
+            "/layouts/0/root/children/4/command/cmd",
+        ],
+        "{ps:#?}"
+    );
+}
+
+#[test]
 fn version_and_garbage() {
     assert!(parse("{}").is_err());
     assert!(parse("[1,2]").is_err());

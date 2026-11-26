@@ -212,7 +212,10 @@ export type Node = {
       }
     | {
         columns: number;
+        /** The value that is full heat (default 1). */
+        max?: number;
         type: "heatmap";
+        /** Values 0 … `max`. */
         values: Expr;
       }
     /** Repeats `item` for each element of `items`; inside, `$item` and `$index`. */

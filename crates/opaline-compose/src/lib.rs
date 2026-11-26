@@ -21,6 +21,21 @@ pub const MAX_DEPTH: usize = 24;
 /// At most this many bindings.
 pub const MAX_BINDINGS: usize = 64;
 
+/// Commands a composition's controls may send, and whether a button must ask first. Core
+/// validates every command anyway; this keeps an imported composition away from settings,
+/// layouts and everything that isn't a control. The layer holds the same list
+/// (`app/src/compose/commands.ts`).
+pub const COMMANDS: &[(&str, bool)] = &[
+    ("media", false),
+    ("media-seek", false),
+    ("set-power-profile", false),
+    ("container", false),
+    ("start-docker-desktop", false),
+    ("drive-eject", false),
+    ("drive-power-off", true),
+    ("end-task", true),
+];
+
 /// Something wrong in a composition, at a JSON pointer (`/layouts/0/root/children/1/text`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Problem {
@@ -440,13 +455,20 @@ impl Validator {
                     self.problem(&format!("{at}/max"), "max must be above min");
                 }
             }
-            Kind::Heatmap { values, columns } => {
+            Kind::Heatmap {
+                values,
+                columns,
+                max,
+            } => {
                 src(self, "values", &values.0, E);
                 if *columns == 0 {
                     self.problem(
                         &format!("{at}/columns"),
                         "a heatmap has at least one column",
                     );
+                }
+                if max.is_some_and(|m| !(m.is_finite() && m > 0.0)) {
+                    self.problem(&format!("{at}/max"), "max must be above 0");
                 }
             }
             Kind::List { items, gap, .. } => {
@@ -479,7 +501,7 @@ impl Validator {
                 if let Some(e) = enabled {
                     src(self, "enabled", &e.0, E);
                 }
-                self.command(&format!("{at}/command"), command, scope);
+                self.command(&format!("{at}/command"), command, scope, confirm.is_some());
             }
             Kind::Toggle {
                 value,
@@ -490,7 +512,7 @@ impl Validator {
                 if let Some(t) = text {
                     src(self, "text", &t.0, T);
                 }
-                self.command(&format!("{at}/command"), command, scope);
+                self.command(&format!("{at}/command"), command, scope, false);
             }
             Kind::Slider {
                 value,
@@ -506,7 +528,7 @@ impl Validator {
                 if !(step.is_finite() && *step > 0.0) {
                     self.problem(&format!("{at}/step"), "step must be above 0");
                 }
-                self.command(&format!("{at}/command"), command, scope);
+                self.command(&format!("{at}/command"), command, scope, false);
             }
             Kind::Input {
                 value,
@@ -521,7 +543,7 @@ impl Validator {
                 if *max_length == 0 || *max_length > 4096 {
                     self.problem(&format!("{at}/maxLength"), "maxLength is 1 … 4096");
                 }
-                self.command(&format!("{at}/command"), command, scope);
+                self.command(&format!("{at}/command"), command, scope, false);
             }
             Kind::Plugin { plugin, props } => {
                 if !is_kebab(plugin) {
@@ -534,9 +556,18 @@ impl Validator {
         }
     }
 
-    fn command(&mut self, at: &str, c: &CommandRef, scope: Scope) {
-        if !is_kebab(&c.cmd) {
-            self.problem(&format!("{at}/cmd"), "a command name is kebab-case");
+    /// `confirmed`: the control asks before sending (a button with `confirm`).
+    fn command(&mut self, at: &str, c: &CommandRef, scope: Scope, confirmed: bool) {
+        match COMMANDS.iter().find(|(name, _)| *name == c.cmd) {
+            None => self.problem(
+                &format!("{at}/cmd"),
+                &format!("{:?} isn't a command a control may send", c.cmd),
+            ),
+            Some((_, true)) if !confirmed => self.problem(
+                &format!("{at}/cmd"),
+                &format!("{:?} needs a button with confirm", c.cmd),
+            ),
+            Some(_) => {}
         }
         for (k, e) in &c.args {
             if !is_name(k) {

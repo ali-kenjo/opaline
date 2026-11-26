@@ -844,12 +844,21 @@
               "minimum": 0,
               "type": "integer"
             },
+            "max": {
+              "description": "The value that is full heat (default 1).",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
             "type": {
               "const": "heatmap",
               "type": "string"
             },
             "values": {
-              "$ref": "#/$defs/Expr"
+              "$ref": "#/$defs/Expr",
+              "description": "Values 0 … `max`."
             }
           },
           "required": [
