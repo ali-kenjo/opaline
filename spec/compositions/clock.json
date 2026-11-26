@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "bindings": {
+    "h24": "if(opt.format == 'system', clock.settings.format24h ?? true, opt.format == '24')",
+    "seconds": "if(opt.seconds == 'system', clock.settings.showSeconds ?? false, opt.seconds == 'on')",
+    "zone": "if(len(trim(opt.zone ?? '')) > 0, trim(opt.zone), clock.settings.timezone)",
+    "time": "date(now(), if(bind.h24, 'Hm', 'hm'), bind.zone)",
+    "timeSeconds": "date(now(), if(bind.h24, if(bind.seconds, 'Hms', 'Hm'), if(bind.seconds, 'hms', 'hm')), bind.zone)"
+  },
+  "layouts": [
+    {
+      "sizes": ["1x1"],
+      "root": {
+        "id": "face",
+        "type": "column",
+        "align": "center",
+        "justify": "center",
+        "children": [{ "id": "time", "type": "text", "role": "hero", "text": "{bind.time}" }]
+      }
+    },
+    {
+      "sizes": ["2x1", "4x1", "S"],
+      "root": {
+        "id": "face",
+        "type": "stack",
+        "gap": 1,
+        "align": "center",
+        "children": [
+          { "id": "time", "type": "text", "role": "hero", "text": "{bind.timeSeconds}" },
+          {
+            "id": "date",
+            "type": "text",
+            "role": "caption",
+            "visible": "opt.fields.date ?? true",
+            "text": "{date(now(), 'yMMMMEEEEd', bind.zone)}",
+            "shorter": ["{date(now(), 'MMMEd', bind.zone)}", "{date(now(), 'MMMd', bind.zone)}"]
+          }
+        ]
+      }
+    },
+    {
+      "sizes": ["M", "L"],
+      "root": {
+        "id": "face",
+        "type": "column",
+        "gap": 2,
+        "padding": 0,
+        "children": [
+          {
+            "id": "analog",
+            "type": "canvas",
+            "visual": "analog-clock",
+            "visible": "opt.face == 'analog'",
+            "label": "{bind.timeSeconds}",
+            "params": { "ms": "now()", "zone": "bind.zone", "seconds": "bind.seconds" }
+          },
+          {
+            "id": "time",
+            "type": "text",
+            "role": "hero",
+            "visible": "opt.face != 'analog'",
+            "text": "{bind.timeSeconds}"
+          },
+          {
+            "id": "lines",
+            "type": "column",
+            "gap": 1,
+            "children": [
+              {
+                "id": "date",
+                "type": "text",
+                "role": "caption",
+                "priority": 80,
+                "text": "{date(now(), 'yMMMMEEEEd', bind.zone)}",
+                "shorter": ["{date(now(), 'MMMEd', bind.zone)}"]
+              },
+              {
+                "id": "zone2",
+                "type": "text",
+                "role": "caption",
+                "priority": 40,
+                "visible": "len(trim(opt.zone2 ?? '')) > 0",
+                "text": "{opt.zone2Label ?? opt.zone2} {date(now(), if(bind.h24, 'Hm', 'hm'), opt.zone2)}"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

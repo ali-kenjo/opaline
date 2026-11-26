@@ -3,6 +3,7 @@ resolver = "3"
 members = [
     "crates/opaline-ipc",
     "crates/opaline-expr",
+    "crates/opaline-compose",
     "crates/opaline-core",
     "crates/opaline-privileged",
     "app/src-tauri",
