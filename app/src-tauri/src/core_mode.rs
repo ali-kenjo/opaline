@@ -16,7 +16,7 @@ use tokio::sync::{mpsc, watch};
 
 use crate::instant;
 
-pub fn run(request: Option<AppRequest>) -> ExitCode {
+pub fn run(request: Option<AppRequest>, safe_mode_flag: bool) -> ExitCode {
     let Some(rt) = crate::runtime::install() else {
         return ExitCode::FAILURE;
     };
@@ -79,10 +79,19 @@ pub fn run(request: Option<AppRequest>) -> ExitCode {
     ));
     let (settings, writable) = opaline_core::store::load();
     let needs_onboarding = !settings.onboarding_done;
+    let safe_mode = safe_mode_flag || bump_crash_counter() >= 2;
+    if safe_mode {
+        tracing::warn!(
+            explicit = safe_mode_flag,
+            "starting in safe mode (user CSS, theme CSS, custom sources and plugins disabled)"
+        );
+    }
+    hub.set_safe_mode(safe_mode);
     hub.init_settings(settings, writable);
     let (layouts, layouts_writable) = opaline_core::layouts::load();
     hub.init_layouts(layouts, layouts_writable);
     hub.set_request_sender(requests_tx.clone());
+    rt.spawn(opaline_core::watcher::run(hub.clone()));
 
     let listener = match rt.block_on(ipc_server::bind_default()) {
         Ok(listener) => listener,
@@ -201,6 +210,7 @@ pub fn run(request: Option<AppRequest>) -> ExitCode {
             api, code: None, ..
         } => api.prevent_exit(),
         RunEvent::Exit => {
+            clear_crash_counter();
             // Tauri ends the process right after this event, so wait here until the supervisor
             // has stopped the layer; otherwise the layer can outlive core.
             let _ = stop_tx.send(true);
@@ -212,6 +222,33 @@ pub fn run(request: Option<AppRequest>) -> ExitCode {
     });
     drop(bus);
     ExitCode::SUCCESS
+}
+
+/// Counts consecutive unclean starts; cleared on clean exit so two crashes in a row automatically
+/// activate safe mode (PLAN-2 §2).
+fn crash_marker_path() -> Option<std::path::PathBuf> {
+    opaline_core::paths::state_dir()
+        .ok()
+        .map(|d| d.join("startup-crashes"))
+}
+
+fn bump_crash_counter() -> u32 {
+    let Some(path) = crash_marker_path() else {
+        return 0;
+    };
+    let prev = std::fs::read_to_string(&path)
+        .ok()
+        .and_then(|s| s.trim().parse::<u32>().ok())
+        .unwrap_or(0);
+    let next = prev.saturating_add(1);
+    let _ = opaline_core::paths::write_atomic(&path, next.to_string().as_bytes());
+    prev
+}
+
+fn clear_crash_counter() {
+    if let Some(path) = crash_marker_path() {
+        let _ = std::fs::remove_file(path);
+    }
 }
 
 fn hub_backend(hub: &Arc<Hub>) -> watch::Receiver<BackendKind> {

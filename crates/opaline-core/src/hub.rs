@@ -74,6 +74,8 @@ pub struct Hub {
     layouts_writable: std::sync::atomic::AtomicBool,
     /// User toggled "Pause updates" from tray or Settings.
     paused: std::sync::atomic::AtomicBool,
+    /// True when started with `--safe-mode` or after repeated crashes (disables user/theme CSS & plugins).
+    safe_mode: std::sync::atomic::AtomicBool,
     /// True while discharging on battery (synced from `power.onBattery`).
     on_battery: std::sync::atomic::AtomicBool,
     /// Most recent GitHub Releases update check result.
@@ -106,6 +108,7 @@ impl Hub {
             settings_writable: std::sync::atomic::AtomicBool::new(true),
             layouts_writable: std::sync::atomic::AtomicBool::new(true),
             paused: std::sync::atomic::AtomicBool::new(false),
+            safe_mode: std::sync::atomic::AtomicBool::new(false),
             on_battery: std::sync::atomic::AtomicBool::new(false),
             latest_update: Mutex::new(None),
             requests: Mutex::new(None),
@@ -244,6 +247,15 @@ impl Hub {
 
     pub fn watch_backend(&self) -> watch::Receiver<BackendKind> {
         self.backend.subscribe()
+    }
+
+    pub fn safe_mode(&self) -> bool {
+        self.safe_mode.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    pub fn set_safe_mode(&self, enabled: bool) {
+        self.safe_mode
+            .store(enabled, std::sync::atomic::Ordering::Relaxed);
     }
 
     /// One monitor's layer became covered or uncovered (helper's `LayerCovered`).

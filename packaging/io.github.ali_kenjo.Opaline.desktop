@@ -11,7 +11,7 @@ Categories=Utility;
 Keywords=widgets;system;monitor;desktop;glass;clock;weather;
 StartupNotify=false
 SingleMainWindow=true
-Actions=Peek;Edit;Settings;Quit;
+Actions=Peek;Edit;Settings;SafeMode;Quit;
 
 [Desktop Action Peek]
 Name=Peek at widgets
@@ -24,6 +24,10 @@ Exec=opaline --edit
 [Desktop Action Settings]
 Name=Settings
 Exec=opaline --settings
+
+[Desktop Action SafeMode]
+Name=Start in safe mode
+Exec=opaline --safe-mode
 
 [Desktop Action Quit]
 Name=Quit Opaline

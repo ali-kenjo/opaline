@@ -51,6 +51,10 @@ struct Cli {
     #[arg(long, group = "request")]
     onboarding: bool,
 
+    /// Start without user CSS, theme CSS, custom sources, or plugins (brief §5.3).
+    #[arg(long, conflicts_with = "layer")]
+    safe_mode: bool,
+
     /// Ask the running Opaline to quit.
     #[arg(long, group = "request")]
     quit: bool,
@@ -93,7 +97,7 @@ fn main() -> ExitCode {
         return layer::run(cli.backend);
     }
     let _log = opaline_core::logging::init("core");
-    core_mode::run(cli.request())
+    core_mode::run(cli.request(), cli.safe_mode)
 }
 
 #[allow(clippy::print_stdout)] // printing the topics is the whole point of --dump
