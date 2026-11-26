@@ -54,12 +54,12 @@ goes first when space runs out), `label` (accessible name, template) and `style`
 | `text` | `text` *T*, `shorter` *T*[] (used in order when it doesn't fit; text is never cut), `maxLines` |
 | `number` | `value` *E*, `text` *T*, `unit` *T*, `motion` (`odometer`, `fade`, `none`) |
 | `icon` | `icon` *T* (Material Symbols name), `filled` *E* |
-| `image` | `src` *E*, `fit` |
+| `image` | `src` *E* (only `opaline-asset://` from core or `data:image/…`; nothing else is fetched), `fit` |
 | `shape` | `shape` *T* (library name; morphs on change), `color` *E* |
 | `ring` | `value` *E* 0 … 1, `sweep`, `thickness`, `caps`, `segments`, `wavy`, `ticks`, `needle`, `color` *E* |
 | `bar` | `value` *E* (0 … 1, or a list for stacked parts), `axis`, `segments`, `color` *E* |
 | `chart` | `values` *E* or `history` {`path`, `window`}, `plot` (`line`, `area`, `bars`, `step`, `dots`), `smooth`, `min`, `max` |
-| `heatmap` | `values` *E*, `columns` |
+| `heatmap` | `values` *E* (0 … `max`, default 1), `columns`, `max` |
 | `list` | `items` *E*, `item` (a node, repeated), `max`, `axis`, `gap`; inside, `$item` and `$index` |
 | `progress` | `value` *E*, `wavy` |
 | `divider` | `axis` |
@@ -72,6 +72,10 @@ goes first when space runs out), `label` (accessible name, template) and `style`
 
 A `command` is `{ "cmd": "<IPC command name>", "args": { "<name>": E } }`. The layer evaluates the arguments (`$value`
 is the control's new value) and sends the command; core validates it like any other command (ARCHITECTURE §3.7).
+Controls may send only `media`, `media-seek`, `set-power-profile`, `container`, `start-docker-desktop`, `drive-eject`,
+and, from a button with `confirm`, `drive-power-off` and `end-task`. Anything else (settings, layouts, …) is a
+validation error in core and refused by the layer, so an imported composition can't change Opaline itself. The list
+lives in `opaline_compose::COMMANDS` and `app/src/compose/commands.ts`; a test keeps them equal.
 
 ## 4. Names in expressions
 
