@@ -434,6 +434,14 @@ fn sharp_size(width: u32, height: u32, scale: f64) -> (u32, u32) {
     )
 }
 
+/// The asset URL of an already rendered variant, if its file exists.
+fn cached(dir: &Path, key: u64, variant: &str, ext: &str) -> Option<String> {
+    let name = format!("{key:016x}-{variant}.{ext}");
+    dir.join(&name)
+        .exists()
+        .then(|| format!("{ASSET_PREFIX}{name}"))
+}
+
 fn store_jpeg(dir: &Path, key: u64, variant: &str, img: &RgbImage) -> Option<String> {
     let name = format!("{key:016x}-{variant}.jpg");
     let path = dir.join(&name);
@@ -526,13 +534,17 @@ fn build(monitors: &[MonitorInfo]) -> Vec<TopicUpdate> {
         let backdrop = blur(&rendered, BACKDROP_RADIUS);
         // Glass 2.0 (spike S1): the wallpaper at the monitor's native resolution, so glass at
         // blur 0 shows it sharp. JPEG keeps the file small; it's only ever sampled.
-        let (sw, sh) = sharp_size(m.width, m.height, m.scale);
-        let sharp = store_jpeg(
-            &dir,
-            key,
-            "sharp",
-            &render(&b, image.as_ref(), mon, union.unwrap_or(mon), sw, sh),
-        );
+        // Rendered once per wallpaper and monitor, then served from the cache: rendering at the
+        // native resolution allocates tens of MB that glibc keeps (ADR 0012).
+        let sharp = cached(&dir, key, "sharp", "jpg").or_else(|| {
+            let (sw, sh) = sharp_size(m.width, m.height, m.scale);
+            store_jpeg(
+                &dir,
+                key,
+                "sharp",
+                &render(&b, image.as_ref(), mon, union.unwrap_or(mon), sw, sh),
+            )
+        });
         per_monitor.insert(
             m.key.clone(),
             Value::map([
