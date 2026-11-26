@@ -468,6 +468,8 @@ fn show_at(window: &tauri::WebviewWindow, position: LogicalPosition<f64>, size: 
         };
         apply_geometry_hints(&gtk_window, (w, h));
         gtk_window.move_(x, y);
+        // The layer never takes keyboard focus by itself (ADR 0015).
+        gtk_window.set_focus_on_map(false);
         // `show_all`, not `show`: the window was created hidden, so its children (Tauri's box and the
         // webview) are unmapped too. `show` alone maps an empty toplevel and nothing is ever drawn.
         gtk_window.show_all();
@@ -620,6 +622,8 @@ fn show_plain(window: &tauri::WebviewWindow) {
     let target = window.clone();
     let result = window.run_on_main_thread(move || {
         if let Ok(gtk_window) = target.gtk_window() {
+            // The layer never takes keyboard focus by itself (ADR 0015).
+            gtk_window.set_focus_on_map(false);
             gtk_window.show_all();
         }
     });
