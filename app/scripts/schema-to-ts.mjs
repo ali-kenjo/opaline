@@ -16,6 +16,11 @@ const TARGETS = [
     schema: "spec/composition.schema.json",
     out: "app/src/compose/model.gen.ts",
   },
+  {
+    schema: "spec/style.schema.json",
+    out: "app/src/design-system/style/style.gen.ts",
+    keysExport: "STYLE_KEYS",
+  },
 ];
 
 const IDENT = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
@@ -112,6 +117,10 @@ async function generate(target) {
     // A plain object type is an interface (the lint's consistent-type-definitions).
     const plain = t.startsWith("{\n") && t.endsWith("}") && !t.includes("} & (");
     out += plain ? `export interface ${name} ${t}\n\n` : `export type ${name} = ${t};\n\n`;
+  }
+  if (target.keysExport && schema.properties) {
+    const keys = Object.keys(schema.properties).map(literal).join(", ");
+    out += `export const ${target.keysExport} = [${keys}] as const;\n\n`;
   }
   const file = resolve(root, target.out);
   const config = (await prettier.resolveConfig(file)) ?? {};

@@ -5,9 +5,10 @@
 
 use std::collections::BTreeMap;
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum ColorSource {
     Wallpaper,
@@ -15,7 +16,7 @@ pub enum ColorSource {
     Custom,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum Variant {
     TonalSpot,
@@ -26,7 +27,7 @@ pub enum Variant {
     Monochrome,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum Theme {
     Auto,
@@ -34,7 +35,7 @@ pub enum Theme {
     Dark,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum HeroColor {
     /// The meaning ramp (thermal, load, health).
@@ -43,7 +44,7 @@ pub enum HeroColor {
     Custom,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum Surface {
     Glass,
@@ -56,7 +57,7 @@ pub enum Surface {
 }
 
 /// How the background shows through glass (ADR 0012).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum See {
     /// The wallpaper, sampled at the blur level (0 = sharp).
@@ -65,7 +66,7 @@ pub enum See {
     Real,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum Density {
     Compact,
@@ -73,7 +74,7 @@ pub enum Density {
     Spacious,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum MotionSpeed {
     Slow,
@@ -81,7 +82,7 @@ pub enum MotionSpeed {
     Fast,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum AppearanceState {
     Full,
@@ -89,7 +90,7 @@ pub enum AppearanceState {
     Automatic,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Style {
     // Color
@@ -227,6 +228,11 @@ fn family(f: &Option<String>) -> bool {
 }
 
 impl Style {
+    /// The JSON Schema of [`Style`] (`spec/style.schema.json`, ADR 0017).
+    pub fn schema() -> serde_json::Value {
+        serde_json::Value::from(schemars::schema_for!(Style))
+    }
+
     pub fn validate(&self) -> Result<(), String> {
         let colors = [
             &self.seed_color,

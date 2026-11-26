@@ -1,0 +1,434 @@
+{
+  "$defs": {
+    "AppearanceState": {
+      "enum": [
+        "full",
+        "dimmed",
+        "automatic"
+      ],
+      "type": "string"
+    },
+    "ColorSource": {
+      "enum": [
+        "wallpaper",
+        "accent",
+        "custom"
+      ],
+      "type": "string"
+    },
+    "Density": {
+      "enum": [
+        "compact",
+        "comfortable",
+        "spacious"
+      ],
+      "type": "string"
+    },
+    "HeroColor": {
+      "oneOf": [
+        {
+          "enum": [
+            "accent",
+            "custom"
+          ],
+          "type": "string"
+        },
+        {
+          "const": "ramp",
+          "description": "The meaning ramp (thermal, load, health).",
+          "type": "string"
+        }
+      ]
+    },
+    "MotionSpeed": {
+      "enum": [
+        "slow",
+        "default",
+        "fast"
+      ],
+      "type": "string"
+    },
+    "See": {
+      "description": "How the background shows through glass (ADR 0012).",
+      "oneOf": [
+        {
+          "const": "wallpaper",
+          "description": "The wallpaper, sampled at the blur level (0 = sharp).",
+          "type": "string"
+        },
+        {
+          "const": "real",
+          "description": "Real transparency: the desktop behind the layer window shows through.",
+          "type": "string"
+        }
+      ]
+    },
+    "Surface": {
+      "oneOf": [
+        {
+          "enum": [
+            "glass",
+            "tinted",
+            "opaque"
+          ],
+          "type": "string"
+        },
+        {
+          "const": "color",
+          "description": "A solid custom color (`surfaceColor`), still with the chosen transparency.",
+          "type": "string"
+        },
+        {
+          "const": "clear",
+          "description": "Completely transparent / frameless: widget content floats directly on the wallpaper.",
+          "type": "string"
+        }
+      ]
+    },
+    "Theme": {
+      "enum": [
+        "auto",
+        "light",
+        "dark"
+      ],
+      "type": "string"
+    },
+    "Variant": {
+      "enum": [
+        "tonal-spot",
+        "vibrant",
+        "expressive",
+        "fidelity",
+        "neutral",
+        "monochrome"
+      ],
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "accentColor": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "animations": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "appearance": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AppearanceState"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "blur": {
+      "description": "0 (sharp) … 100 (very soft); 60 is the 1.x look (settings v2, ADR 0012).",
+      "format": "double",
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "borderColor": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "borderWidth": {
+      "description": "CSS px, 0 … 4.",
+      "format": "double",
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "colorSource": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ColorSource"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "contrast": {
+      "description": "−1 (reduced) … 0 (standard) … 1 (high).",
+      "format": "double",
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "density": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Density"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "dimLevel": {
+      "description": "0 … 100: how far Dimmed fades.",
+      "format": "double",
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "fontFamily": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "fontWeight": {
+      "description": "100 … 1000.",
+      "format": "double",
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "fontWidth": {
+      "description": "Roboto Flex `wdth`, 25 … 151.",
+      "format": "double",
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "grain": {
+      "format": "double",
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "heroColor": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/HeroColor"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "heroCustomColor": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "hoverLift": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "iconFill": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "iconWeight": {
+      "description": "100 … 700.",
+      "format": "double",
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "icons": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "legibility": {
+      "description": "Adaptive legibility (DESIGN.md §4); off shows a contrast warning instead.",
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "letterSpacing": {
+      "description": "em, −0.05 … 0.2.",
+      "format": "double",
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "motionSpeed": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MotionSpeed"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "numberFontFamily": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "odometer": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "radius": {
+      "description": "CSS px, 0 … 48; unset follows the size class (28 / 32).",
+      "format": "double",
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "refraction": {
+      "format": "double",
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "rim": {
+      "format": "double",
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "secondaryTextColor": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "see": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/See"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "seedColor": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "shadow": {
+      "format": "double",
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "surface": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Surface"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "surfaceColor": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "tabularNumbers": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "textColor": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "textScale": {
+      "description": "0.75 … 1.5.",
+      "format": "double",
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "textShadow": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "theme": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Theme"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "tintColor": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "transparency": {
+      "description": "0 (solid) … 100 (clearest glass).",
+      "format": "double",
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "uppercaseLabels": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "variant": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Variant"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "title": "Style",
+  "type": "object"
+}
