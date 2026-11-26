@@ -5,7 +5,7 @@ import { sourceColorFromImageBytes } from "@material/material-color-utilities";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { GNOME_ACCENTS, type Variant } from "../design-system/color/scheme";
 import { GlassStage, type StageInks } from "../design-system/glass";
-import { inksFor, resolveStyle, sanitizeStyle } from "../design-system/style";
+import { inksFor, lookPrefs, resolveStyle, sanitizeStyle } from "../design-system/style";
 import { useLayer } from "../layer/store";
 import type { CommandResult, Value } from "../layer/protocol";
 import { type StoredSettings, HostContext, type WidgetHost } from "../widgets/host";
@@ -67,7 +67,12 @@ export function WidgetsDemo({ wallpaperId, dark, variant, value, still, live }: 
   const coreColors = useCoreColors(live ? (monitor?.key ?? null) : null);
   const wallpaper = useMemo(() => makeWallpaper(wallpaperId, STAGE_W, 1250), [wallpaperId]);
   const source = useMemo(() => sourceColorFromImageBytes(wallpaper.pixels), [wallpaper]);
-  const [settings, setSettings] = useState<StoredSettings>(LAB_SETTINGS);
+  const [settings, setSettings] = useState<StoredSettings>(() => ({
+    ...LAB_SETTINGS,
+    // `?look=clear` (any desktop look): every widget through the real look code, so the Lab's
+    // checks also cover see-through glass and legibility 2.0.
+    look: lookPrefs({ look: new URLSearchParams(location.search).get("look") }),
+  }));
   const [open, setOpen] = useState<string | null>(null);
 
   useEffect(() => {

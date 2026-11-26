@@ -8,6 +8,8 @@ test.use({ viewport: { width: 1180, height: 1400 } });
 for (const [name, query] of [
   ["dusk", "wallpaper=dusk"],
   ["snow", "wallpaper=snow&theme=light"],
+  ["dusk, Clear look", "wallpaper=dusk&look=clear"],
+  ["snow, Clear look", "wallpaper=snow&theme=light&look=clear"],
 ] as const) {
   for (const stage of ["widgets", "more-widgets"] as const) {
     test(`text contrast: ${stage} on ${name}`, async ({ page }) => {

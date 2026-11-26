@@ -5,9 +5,14 @@ import { findTruncations } from "./stub/truncation";
 
 test.use({ viewport: { width: 1180, height: 1400 } });
 
-for (const stage of ["widgets", "more-widgets"] as const) {
-  test(`no label or value is cut: ${stage}`, async ({ page }) => {
-    await page.goto("/lab.html?still&wallpaper=dusk");
+for (const [stage, look] of [
+  ["widgets", "glass"],
+  ["more-widgets", "glass"],
+  ["widgets", "clear"],
+  ["more-widgets", "clear"],
+] as const) {
+  test(`no label or value is cut: ${stage}, ${look} look`, async ({ page }) => {
+    await page.goto(`/lab.html?still&wallpaper=dusk&look=${look}`);
     await page.evaluate(() => document.fonts.ready);
     await page.waitForTimeout(300);
     const cuts = await findTruncations(page.getByTestId(stage));
