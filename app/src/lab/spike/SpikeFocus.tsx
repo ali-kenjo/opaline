@@ -17,11 +17,28 @@ interface Entry {
 function useClickable() {
   useEffect(() => {
     if (!inTauri) return;
+    // `region=full` makes the whole window clickable (as Peek does); default: the panel only.
+    const full = new URLSearchParams(location.search).get("region") === "full";
     const apply = () => {
-      // The whole window, exactly as Peek and Edit set it (but without raising the window).
-      const rect = { x: 0, y: 0, width: innerWidth, height: innerHeight };
+      const panel = document
+        .querySelector<HTMLElement>('[aria-label="Keyboard focus check"]')
+        ?.getBoundingClientRect();
+      const field = document
+        .querySelector<HTMLElement>('[data-testid="spike-focus-input"]')
+        ?.getBoundingClientRect();
+      if (!panel || !field) return;
+      const rect = full
+        ? { x: 0, y: 0, width: innerWidth, height: innerHeight }
+        : { x: panel.x, y: panel.y, width: panel.width, height: panel.height };
       void setInputRegion([rect]);
-      void report("spike-focus", { event: "input-region", detail: JSON.stringify(rect) });
+      const center = {
+        x: Math.round(field.x + field.width / 2),
+        y: Math.round(field.y + field.height / 2),
+      };
+      void report("spike-focus", {
+        event: "input-region",
+        detail: JSON.stringify({ rect, field: center }),
+      });
     };
     // Again once fonts and layout have settled.
     apply();
