@@ -16,8 +16,8 @@ each ending with acceptance checks, a PROGRESS entry and the owner's sign-off.
 - **2.0 Phase 1** is built (PROGRESS "2.0 · Phase 1"): visual directions decided (all three become themes; Opaline is
   the hybrid), spikes S1 (ADR 0012) and S2 (ADR 0013), no-truncation rules, glass 2.0, legibility 2.0, desktop looks,
   Lab contrast/truncation checks. Default see-through tuned with the owner (blur 30, transparency 80,
-  "Keep text readable" on; the Opaline theme carries it). Waiting for the sign-off.
-  Local commits since the P0 push are **not pushed** yet.
+  "Keep text readable" on; the Opaline theme carries it). **Signed off 2026-11-26 and pushed.**
+- Next: **P2, the composition engine** (PLAN-2 §3 P2).
 - **Settings are now version 2** (blur scale). A dev build run on the owner's real `~/.config/opaline` migrates it,
   and the installed 1.1.0 then treats the file as read-only. Run dev builds with
   `--setenv=XDG_CONFIG_HOME=<copy>` (as the P1 measurements did) until 2.0 is installed.
