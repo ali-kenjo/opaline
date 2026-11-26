@@ -234,7 +234,7 @@ model and the security tests (§12), 1.1 → 2.0 migration on this laptop and on
 | **S6 Memory per feature** | every phase | Cost of blur levels, photo frame, fonts, workers, inspector chunk | `measure-budget.sh` before/after, recorded in PROGRESS | budget table |
 | **S7 Style-key parity** | P3 start | Generate TS from Rust or test both | schemars → JSON Schema → generator; CI diff check | ADR 0017 (done: `style.rs` → `spec/style.schema.json` → `style.gen.ts` + `STYLE_KEYS`; staleness checks in cargo & vitest) |
 | **S8 Helper API v2** | P8 | New signals, N−1 compatibility | v1 core against v2 helper and the reverse | in ADR 0006/0018 |
-| **S9 Live-reload loops** | P3 | Own writes echoed by inotify | content-hash ledger; test that a self-write produces no reload | in P3 tests |
+| **S9 Live-reload loops** | P3 | Own writes echoed by inotify | content-hash ledger; test that a self-write produces no reload | in P3 tests (done: `watcher::WriteLedger` SHA-256 hash ledger suppresses self-writes, external edits reload live) |
 | **S10 Expression cost** | P2 | Evaluations per second with the default layout | counters in the Lab, budget: zero evaluations while idle | in P2 tests |
 | **S11 Secrets** | P6 | `oo7` with zbus 6; nothing leaks | planted-secret grep over files, exports, logs, `--diagnose` | ADR 0019 |
 | **S-weather** | P4 | Free, keyless, licensed weather warnings for your location | check DWD open data and other national services for license and coverage | skip or a provider |

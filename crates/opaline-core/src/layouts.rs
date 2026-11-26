@@ -5,12 +5,14 @@ use std::collections::{BTreeMap, HashSet};
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::hub::Hub;
 
 pub const VERSION: u32 = 1;
 pub const TOPIC: &str = "layouts";
+pub const SCHEMA_URL: &str = "file:///usr/share/opaline/schemas/layouts.schema.json";
 
 const MAX_MONITORS: usize = 16;
 const MAX_ITEMS_PER_MONITOR: usize = 64;
@@ -18,9 +20,11 @@ const MAX_STACK_CHILDREN: usize = 12;
 const MAX_GRID_COORD: u32 = 64;
 const MAX_GRID_SPAN: u32 = 16;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Layouts {
+    #[serde(rename = "$schema", skip_serializing_if = "Option::is_none")]
+    pub schema: Option<String>,
     pub version: u32,
     /// When a saved monitor is disconnected, show its waiting widgets on the primary display.
     pub show_missing_on_primary: bool,
@@ -30,6 +34,7 @@ pub struct Layouts {
 impl Default for Layouts {
     fn default() -> Self {
         Self {
+            schema: Some(SCHEMA_URL.to_owned()),
             version: VERSION,
             show_missing_on_primary: false,
             monitors: BTreeMap::new(),
@@ -37,13 +42,13 @@ impl Default for Layouts {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(default, rename_all = "camelCase")]
 pub struct MonitorLayout {
     pub items: Vec<LayoutItem>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub enum LayoutItem {
     #[serde(rename_all = "camelCase")]
@@ -92,6 +97,11 @@ fn rects_overlap(a: (u32, u32, u32, u32), b: (u32, u32, u32, u32)) -> bool {
 }
 
 impl Layouts {
+    /// The JSON Schema of `layouts.json` (`spec/layouts.schema.json`).
+    pub fn schema() -> serde_json::Value {
+        serde_json::Value::from(schemars::schema_for!(Layouts))
+    }
+
     /// Checks structural invariants (bounds, spans, unique IDs, no overlaps, non-empty stacks).
     pub fn validate(&self) -> Result<(), String> {
         if self.version != VERSION {
@@ -196,8 +206,10 @@ pub fn load() -> (Layouts, bool) {
 
 fn save(layouts: &Layouts) -> Result<(), String> {
     let path = path().ok_or("no-config-dir")?;
-    let bytes = serde_json::to_vec_pretty(layouts).map_err(|e| e.to_string())?;
-    crate::paths::write_atomic(&path, &bytes).map_err(|e| e.to_string())
+    let mut stamped = layouts.clone();
+    stamped.schema = Some(SCHEMA_URL.to_owned());
+    let bytes = serde_json::to_vec_pretty(&stamped).map_err(|e| e.to_string())?;
+    crate::watcher::write_atomic_tracked(&path, &bytes).map_err(|e| e.to_string())
 }
 
 /// Replaces and saves layouts from a validated layer command, then publishes `layouts`.

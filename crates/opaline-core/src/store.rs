@@ -7,6 +7,7 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::hub::Hub;
@@ -15,7 +16,7 @@ use crate::style::{Style, WidgetConfig};
 pub const VERSION: u32 = 2;
 pub const TOPIC: &str = "settings";
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum Language {
     #[default]
@@ -25,7 +26,7 @@ pub enum Language {
     Ar,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Settings {
     /// JSON Schema URL for editor autocomplete and validation (brief §5.4).
@@ -86,7 +87,7 @@ impl Default for Settings {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum AppearanceState {
     #[default]
@@ -95,7 +96,7 @@ pub enum AppearanceState {
     Dimmed,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum Density {
     Compact,
@@ -104,7 +105,7 @@ pub enum Density {
     Spacious,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(default, rename_all = "camelCase")]
 pub struct AppearancePrefs {
     pub state: AppearanceState,
@@ -121,7 +122,7 @@ pub struct AppearancePrefs {
 }
 
 /// Desktop look quick modes.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum DesktopLook {
     /// Every widget as styled.
@@ -149,7 +150,7 @@ impl Default for AppearancePrefs {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(default, rename_all = "camelCase")]
 pub struct LayoutPrefs {
     /// Safe margin around each monitor's work area in logical pixels (12..=64, default 24).
@@ -162,7 +163,7 @@ impl Default for LayoutPrefs {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum PerformanceMode {
     Eco,
@@ -171,7 +172,7 @@ pub enum PerformanceMode {
     Realtime,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(default, rename_all = "camelCase")]
 pub struct PerformancePrefs {
     pub mode: PerformanceMode,
@@ -187,7 +188,7 @@ impl Default for PerformancePrefs {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Location {
     pub name: String,
@@ -197,7 +198,7 @@ pub struct Location {
     pub country: Option<String>,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Weather {
     /// Chosen in onboarding or Settings (city search); `None` = weather not set up.
@@ -206,7 +207,7 @@ pub struct Weather {
     pub automatic: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Network {
     pub billing_day: u32,
@@ -225,7 +226,7 @@ impl Default for Network {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Calendar {
     /// Read GNOME's calendars (Evolution Data Server).
@@ -243,7 +244,7 @@ impl Default for Calendar {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Privacy {
     pub update_checks: bool,
@@ -261,6 +262,11 @@ impl Default for Privacy {
 }
 
 impl Settings {
+    /// The JSON Schema of `settings.json` (`spec/settings.schema.json`).
+    pub fn schema() -> serde_json::Value {
+        serde_json::Value::from(schemars::schema_for!(Settings))
+    }
+
     /// Checks values that serde can't (ranges, URL schemes).
     pub fn validate(&self) -> Result<(), String> {
         let mut ids = std::collections::HashSet::new();
@@ -437,26 +443,38 @@ pub fn load() -> (Settings, bool) {
 
 fn save(settings: &Settings) -> Result<(), String> {
     let path = path().ok_or("no-config-dir")?;
-    let bytes = serde_json::to_vec_pretty(settings).map_err(|e| e.to_string())?;
-    crate::paths::write_atomic(&path, &bytes).map_err(|e| e.to_string())
+    let mut stamped = settings.clone();
+    stamped.schema = Some(SCHEMA_URL.to_owned());
+    let bytes = serde_json::to_vec_pretty(&stamped).map_err(|e| e.to_string())?;
+    crate::watcher::write_atomic_tracked(&path, &bytes).map_err(|e| e.to_string())
 }
 
 /// Applies a patch from a command: validates, saves, and publishes the new settings.
 pub async fn update(hub: &Arc<Hub>, patch: serde_json::Value) -> Result<(), String> {
+    let prev_theme = hub.settings().theme.clone();
     let next = patched(&hub.settings(), &patch)?;
     if !hub.settings_writable() {
         return Err("settings-file-is-newer".into());
     }
+    let theme_changed = next.theme != prev_theme;
     let to_save = next.clone();
     tokio::task::spawn_blocking(move || save(&to_save))
         .await
         .map_err(|e| e.to_string())??;
     hub.set_settings(next);
+    if theme_changed {
+        let hub_bg = hub.clone();
+        let _ = tokio::task::spawn_blocking(move || {
+            crate::watcher::refresh_themes_and_css(&hub_bg, Vec::new());
+        })
+        .await;
+    }
     Ok(())
 }
 
 /// Replaces the entire settings object (used by backup import and reset-to-defaults).
 pub async fn replace(hub: &Arc<Hub>, raw: serde_json::Value) -> Result<(), String> {
+    let prev_theme = hub.settings().theme.clone();
     let next: Settings =
         serde_json::from_value(raw).map_err(|e| format!("invalid-settings: {e}"))?;
     if next.version != VERSION {
@@ -466,11 +484,19 @@ pub async fn replace(hub: &Arc<Hub>, raw: serde_json::Value) -> Result<(), Strin
     if !hub.settings_writable() {
         return Err("settings-file-is-newer".into());
     }
+    let theme_changed = next.theme != prev_theme;
     let to_save = next.clone();
     tokio::task::spawn_blocking(move || save(&to_save))
         .await
         .map_err(|e| e.to_string())??;
     hub.set_settings(next);
+    if theme_changed {
+        let hub_bg = hub.clone();
+        let _ = tokio::task::spawn_blocking(move || {
+            crate::watcher::refresh_themes_and_css(&hub_bg, Vec::new());
+        })
+        .await;
+    }
     Ok(())
 }
 

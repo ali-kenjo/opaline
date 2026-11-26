@@ -1,0 +1,151 @@
+{
+  "$defs": {
+    "LayoutItem": {
+      "oneOf": [
+        {
+          "properties": {
+            "h": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "id": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "type": {
+              "const": "widget",
+              "type": "string"
+            },
+            "w": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "x": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "y": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "type",
+            "id",
+            "kind",
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "activeIndex": {
+              "default": 0,
+              "format": "uint",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "children": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "h": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "id": {
+              "type": "string"
+            },
+            "smartRotate": {
+              "default": false,
+              "type": "boolean"
+            },
+            "type": {
+              "const": "stack",
+              "type": "string"
+            },
+            "w": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "x": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "y": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "type",
+            "id",
+            "x",
+            "y",
+            "w",
+            "h",
+            "children"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "MonitorLayout": {
+      "properties": {
+        "items": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/LayoutItem"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "$schema": {
+      "default": "file:///usr/share/opaline/schemas/layouts.schema.json",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "monitors": {
+      "additionalProperties": {
+        "$ref": "#/$defs/MonitorLayout"
+      },
+      "default": {},
+      "type": "object"
+    },
+    "showMissingOnPrimary": {
+      "default": false,
+      "description": "When a saved monitor is disconnected, show its waiting widgets on the primary display.",
+      "type": "boolean"
+    },
+    "version": {
+      "default": 1,
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "title": "Layouts",
+  "type": "object"
+}

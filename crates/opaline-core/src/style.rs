@@ -199,7 +199,9 @@ pub enum TextCase {
 }
 
 /// Typography roles that themes and styles can target individually (brief §5.1).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
+)]
 #[serde(rename_all = "kebab-case")]
 pub enum TextRole {
     Hero,
@@ -806,12 +808,8 @@ fn validate_condition(c: &ConditionalStyle) -> Result<(), String> {
     if c.set.contains_key("conditions") {
         return Err("style-condition-nested".into());
     }
-    let obj = serde_json::Value::Object(
-        c.set
-            .iter()
-            .map(|(k, v)| (k.clone(), v.clone()))
-            .collect(),
-    );
+    let obj =
+        serde_json::Value::Object(c.set.iter().map(|(k, v)| (k.clone(), v.clone())).collect());
     let inner: Style =
         serde_json::from_value(obj).map_err(|e| format!("style-condition-set: {e}"))?;
     inner.validate()
@@ -879,7 +877,9 @@ impl Style {
             return Err("style-value-out-of-range".into());
         }
         if let Some(radii) = self.corner_radii
-            && !radii.iter().all(|&r| r.is_finite() && (0.0..=64.0).contains(&r))
+            && !radii
+                .iter()
+                .all(|&r| r.is_finite() && (0.0..=64.0).contains(&r))
         {
             return Err("style-value-out-of-range".into());
         }
@@ -1199,9 +1199,11 @@ mod tests {
             "nested conditions are rejected"
         );
         assert!(
-            bad(json!({"actions": {"click": {"kind": "open-url", "target": "javascript:alert(1)"}}}))
-                .unwrap()
-                .is_err(),
+            bad(
+                json!({"actions": {"click": {"kind": "open-url", "target": "javascript:alert(1)"}}})
+            )
+            .unwrap()
+            .is_err(),
             "non-http(s) action URLs are rejected"
         );
         let empty = serde_json::to_value(Style::default()).unwrap();

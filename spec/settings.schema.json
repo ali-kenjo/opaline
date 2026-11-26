@@ -1,0 +1,1842 @@
+{
+  "$defs": {
+    "ActionKind": {
+      "enum": [
+        "none",
+        "detail",
+        "open-app",
+        "open-url",
+        "command",
+        "toggle",
+        "step"
+      ],
+      "type": "string"
+    },
+    "ActionSpec": {
+      "description": "One interaction action on a widget (click, double-click, middle-click, scroll).",
+      "properties": {
+        "delta": {
+          "description": "Numeric delta for `step` actions.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "kind": {
+          "$ref": "#/$defs/ActionKind"
+        },
+        "target": {
+          "description": "App desktop ID, URL (`https://…`), or allowlisted command/variable name.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "type": "object"
+    },
+    "AppearancePrefs": {
+      "properties": {
+        "density": {
+          "$ref": "#/$defs/Density",
+          "default": "comfortable"
+        },
+        "glass": {
+          "default": 45,
+          "description": "Clear (0) … Tinted (100), brief §4.2 default 45.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "look": {
+          "$ref": "#/$defs/DesktopLook",
+          "default": "glass",
+          "description": "The desktop look quick mode (2.0 brief §3.3, DESIGN-2 §6.4), applied over every widget."
+        },
+        "lookColor": {
+          "description": "The one color of the Tinted look (`#rrggbb`); unset uses the accent.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "masterTransparency": {
+          "default": 50,
+          "description": "Master transparency 0 (more solid) … 100 (clear); 50 leaves every widget as it is.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "state": {
+          "$ref": "#/$defs/AppearanceState",
+          "default": "automatic"
+        }
+      },
+      "type": "object"
+    },
+    "AppearanceState": {
+      "enum": [
+        "automatic",
+        "full",
+        "dimmed"
+      ],
+      "type": "string"
+    },
+    "AppearanceState2": {
+      "enum": [
+        "full",
+        "dimmed",
+        "automatic"
+      ],
+      "type": "string"
+    },
+    "BackgroundImage": {
+      "description": "A local or theme-bundled background image for a widget surface.",
+      "properties": {
+        "blur": {
+          "description": "Extra blur, 0 … 100.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "dim": {
+          "description": "Darkening overlay, 0 … 100 %.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fit": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageFit"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "path": {
+          "description": "Asset URL (`opaline-asset://…`) or relative path inside a theme package.",
+          "type": "string"
+        },
+        "position": {
+          "description": "CSS object-position (`center`, `top`, `50% 30%`, …).",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "type": "object"
+    },
+    "Calendar": {
+      "properties": {
+        "subscriptions": {
+          "default": [],
+          "description": "ICS / webcal subscription URLs.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "system": {
+          "default": true,
+          "description": "Read GNOME's calendars (Evolution Data Server).",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "CardShape": {
+      "description": "Card silhouette: a rounded rectangle (default) or any of the 35 Material 3 Expressive shapes.",
+      "enum": [
+        "rounded-rect",
+        "circle",
+        "square",
+        "slanted",
+        "arch",
+        "fan",
+        "arrow",
+        "semi-circle",
+        "oval",
+        "pill",
+        "triangle",
+        "diamond",
+        "clam-shell",
+        "pentagon",
+        "gem",
+        "sunny",
+        "very-sunny",
+        "cookie-4-sided",
+        "cookie-6-sided",
+        "cookie-7-sided",
+        "cookie-9-sided",
+        "cookie-12-sided",
+        "ghostish",
+        "clover-4-leaf",
+        "clover-8-leaf",
+        "burst",
+        "soft-burst",
+        "boom",
+        "soft-boom",
+        "flower",
+        "puffy",
+        "puffy-diamond",
+        "pixel-circle",
+        "pixel-triangle",
+        "bun",
+        "heart"
+      ],
+      "type": "string"
+    },
+    "ColorSource": {
+      "enum": [
+        "wallpaper",
+        "accent",
+        "custom"
+      ],
+      "type": "string"
+    },
+    "Comparator": {
+      "enum": [
+        "above",
+        "below"
+      ],
+      "type": "string"
+    },
+    "ConditionalStyle": {
+      "description": "An ordered conditional style rule: when `when` evaluates truthy, apply `set` over the style.",
+      "properties": {
+        "animate": {
+          "description": "Animate transitioning into and out of this rule (default true).",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "set": {
+          "additionalProperties": true,
+          "description": "Style keys to override when the expression is truthy (no nested `conditions`).",
+          "type": "object"
+        },
+        "when": {
+          "description": "Expression in the Opaline expression language (docs/EXPRESSIONS.md).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "when",
+        "set"
+      ],
+      "type": "object"
+    },
+    "ContentAlign": {
+      "enum": [
+        "start",
+        "center",
+        "end",
+        "stretch"
+      ],
+      "type": "string"
+    },
+    "Density": {
+      "enum": [
+        "compact",
+        "comfortable",
+        "spacious"
+      ],
+      "type": "string"
+    },
+    "Density2": {
+      "enum": [
+        "compact",
+        "comfortable",
+        "spacious"
+      ],
+      "type": "string"
+    },
+    "DesktopLook": {
+      "description": "Desktop look quick modes.",
+      "oneOf": [
+        {
+          "enum": [
+            "dark",
+            "light",
+            "dimmed"
+          ],
+          "type": "string"
+        },
+        {
+          "const": "glass",
+          "description": "Every widget as styled.",
+          "type": "string"
+        },
+        {
+          "const": "clear",
+          "description": "Very see-through: little tint and blur.",
+          "type": "string"
+        },
+        {
+          "const": "tinted",
+          "description": "One tint color for every widget.",
+          "type": "string"
+        }
+      ]
+    },
+    "EntranceEffect": {
+      "enum": [
+        "spring",
+        "fade",
+        "none"
+      ],
+      "type": "string"
+    },
+    "GradientKind": {
+      "enum": [
+        "linear",
+        "radial",
+        "conic"
+      ],
+      "type": "string"
+    },
+    "GradientSpec": {
+      "description": "A 2–4 stop gradient used for backgrounds, tints, or borders.",
+      "properties": {
+        "angle": {
+          "description": "Angle in degrees (0 … 360) for linear and conic gradients.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "kind": {
+          "$ref": "#/$defs/GradientKind"
+        },
+        "stops": {
+          "items": {
+            "$ref": "#/$defs/GradientStop"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "stops"
+      ],
+      "type": "object"
+    },
+    "GradientStop": {
+      "properties": {
+        "at": {
+          "description": "Stop position, 0 … 100 %.",
+          "format": "double",
+          "type": "number"
+        },
+        "color": {
+          "description": "Hex color (`#rrggbb` or `#rrggbbaa`).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "color",
+        "at"
+      ],
+      "type": "object"
+    },
+    "HeaderStyle": {
+      "enum": [
+        "icon-title",
+        "title",
+        "icon",
+        "none"
+      ],
+      "type": "string"
+    },
+    "HeroColor": {
+      "oneOf": [
+        {
+          "enum": [
+            "accent",
+            "custom"
+          ],
+          "type": "string"
+        },
+        {
+          "const": "ramp",
+          "description": "The meaning ramp (thermal, load, health).",
+          "type": "string"
+        }
+      ]
+    },
+    "HeroOptions": {
+      "description": "Options for hero visuals (rings, gauges, bars, charts).",
+      "properties": {
+        "cap": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StrokeCap"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fill": {
+          "description": "Filled area under charts.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "gradient": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "needle": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "segments": {
+          "description": "Segmented ring/bar count, 0 (continuous) … 64.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "smoothing": {
+          "description": "Curve smoothing for charts, 0 … 100 %.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "thickness": {
+          "description": "Stroke or bar thickness in px, 1 … 24.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "ticks": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "track": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "wave": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "HeroVisual": {
+      "description": "Hero visual presentation choice (brief §5.1).",
+      "enum": [
+        "auto",
+        "ring",
+        "gauge",
+        "bar",
+        "chart",
+        "number",
+        "shape-badge",
+        "liquid-fill",
+        "dot-matrix"
+      ],
+      "type": "string"
+    },
+    "HoverEffect": {
+      "enum": [
+        "lift",
+        "tilt",
+        "glow",
+        "none"
+      ],
+      "type": "string"
+    },
+    "IconSet": {
+      "description": "Material Symbols icon set (all Apache-2.0) or none.",
+      "enum": [
+        "rounded",
+        "outlined",
+        "sharp",
+        "none"
+      ],
+      "type": "string"
+    },
+    "ImageFit": {
+      "enum": [
+        "cover",
+        "contain",
+        "fill"
+      ],
+      "type": "string"
+    },
+    "Language": {
+      "enum": [
+        "system",
+        "en",
+        "de",
+        "ar"
+      ],
+      "type": "string"
+    },
+    "LayoutPrefs": {
+      "properties": {
+        "marginPx": {
+          "default": 24,
+          "description": "Safe margin around each monitor's work area in logical pixels (12..=64, default 24).",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "Location": {
+      "properties": {
+        "country": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "latitude": {
+          "format": "double",
+          "type": "number"
+        },
+        "longitude": {
+          "format": "double",
+          "type": "number"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "latitude",
+        "longitude"
+      ],
+      "type": "object"
+    },
+    "MotionSpeed": {
+      "enum": [
+        "slow",
+        "default",
+        "fast"
+      ],
+      "type": "string"
+    },
+    "Network": {
+      "properties": {
+        "billingDay": {
+          "default": 1,
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "latencyTarget": {
+          "default": "1.1.1.1",
+          "type": "string"
+        },
+        "publicIp": {
+          "default": false,
+          "description": "Opt-in (brief §2.8): off by default.",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "PerformanceMode": {
+      "enum": [
+        "eco",
+        "balanced",
+        "realtime"
+      ],
+      "type": "string"
+    },
+    "PerformancePrefs": {
+      "properties": {
+        "mode": {
+          "$ref": "#/$defs/PerformanceMode",
+          "default": "balanced"
+        },
+        "pauseOnBattery": {
+          "default": false,
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "Privacy": {
+      "properties": {
+        "privilegedSensors": {
+          "default": false,
+          "description": "\"Show CPU power and full SSD health\" (brief §2.8): uses the privileged helper.",
+          "type": "boolean"
+        },
+        "updateChecks": {
+          "default": true,
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "RoleTypography": {
+      "description": "Per-role typography overrides (brief §5.1).",
+      "properties": {
+        "color": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fontFamily": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fontSize": {
+          "description": "Font size in CSS px, 8 … 180.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fontWeight": {
+          "description": "100 … 1000.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fontWidth": {
+          "description": "Variable font `wdth` axis, 25 … 151.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "letterSpacing": {
+          "description": "Letter spacing in em, −0.1 … 0.5.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "lineHeight": {
+          "description": "Unitless line-height multiplier, 0.7 … 2.5.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "opacity": {
+          "description": "Text opacity, 0 … 100 %.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "slashedZero": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "stylisticSet": {
+          "description": "OpenType stylistic set (`ss01` … `ss20`), 0 = off.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "tabularNumbers": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "textCase": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextCase"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Rule": {
+      "properties": {
+        "clear": {
+          "default": null,
+          "description": "The value that ends the alert (hysteresis). Defaults to 5 % of the threshold back.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "comparator": {
+          "$ref": "#/$defs/Comparator"
+        },
+        "cooldownS": {
+          "default": 900,
+          "description": "After an alert ends, no new notification for this long.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "enabled": {
+          "default": true,
+          "type": "boolean"
+        },
+        "forS": {
+          "default": 0,
+          "description": "How long the condition must hold before firing.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "id": {
+          "type": "string"
+        },
+        "series": {
+          "description": "A numeric series: `cpu.temp`, `memory.percent`, `cpu.perThread#0`.",
+          "type": "string"
+        },
+        "threshold": {
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "series",
+        "comparator",
+        "threshold"
+      ],
+      "type": "object"
+    },
+    "See": {
+      "description": "How the background shows through glass (ADR 0012).",
+      "oneOf": [
+        {
+          "const": "wallpaper",
+          "description": "The wallpaper, sampled at the blur level (0 = sharp).",
+          "type": "string"
+        },
+        {
+          "const": "real",
+          "description": "Real transparency: the desktop behind the layer window shows through.",
+          "type": "string"
+        }
+      ]
+    },
+    "StrokeCap": {
+      "enum": [
+        "round",
+        "butt"
+      ],
+      "type": "string"
+    },
+    "Style": {
+      "properties": {
+        "accentColor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "actions": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WidgetActions"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ambientMotion": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "animations": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "appearance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AppearanceState2"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "autoHideEmpty": {
+          "description": "Hide the widget and reflow when empty (e.g. Now Playing with nothing playing).",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "backgroundGradient": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GradientSpec"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "backgroundImage": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BackgroundImage"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "blur": {
+          "description": "0 (sharp) … 100 (very soft); 60 is the 1.x look (settings v2, ADR 0012).",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "borderColor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "borderGlow": {
+          "description": "Outer glow along the border, 0 … 100.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "borderGradient": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GradientSpec"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "borderWidth": {
+          "description": "CSS px, 0 … 8.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "cardShape": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CardShape"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "colorSource": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ColorSource"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "conditions": {
+          "description": "Ordered \"when <expression> → set <style keys>\" rules (at most 16).",
+          "items": {
+            "$ref": "#/$defs/ConditionalStyle"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "contentAlign": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContentAlign"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "contrast": {
+          "description": "−1 (reduced) … 0 (standard) … 1 (high).",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "cornerRadii": {
+          "description": "Per-corner radii `[topLeft, topRight, bottomRight, bottomLeft]` in CSS px (0 … 64).",
+          "items": {
+            "format": "double",
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "cornerSmoothing": {
+          "description": "Continuous squircle corner smoothing, 0 (circular arc) … 100 (squircle).",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "density": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Density2"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dimLevel": {
+          "description": "0 … 100: how far Dimmed fades.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "dispersion": {
+          "description": "Chromatic dispersion at the glass edge, 0 … 100.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "entrance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EntranceEffect"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fontFamily": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fontWeight": {
+          "description": "100 … 1000.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "fontWidth": {
+          "description": "Roboto Flex `wdth`, 25 … 151.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "gap": {
+          "description": "Explicit gap between rows/elements in CSS px (0 … 32); unset follows density.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "grain": {
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "headerStyle": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HeaderStyle"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "heroColor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HeroColor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "heroCustomColor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "heroOptions": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HeroOptions"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "heroVisual": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HeroVisual"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hoverEffect": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HoverEffect"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hoverLift": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "iconColor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "iconFill": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "iconGrade": {
+          "description": "Material Symbols `GRAD` axis, −25 … 200.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "iconSet": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/IconSet"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "iconSize": {
+          "description": "Base icon size in CSS px, 10 … 64.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "iconWeight": {
+          "description": "100 … 700.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "icons": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "innerGlow": {
+          "description": "Inner edge glow strength, 0 … 100.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "innerShadow": {
+          "description": "Inner shadow strength, 0 … 100.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "legibility": {
+          "description": "Adaptive legibility (DESIGN.md §4); off shows a contrast warning instead.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "letterSpacing": {
+          "description": "em, −0.05 … 0.2.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "lineHeight": {
+          "description": "Unitless line height, 0.8 … 2.2.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "motionSpeed": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MotionSpeed"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "numberFontFamily": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "odometer": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "opacity": {
+          "description": "Overall widget opacity, 0 … 100 %.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "padding": {
+          "description": "Explicit inner padding in CSS px (0 … 48); unset follows size + density.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "pressScale": {
+          "description": "Scale on press, 0.9 … 1.0 (default 0.97).",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "radius": {
+          "description": "CSS px, 0 … 48; unset follows the size class (28 / 32).",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "refraction": {
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "refractionWidth": {
+          "description": "Refraction band width in CSS px, 0 … 40.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "rim": {
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "roles": {
+          "additionalProperties": false,
+          "description": "Per-role typography overrides (`hero`, `title`, `label`, `value`, `caption`, `unit`, `accent`).",
+          "properties": {
+            "accent": {
+              "$ref": "#/$defs/RoleTypography"
+            },
+            "caption": {
+              "$ref": "#/$defs/RoleTypography"
+            },
+            "hero": {
+              "$ref": "#/$defs/RoleTypography"
+            },
+            "label": {
+              "$ref": "#/$defs/RoleTypography"
+            },
+            "title": {
+              "$ref": "#/$defs/RoleTypography"
+            },
+            "unit": {
+              "$ref": "#/$defs/RoleTypography"
+            },
+            "value": {
+              "$ref": "#/$defs/RoleTypography"
+            }
+          },
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "secondaryTextColor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "see": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/See"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "seedColor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "shadow": {
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "shadowBlur": {
+          "description": "Drop shadow blur radius in CSS px, 0 … 64.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "shadowColor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "shadowOffsetX": {
+          "description": "Drop shadow horizontal offset in CSS px, −32 … 32.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "shadowOffsetY": {
+          "description": "Drop shadow vertical offset in CSS px, −32 … 32.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "shadowSpread": {
+          "description": "Drop shadow spread in CSS px, −16 … 32.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "slashedZero": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "specularAngle": {
+          "description": "Specular light angle in degrees clockwise from 12 o'clock (0 … 360, default 315).",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "specularWidth": {
+          "description": "Specular rim width in percent (10 … 200, default 100).",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "stylisticSet": {
+          "description": "OpenType stylistic set (`ss01` … `ss20`), 0 = off.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "surface": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Surface"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "surfaceColor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tabularNumbers": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "textCase": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextCase"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "textColor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "textScale": {
+          "description": "0.75 … 1.5.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "textShadow": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "theme": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Theme"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tintColor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tintGradient": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GradientSpec"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tooltip": {
+          "description": "Custom tooltip shown on hover (max 200 characters).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "transparency": {
+          "description": "0 (solid) … 100 (clearest glass).",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "uppercaseLabels": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "valueAnimation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ValueAnimation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "variant": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Variant"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "vibrancyText": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Surface": {
+      "oneOf": [
+        {
+          "enum": [
+            "glass",
+            "tinted",
+            "opaque"
+          ],
+          "type": "string"
+        },
+        {
+          "const": "color",
+          "description": "A solid custom color (`surfaceColor`), still with the chosen transparency.",
+          "type": "string"
+        },
+        {
+          "const": "clear",
+          "description": "Completely transparent / frameless: widget content floats directly on the wallpaper.",
+          "type": "string"
+        },
+        {
+          "const": "gradient",
+          "description": "A 2–4 stop linear, radial, or conic gradient (`backgroundGradient`).",
+          "type": "string"
+        },
+        {
+          "const": "image",
+          "description": "A local image background (`backgroundImage`).",
+          "type": "string"
+        },
+        {
+          "const": "album-art",
+          "description": "The currently playing track's blurred album art.",
+          "type": "string"
+        }
+      ]
+    },
+    "TextCase": {
+      "enum": [
+        "none",
+        "uppercase",
+        "lowercase",
+        "capitalize"
+      ],
+      "type": "string"
+    },
+    "Theme": {
+      "enum": [
+        "auto",
+        "light",
+        "dark"
+      ],
+      "type": "string"
+    },
+    "ValueAnimation": {
+      "enum": [
+        "odometer",
+        "fade",
+        "none"
+      ],
+      "type": "string"
+    },
+    "Variant": {
+      "enum": [
+        "tonal-spot",
+        "vibrant",
+        "expressive",
+        "fidelity",
+        "neutral",
+        "monochrome"
+      ],
+      "type": "string"
+    },
+    "Weather": {
+      "properties": {
+        "automatic": {
+          "default": false,
+          "description": "Use the Location portal instead (asked for first).",
+          "type": "boolean"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Location"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Chosen in onboarding or Settings (city search); `None` = weather not set up."
+        }
+      },
+      "type": "object"
+    },
+    "WidgetActions": {
+      "description": "Per-gesture actions on a widget card (brief §5.1).",
+      "properties": {
+        "click": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ActionSpec"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "doubleClick": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ActionSpec"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "middleClick": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ActionSpec"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scrollDown": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ActionSpec"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scrollUp": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ActionSpec"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "WidgetConfig": {
+      "description": "One placed widget: its kind, own style, per-element style overrides (role or `#block-id`),\nand content options (validated by the widget's `settingsSchema` in the frontend).",
+      "properties": {
+        "content": {
+          "additionalProperties": true,
+          "default": {},
+          "type": "object"
+        },
+        "elements": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Style"
+          },
+          "description": "Per-element overrides keyed by role (`hero`, `label`, …) or block id (`#clock-date`).",
+          "type": "object"
+        },
+        "kind": {
+          "default": "",
+          "type": "string"
+        },
+        "style": {
+          "$ref": "#/$defs/Style",
+          "default": {}
+        }
+      },
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "$schema": {
+      "default": "file:///usr/share/opaline/schemas/settings.schema.json",
+      "description": "JSON Schema URL for editor autocomplete and validation (brief §5.4).",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "alerts": {
+      "default": [
+        {
+          "clear": 85.0,
+          "comparator": "above",
+          "cooldownS": 900,
+          "enabled": true,
+          "forS": 30,
+          "id": "cpu-hot",
+          "series": "cpu.temp",
+          "threshold": 95.0
+        },
+        {
+          "clear": 15.0,
+          "comparator": "below",
+          "cooldownS": 1800,
+          "enabled": true,
+          "forS": 0,
+          "id": "battery-low",
+          "series": "power.batteryPercent",
+          "threshold": 10.0
+        }
+      ],
+      "items": {
+        "$ref": "#/$defs/Rule"
+      },
+      "type": "array"
+    },
+    "appearance": {
+      "$ref": "#/$defs/AppearancePrefs",
+      "default": {
+        "density": "comfortable",
+        "glass": 45,
+        "look": "glass",
+        "masterTransparency": 50,
+        "state": "automatic"
+      }
+    },
+    "calendar": {
+      "$ref": "#/$defs/Calendar",
+      "default": {
+        "subscriptions": [],
+        "system": true
+      }
+    },
+    "kindStyles": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Style"
+      },
+      "description": "Per-widget-kind style overrides (cascade layer between global and widget instance).",
+      "type": "object"
+    },
+    "language": {
+      "$ref": "#/$defs/Language",
+      "default": "system"
+    },
+    "layout": {
+      "$ref": "#/$defs/LayoutPrefs",
+      "default": {
+        "marginPx": 24
+      }
+    },
+    "network": {
+      "$ref": "#/$defs/Network",
+      "default": {
+        "billingDay": 1,
+        "latencyTarget": "1.1.1.1",
+        "publicIp": false
+      }
+    },
+    "onboardingDone": {
+      "default": false,
+      "type": "boolean"
+    },
+    "performance": {
+      "$ref": "#/$defs/PerformancePrefs",
+      "default": {
+        "mode": "balanced",
+        "pauseOnBattery": false
+      }
+    },
+    "privacy": {
+      "$ref": "#/$defs/Privacy",
+      "default": {
+        "privilegedSensors": false,
+        "updateChecks": true
+      }
+    },
+    "style": {
+      "$ref": "#/$defs/Style",
+      "default": {},
+      "description": "Global widget style (Settings → Appearance); each widget may override any field."
+    },
+    "styles": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Style"
+      },
+      "default": {},
+      "description": "Named styles the user saved (\"Night\", \"Minimal\").",
+      "type": "object"
+    },
+    "theme": {
+      "default": "opaline",
+      "description": "Active theme package id (`\"opaline\"`, `\"classic\"`, or a user theme id).",
+      "type": "string"
+    },
+    "version": {
+      "default": 2,
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "weather": {
+      "$ref": "#/$defs/Weather",
+      "default": {
+        "automatic": false,
+        "location": null
+      }
+    },
+    "widgets": {
+      "additionalProperties": {
+        "$ref": "#/$defs/WidgetConfig"
+      },
+      "default": {},
+      "description": "Placed widgets by instance id.",
+      "type": "object"
+    }
+  },
+  "title": "Settings",
+  "type": "object"
+}

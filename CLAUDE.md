@@ -111,8 +111,10 @@ A plain `cargo build -p opaline` produces a binary that loads the frontend from 
 - The Lab sets `window.__labScheduler`; the e2e test reads its frame counter to prove an idle page draws nothing.
   Animations must go through `design-system/motion` `scheduler`, never their own `requestAnimationFrame` loop.
 - **Adding a widget:** declare fields (topics + `read`), options and `status` in `widgets/<kind>.ts(x)`, add it to
-  `registry.ts` and the Lab layout (`lab/labHost.ts`); style and content settings come for free. Style keys live in
-  three places that must agree: `design-system/style/{types,fields}.ts` and `crates/opaline-core/src/style.rs`.
+  `registry.ts` and the Lab layout (`lab/labHost.ts`); style and content settings come for free. Style keys live once
+  in `crates/opaline-core/src/style.rs` (ADR 0017): update `spec/*.schema.json` with
+  `OPALINE_UPDATE_SCHEMA=1 cargo test -p opaline-core --test schemas`, then `cd app && pnpm gen:types` (tests fail when
+  either is stale).
 - The React compiler lint forbids reading refs or mutating state objects during render; keep mutable buffers in a
   class instance from `useState(() => new X())` and mutate them in effects (see `HeroHistory`).
 - **WebKitGTK GPU mode in the transparent layer window**: a child with its own composited layer can get stretched

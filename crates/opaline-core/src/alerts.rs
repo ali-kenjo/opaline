@@ -8,6 +8,7 @@ use std::time::Duration;
 
 use futures_util::StreamExt;
 use opaline_ipc::{ActivityClass, CoreEvent, Topic, Value};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use zbus::{Connection, MatchRule, MessageStream, Variant};
 
@@ -18,14 +19,14 @@ use crate::hub::{Hub, now_ms};
 pub const ACTIVE: &str = "alerts.active";
 const SNOOZE: Duration = Duration::from_secs(3600);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum Comparator {
     Above,
     Below,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Rule {
     pub id: String,

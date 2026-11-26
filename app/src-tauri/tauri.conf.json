@@ -67,7 +67,15 @@
           "/usr/share/gnome-shell/extensions/opaline-desktop@ali-kenjo.github.io/layer.js": "../../desktop-integration/layer.js",
           "/usr/share/gnome-shell/extensions/opaline-desktop@ali-kenjo.github.io/stacking.js": "../../desktop-integration/stacking.js",
           "/usr/share/gnome-shell/extensions/opaline-desktop@ali-kenjo.github.io/schemas/org.gnome.shell.extensions.opaline-desktop.gschema.xml": "../../desktop-integration/schemas/org.gnome.shell.extensions.opaline-desktop.gschema.xml",
-          "/usr/share/gnome-shell/extensions/opaline-desktop@ali-kenjo.github.io/schemas/gschemas.compiled": "../../desktop-integration/schemas/gschemas.compiled"
+          "/usr/share/gnome-shell/extensions/opaline-desktop@ali-kenjo.github.io/schemas/gschemas.compiled": "../../desktop-integration/schemas/gschemas.compiled",
+          "/usr/share/opaline/schemas/composition.schema.json": "../../spec/composition.schema.json",
+          "/usr/share/opaline/schemas/style.schema.json": "../../spec/style.schema.json",
+          "/usr/share/opaline/schemas/theme.schema.json": "../../spec/theme.schema.json",
+          "/usr/share/opaline/schemas/settings.schema.json": "../../spec/settings.schema.json",
+          "/usr/share/opaline/schemas/layouts.schema.json": "../../spec/layouts.schema.json",
+          "/usr/share/opaline/schemas/rice.schema.json": "../../spec/rice.schema.json",
+          "/usr/share/opaline/themes/opaline/theme.json": "../../spec/themes/opaline/theme.json",
+          "/usr/share/opaline/themes/classic/theme.json": "../../spec/themes/classic/theme.json"
         }
       }
     }
