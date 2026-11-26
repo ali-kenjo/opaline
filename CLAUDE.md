@@ -29,6 +29,8 @@ cd app && LAB=1 pnpm tauri build --debug --no-bundle && OPALINE_LAYER_PAGE='lab.
 cd app && pnpm exec playwright test --update-snapshots=all  # re-record the Lab baselines (look at the diff first)
 cd app && pnpm icons                           # re-subset Material Symbols after adding to icons/codepoints.ts
 cd app && pnpm lint:helper                     # ESLint + schema check for the GNOME Shell helper
+cargo build -p opaline-expr --example lines && cd app && OPALINE_EXPR_LINES=target/debug/examples/lines pnpm exec vitest run src/expr
+                                               # expressions: Rust and TS agree on random programs (OPALINE_EXPR_N=100000 for more)
 scripts/install-helper-dev.sh [--remove]       # helper into ~/.local for this user (no sudo); needs a re-login
 scripts/capture-monitor.py eDP-1 /tmp/shot     # silent screenshot of one monitor (Mutter ScreenCast) → /tmp/shot.N.png
 ./target/debug/opaline --peek                  # toggle Peek (raises the layer, so screenshots can see it)
@@ -51,6 +53,8 @@ A plain `cargo build -p opaline` produces a binary that loads the frontend from 
 - `desktop-integration/`: the GNOME Shell helper (GJS, ESM): `layer.js` (starts the layer as a trusted Wayland client
   while core runs), `stacking.js` (ADR 0006), `dbus.js` (`io.github.ali_kenjo.Opaline.Shell1`, ApiVersion 1), `keys.js`.
   Core side: `desktop.rs` (Native/Instant selection, live switching), `shortcuts.rs` (portal shortcuts in Instant).
+- `crates/opaline-expr`: the expression language (docs/EXPRESSIONS.md); its TypeScript twin is `app/src/expr/`. Both
+  pass `spec/expressions/*.json`; change the corpus first, then both sides.
 - `crates/opaline-privileged`: the root helper (RAPL only); its D-Bus/polkit files are in `packaging/`.
 - `app/src-tauri`: the `opaline` binary. `core_mode.rs` (tray, D-Bus, IPC server, layer supervisor), `layer/`
   (windows per monitor, IPC client, bridge to the webviews), `instant.rs`.
