@@ -8,6 +8,8 @@ import type { IconName } from "../design-system/icons";
 import type { ResolvedStyle } from "../design-system/style";
 import type { SizeClass } from "../design-system/tokens/tokens";
 import type { ActivityClass, Command, Value } from "../layer/protocol";
+import type { Composition } from "../compose/model.gen";
+import type { Value as ExprValue } from "../expr";
 import type { ResolvedContent } from "./content";
 
 export type Choice = readonly { value: string; label: string }[];
@@ -158,6 +160,10 @@ export interface WidgetDef {
   actions?: (ctx: ReadCtx) => readonly WidgetAction[];
   /** Custom layout; omit to use the standard hero + rows layout. */
   render?: (ctx: RenderCtx) => ReactNode;
+  /** The widget as a composition (docs/COMPOSITION.md), drawn by the engine; wins over `render`. */
+  composition?: Composition;
+  /** The composition's `opt.*` names. Default: every option, plus `fields` (the shown field ids). */
+  compositionOptions?: (content: ResolvedContent) => Record<string, ExprValue>;
   /** The activity class its topics are subscribed at while visible. */
   activity?: ActivityClass;
 }

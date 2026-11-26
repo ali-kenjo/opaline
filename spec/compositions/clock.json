@@ -3,84 +3,201 @@
   "bindings": {
     "h24": "if(opt.format == 'system', clock.settings.format24h ?? true, opt.format == '24')",
     "seconds": "if(opt.seconds == 'system', clock.settings.showSeconds ?? false, opt.seconds == 'on')",
-    "zone": "if(len(trim(opt.zone ?? '')) > 0, trim(opt.zone), clock.settings.timezone)",
+    "zone": "if(len(opt.zone) > 0, opt.zone, clock.settings.timezone)",
     "time": "date(now(), if(bind.h24, 'Hm', 'hm'), bind.zone)",
-    "timeSeconds": "date(now(), if(bind.h24, if(bind.seconds, 'Hms', 'Hm'), if(bind.seconds, 'hms', 'hm')), bind.zone)"
+    "timeSeconds": "if(bind.seconds, date(now(), if(bind.h24, 'Hms', 'hms'), bind.zone), bind.time)"
   },
   "layouts": [
     {
-      "sizes": ["1x1"],
+      "sizes": [
+        "1x1"
+      ],
       "root": {
         "id": "face",
         "type": "column",
         "align": "center",
         "justify": "center",
-        "children": [{ "id": "time", "type": "text", "role": "hero", "text": "{bind.time}" }]
-      }
-    },
-    {
-      "sizes": ["2x1", "4x1", "S"],
-      "root": {
-        "id": "face",
-        "type": "stack",
-        "gap": 1,
-        "align": "center",
         "children": [
-          { "id": "time", "type": "text", "role": "hero", "text": "{bind.timeSeconds}" },
           {
-            "id": "date",
-            "type": "text",
-            "role": "caption",
-            "visible": "opt.fields.date ?? true",
-            "text": "{date(now(), 'yMMMMEEEEd', bind.zone)}",
-            "shorter": ["{date(now(), 'MMMEd', bind.zone)}", "{date(now(), 'MMMd', bind.zone)}"]
+            "id": "time",
+            "type": "number",
+            "role": "hero",
+            "value": "bind.time",
+            "motion": "odometer",
+            "visible": "has(opt.fields, 'time')"
           }
         ]
       }
     },
     {
-      "sizes": ["M", "L"],
+      "sizes": [
+        "2x1",
+        "4x1"
+      ],
       "root": {
         "id": "face",
         "type": "column",
+        "justify": "center",
         "gap": 2,
-        "padding": 0,
+        "children": [
+          {
+            "id": "time",
+            "type": "number",
+            "role": "hero",
+            "value": "bind.timeSeconds",
+            "motion": "odometer",
+            "visible": "has(opt.fields, 'time')"
+          },
+          {
+            "id": "lines",
+            "type": "list",
+            "items": "opt.lines",
+            "max": 2,
+            "gap": 0,
+            "item": {
+              "id": "lines-line",
+              "type": "text",
+              "role": "caption",
+              "text": "{if($item == 'date', date(now(), opt.dateSkeleton, bind.zone), if($item == 'weekday', date(now(), 'EEEE', bind.zone), if($item == 'week', opt.weekLabel + ' ' + date(now(), 'w', bind.zone), if($item == 'zone', bind.zone ?? opt.systemZone, if($item == 'zone2', opt.zone2Name + ' ' + date(now(), if(bind.h24, 'Hm', 'hm'), opt.zone2), '')))))}",
+              "shorter": [
+                "{if($item == 'date', date(now(), 'MMMEd', bind.zone), '')}",
+                "{if($item == 'date', date(now(), 'MMMd', bind.zone), '')}"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "sizes": [
+        "S"
+      ],
+      "root": {
+        "id": "face",
+        "type": "column",
+        "justify": "center",
+        "gap": 2,
         "children": [
           {
             "id": "analog",
             "type": "canvas",
             "visual": "analog-clock",
-            "visible": "opt.face == 'analog'",
             "label": "{bind.timeSeconds}",
-            "params": { "ms": "now()", "zone": "bind.zone", "seconds": "bind.seconds" }
+            "params": {
+              "ms": "now()",
+              "zone": "bind.zone",
+              "seconds": "bind.seconds"
+            },
+            "visible": "opt.face == 'analog'"
           },
           {
             "id": "time",
-            "type": "text",
+            "type": "number",
             "role": "hero",
-            "visible": "opt.face != 'analog'",
-            "text": "{bind.timeSeconds}"
+            "value": "bind.timeSeconds",
+            "motion": "odometer",
+            "visible": "has(opt.fields, 'time') && opt.face != 'analog'"
           },
           {
             "id": "lines",
-            "type": "column",
-            "gap": 1,
+            "type": "list",
+            "items": "opt.lines",
+            "max": 2,
+            "gap": 0,
+            "item": {
+              "id": "lines-line",
+              "type": "text",
+              "role": "caption",
+              "text": "{if($item == 'date', date(now(), opt.dateSkeleton, bind.zone), if($item == 'weekday', date(now(), 'EEEE', bind.zone), if($item == 'week', opt.weekLabel + ' ' + date(now(), 'w', bind.zone), if($item == 'zone', bind.zone ?? opt.systemZone, if($item == 'zone2', opt.zone2Name + ' ' + date(now(), if(bind.h24, 'Hm', 'hm'), opt.zone2), '')))))}",
+              "shorter": [
+                "{if($item == 'date', date(now(), 'MMMEd', bind.zone), '')}",
+                "{if($item == 'date', date(now(), 'MMMd', bind.zone), '')}"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "sizes": [
+        "M",
+        "L"
+      ],
+      "root": {
+        "id": "face",
+        "type": "column",
+        "justify": "center",
+        "children": [
+          {
+            "id": "analog-face",
+            "type": "row",
+            "align": "center",
+            "gap": 4,
+            "grow": 1,
+            "visible": "opt.face == 'analog'",
             "children": [
               {
-                "id": "date",
-                "type": "text",
-                "role": "caption",
-                "priority": 80,
-                "text": "{date(now(), 'yMMMMEEEEd', bind.zone)}",
-                "shorter": ["{date(now(), 'MMMEd', bind.zone)}"]
+                "id": "analog",
+                "type": "canvas",
+                "visual": "analog-clock",
+                "label": "{bind.timeSeconds}",
+                "params": {
+                  "ms": "now()",
+                  "zone": "bind.zone",
+                  "seconds": "bind.seconds"
+                }
               },
               {
-                "id": "zone2",
-                "type": "text",
-                "role": "caption",
-                "priority": 40,
-                "visible": "len(trim(opt.zone2 ?? '')) > 0",
-                "text": "{opt.zone2Label ?? opt.zone2} {date(now(), if(bind.h24, 'Hm', 'hm'), opt.zone2)}"
+                "id": "analog-lines",
+                "type": "list",
+                "items": "opt.lines",
+                "max": 6,
+                "gap": 0,
+                "item": {
+                  "id": "analog-lines-line",
+                  "type": "text",
+                  "role": "caption",
+                  "text": "{if($item == 'date', date(now(), opt.dateSkeleton, bind.zone), if($item == 'weekday', date(now(), 'EEEE', bind.zone), if($item == 'week', opt.weekLabel + ' ' + date(now(), 'w', bind.zone), if($item == 'zone', bind.zone ?? opt.systemZone, if($item == 'zone2', opt.zone2Name + ' ' + date(now(), if(bind.h24, 'Hm', 'hm'), opt.zone2), '')))))}",
+                  "shorter": [
+                    "{if($item == 'date', date(now(), 'MMMEd', bind.zone), '')}",
+                    "{if($item == 'date', date(now(), 'MMMd', bind.zone), '')}"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "id": "digital-face",
+            "type": "column",
+            "justify": "center",
+            "gap": 2,
+            "grow": 1,
+            "visible": "opt.face != 'analog'",
+            "children": [
+              {
+                "id": "time",
+                "type": "number",
+                "role": "hero",
+                "value": "bind.timeSeconds",
+                "motion": "odometer",
+                "visible": "has(opt.fields, 'time')"
+              },
+              {
+                "id": "lines",
+                "type": "list",
+                "items": "opt.lines",
+                "max": 6,
+                "gap": 0,
+                "item": {
+                  "id": "lines-line",
+                  "type": "text",
+                  "role": "caption",
+                  "text": "{if($item == 'date', date(now(), opt.dateSkeleton, bind.zone), if($item == 'weekday', date(now(), 'EEEE', bind.zone), if($item == 'week', opt.weekLabel + ' ' + date(now(), 'w', bind.zone), if($item == 'zone', bind.zone ?? opt.systemZone, if($item == 'zone2', opt.zone2Name + ' ' + date(now(), if(bind.h24, 'Hm', 'hm'), opt.zone2), '')))))}",
+                  "shorter": [
+                    "{if($item == 'date', date(now(), 'MMMEd', bind.zone), '')}",
+                    "{if($item == 'date', date(now(), 'MMMd', bind.zone), '')}"
+                  ]
+                }
               }
             ]
           }

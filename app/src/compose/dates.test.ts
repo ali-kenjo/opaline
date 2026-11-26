@@ -14,6 +14,12 @@ describe("date()", () => {
     expect(formatDate(T, "MMMEd", "UTC", "en")).toBe("Mon, Nov 23");
   });
 
+  it("gives the ISO week for 'w'", () => {
+    expect(formatDate(T, "w", "UTC")).toBe("48");
+    // 2027-01-01 is a Friday: still week 53 of 2026.
+    expect(formatDate(Date.UTC(2027, 0, 1, 12), "w", "UTC")).toBe("53");
+  });
+
   it("gives null for an unknown zone or time", () => {
     expect(formatDate(T, "Hm", "Mars/Olympus", "en")).toBeNull();
     expect(formatDate(NaN, "Hm", "UTC", "en")).toBeNull();

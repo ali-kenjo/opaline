@@ -1,0 +1,52 @@
+// A widget drawn from its composition (PLAN-2 2.7): the frame's topic values, the content
+// settings as `opt.*` and the layer's clock and date formatting become the runtime's inputs.
+import { useMemo } from "react";
+import { type Value, localeFromTag } from "../expr";
+import type { Value as Wire } from "../layer/protocol";
+import type { SizeClass } from "../design-system/tokens/tokens";
+import type { ResolvedContent } from "../widgets/content";
+import { useHost } from "../widgets/host";
+import type { WidgetDef } from "../widgets/types";
+import { formatDate } from "./dates";
+import { CompositionView } from "./render/View";
+import type { Env, Runtime } from "./runtime";
+
+export const EMPTY_ENV: Env = { topics: {}, options: {}, locale: "en", now: () => Date.now() };
+
+/** Every option of the widget, plus the shown fields. */
+export function defaultOptions(def: WidgetDef, content: ResolvedContent): Record<string, Value> {
+  const out: Record<string, Value> = { fields: [...content.fields], title: content.title };
+  for (const o of def.options ?? []) {
+    const v = content.opt<string | number | boolean | readonly [number, number]>(o.key);
+    out[o.key] = Array.isArray(v) ? [...(v as readonly number[])] : (v as Value);
+  }
+  return out;
+}
+
+const locale = localeFromTag(typeof navigator === "undefined" ? "en" : navigator.language);
+
+export interface ComposedBodyProps {
+  runtime: Runtime;
+  def: WidgetDef;
+  content: ResolvedContent;
+  values: Readonly<Record<string, Wire | undefined>>;
+  size: SizeClass;
+  animate: boolean;
+}
+
+export function ComposedBody({ runtime, def, content, values, size, animate }: ComposedBodyProps) {
+  const host = useHost();
+  const options = useMemo(
+    () => def.compositionOptions?.(content) ?? defaultOptions(def, content),
+    [def, content],
+  );
+  const fixed = host.now;
+  runtime.setEnv({
+    topics: values,
+    options,
+    locale,
+    now: fixed ? () => fixed().getTime() : () => Date.now(),
+    date: (ms, skeleton, zone) => formatDate(ms, skeleton, zone),
+  });
+  return <CompositionView runtime={runtime} size={size} animate={animate} />;
+}

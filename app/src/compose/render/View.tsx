@@ -12,7 +12,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Fit, Ring, WavyProgress } from "../../design-system/components";
+import { Fit, Ring, WavyProgress, useFitRows } from "../../design-system/components";
 import { ICONS, Icon, type IconName } from "../../design-system/icons";
 import { Odometer } from "../../design-system/motion";
 import { space } from "../../design-system/tokens/tokens";
@@ -201,11 +201,14 @@ function ListView({
   const items = field("items");
   const list = Array.isArray(items.value) ? items.value.slice(0, node.max ?? 50) : [];
   const itemAt = `${at}/item`;
+  // Items are fit rows: one that would end below the card is dropped, never half shown.
+  const ref = useFitRows<HTMLDivElement>();
   useEffect(() => {
     view.rt.trimItems(itemAt, list.length);
   });
   return (
     <div
+      ref={ref}
       className={styles.list}
       data-axis={node.axis ?? "vertical"}
       style={vars({ "--c-gap": px(node.gap) })}
@@ -215,7 +218,7 @@ function ListView({
     >
       {list.map((item, index) => (
         <Ctx.Provider key={index} value={{ ...view, scope: { item, index } }}>
-          <div role="listitem" style={{ display: "contents" }}>
+          <div role="listitem" data-fit-row="" className={styles.item}>
             <NodeView node={node.item} at={itemAt} />
           </div>
         </Ctx.Provider>
@@ -261,7 +264,8 @@ function BlockView({ node, at, attrs }: { node: Node; at: string; attrs: Attrs }
     case "text": {
       const text = asString(read("text"));
       const shorter = (node.shorter ?? []).map((_, i) => asString(read(`shorter/${String(i)}`)));
-      const variants = [...new Set([text, ...shorter])];
+      // Empty shorter forms mean "no shorter form" (a template's `if(…, …, '')`).
+      const variants = [...new Set([text, ...shorter.filter((v) => v !== "")])];
       content = <Fit className={styles.text} label={text} variants={variants} />;
       break;
     }
@@ -272,7 +276,9 @@ function BlockView({ node, at, attrs }: { node: Node; at: string; attrs: Attrs }
           ? asString(read("text"))
           : typeof value === "number"
             ? plain(value, "en")
-            : "—";
+            : typeof value === "string"
+              ? value
+              : "—";
       const unit = node.unit !== undefined ? asString(read("unit")) : "";
       const motion = node.motion ?? "odometer";
       content = (

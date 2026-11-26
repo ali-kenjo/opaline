@@ -75,13 +75,41 @@ export function skeletonOptions(skeleton: string): Opts {
   return o;
 }
 
-/** The date in a zone (`undefined` = the system's) and locale; `null` for an unknown zone. */
+/** The ISO 8601 week number of `ms` in a zone. */
+export function isoWeek(ms: number, zone: string | undefined): number | null {
+  let ymd: string;
+  try {
+    ymd = new Intl.DateTimeFormat("en-CA", {
+      timeZone: zone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(ms);
+  } catch {
+    return null;
+  }
+  const [y, m, d] = ymd.split("-").map(Number);
+  const t = new Date(Date.UTC(y ?? 1970, (m ?? 1) - 1, d ?? 1));
+  const dow = t.getUTCDay() || 7;
+  t.setUTCDate(t.getUTCDate() + 4 - dow);
+  const yearStart = Date.UTC(t.getUTCFullYear(), 0, 1);
+  return Math.ceil(((t.getTime() - yearStart) / 86_400_000 + 1) / 7);
+}
+
+/**
+ * The date in a zone (`undefined` = the system's) and locale; `null` for an unknown zone. The
+ * skeleton `'w'` alone is the ISO week number (Intl has no week field).
+ */
 export function formatDate(
   ms: number,
   skeleton: string,
   zone: string | undefined,
   locale?: string,
 ): string | null {
+  if (skeleton === "w") {
+    const w = Number.isFinite(ms) ? isoWeek(ms, zone) : null;
+    return w === null ? null : String(w);
+  }
   const key = `${skeleton}|${zone ?? ""}|${locale ?? ""}`;
   let f = cache.get(key);
   if (f === undefined) {

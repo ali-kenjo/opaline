@@ -2,6 +2,8 @@
 // topics of the fields it shows, works out its state, and draws the card with the standard
 // hero + rows layout or the widget's own.
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Runtime } from "../compose/runtime";
+import { ComposedBody, EMPTY_ENV } from "../compose/widget";
 import { useShallow } from "zustand/react/shallow";
 import { makeRamp } from "../design-system/color/ramps";
 import { triple } from "../design-system/color/scheme";
@@ -151,6 +153,10 @@ export function WidgetFrame({
   onOpenSettings,
 }: WidgetFrameProps) {
   const host = useHost();
+  // A composed widget compiles its expressions once, for the frame's lifetime.
+  const [runtime] = useState(() =>
+    def.composition ? new Runtime(def.composition, EMPTY_ENV) : null,
+  );
   const stored = host.settings.widgets[id];
   const look = host.settings.look ?? DEFAULT_LOOK;
   const style = useMemo(
@@ -189,8 +195,9 @@ export function WidgetFrame({
       }
     });
     const extra = safeExtra(def, baseCtx);
-    return [...new Set([...baseTopics, ...fieldTopics, ...extra])].sort();
-  }, [baseTopics, base, shown, content, def]);
+    const composed = runtime?.topics() ?? [];
+    return [...new Set([...baseTopics, ...fieldTopics, ...extra, ...composed])].sort();
+  }, [baseTopics, base, shown, content, def, runtime]);
   const activity = activityFor(content, def);
   useEffect(() => {
     host.subscribe(topics, activity);
@@ -264,6 +271,15 @@ export function WidgetFrame({
         <Icon name={reasonIcon[status.kind]} size={24} />
         <span>{status.reason}</span>
       </div>
+    ) : runtime ? (
+      <ComposedBody
+        runtime={runtime}
+        def={def}
+        content={content}
+        values={values}
+        size={size}
+        animate={style.animations && style.odometer}
+      />
     ) : def.render ? (
       def.render(render)
     ) : (

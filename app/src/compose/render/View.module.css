@@ -100,6 +100,17 @@
   justify-content: center;
 }
 
+/* A canvas takes the space its container leaves and never sizes the card itself. */
+.block[data-type="canvas"] {
+  flex: 1 1 0;
+  align-self: stretch;
+  overflow: hidden;
+}
+
+.list {
+  flex: 0 1 auto;
+}
+
 .track {
   position: relative;
   border-radius: 999px;
@@ -136,6 +147,16 @@
   min-height: 0;
   min-width: 0;
   overflow: hidden;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.item[hidden] {
+  display: none;
 }
 
 .list[data-axis="horizontal"] {
