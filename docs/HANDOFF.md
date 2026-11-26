@@ -13,8 +13,13 @@ each ending with acceptance checks, a PROGRESS entry and the owner's sign-off.
 ## Status
 - **2.0 Phase 0 (stabilize)** is done and signed off (2026-11-25; see PROGRESS "2.0 · Phase 0").
   Pushed to `origin/main`. The crash-recovery fix (open item 2) is merged into local `main` (16c36cf), not pushed yet.
-- Next: **P1, design language and glass 2.0**, starting with three visual directions for the Opaline theme in the
-  Lab (PLAN-2 task 1.1) and spikes S1 (transparency, blur pyramid) and S2 (WebKitGTK features).
+- **2.0 Phase 1** is built (PROGRESS "2.0 · Phase 1"): visual directions decided (all three become themes; Opaline is
+  the hybrid), spikes S1 (ADR 0012) and S2 (ADR 0013), no-truncation rules, glass 2.0, legibility 2.0, desktop looks,
+  Lab contrast/truncation checks. Waiting for the tuning session on the owner's desktop and the sign-off.
+  Local commits since the P0 push are **not pushed** yet.
+- **Settings are now version 2** (blur scale). A dev build run on the owner's real `~/.config/opaline` migrates it,
+  and the installed 1.1.0 then treats the file as read-only. Run dev builds with
+  `--setenv=XDG_CONFIG_HOME=<copy>` (as the P1 measurements did) until 2.0 is installed.
 - RAM budget is now **450 MB PSS** (owner's decision, ADR 0009 update). Idle CPU budget unchanged (≤ 0.5 %).
 
 ## Open items

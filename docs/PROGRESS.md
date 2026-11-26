@@ -387,3 +387,47 @@ Brief: `OPALINE_2_BRIEF.md` §11; plan: `docs/PLAN-2.md` (approved 2026-11-25).
 | `LayerApp.tsx` split, no behavior change | ✅ 901 lines, all UI tests unchanged |
 | Rust tests, clippy `-D warnings`, rustfmt, ESLint, Prettier, tsc, helper lint | ✅ 163 Rust tests (159 before; NVML test ignored as usual), all lints clean (2026-11-25) |
 | 🧑 Your sign-off | ✅ 2026-11-25 |
+
+
+## 2.0 · Phase 1: Design language and glass 2.0 (waiting for the tuning session and sign-off, 2026-11-26)
+
+**Done**
+- **1.1 Visual directions** (`lab.html?only=directions`, `docs/design/`): Lens, Pebble and Instrument on Clock, CPU,
+  Weather and Now Playing at S and M over a dark and a light wallpaper. **Your decision: all three** — Lens becomes
+  Crystal, Pebble becomes Bloom, Instrument a tenth theme, and the default Opaline is the hybrid (Lens type, Pebble
+  shapes where they mean something, Instrument dial and charts at M) (DESIGN-2 §11).
+- **1.2 Spike S1, see-through glass** (ADR 0012): a sharp, native-resolution wallpaper variant from core (JPEG, about
+  0.4 MB per monitor, rendered once and then cached), loaded by the layer only while a widget's blur is below the 1.x
+  level; **default: sharp sampling**, "Real transparency" as an option (desktop icons show; sampled during Peek/Edit).
+- **1.3 Spike S2, WebKitGTK features** (ADR 0013): container queries yes; variable axes of system fonts no (bundled
+  fonts yes); WebGL2 in workers no; **the page CSP doesn't reach workers** (a worker's `no-cors` fetch reaches the
+  network) — the plugin sandbox spike S5 has to solve that first.
+- **1.4 DESIGN-2** §1–8 and §11 filled in: type scale, anatomy, responsive rules, kind colors, shape meanings, glass
+  2.0, legibility, desktop looks.
+- **1.5 No truncated labels**: written short labels per field (`FieldDef.shortLabel`), `Fit` and `fitRows`
+  (icon → short label → hidden label → drop the row; values never cut; no half-visible rows), short date forms on the
+  clock. The hero auto-fit moves to P2's Number block.
+- **1.6 Glass 2.0**: one blur scale (0 sharp … 60 = exactly the 1.x look … 100), real transparency, edge dispersion,
+  specular angle and width, inner glow, shadow color/offset/size (shader and compositor; style keys for the new
+  effects come with style model 2.0 in P3). **Settings v2** migrates stored blur values (60 + 0.4 × old).
+- **1.7 Legibility 2.0** (DESIGN-2 §8.4): per widget from the wallpaper image (mean and the darkest/brightest 1 %):
+  text ink first, halo, then more blur, the tint last; only for glass clearer than the 1.x look, so Classic stays
+  1.x. The widget settings sheet shows the measured contrast and warns below 4.5 : 1. Fixed on the way: dark text on a
+  dark custom surface color in a light theme; the 1.x tint is judged on the weaker secondary text (target 4.7).
+- **1.8 Desktop looks**: Glass · Clear · Tinted · Dark · Light · Dimmed and a master transparency, on the Edit toolbar
+  (Look) and in Settings → Appearance (en/de/ar).
+- **1.9 Lab checks**: zero truncation and text contrast **measured from screenshots** (glyphs hidden, the pixels behind
+  each text run, WCAG 4.5 / 3 : 1), on a dark and a light wallpaper, in the Glass and the Clear look; `?look=`,
+  `?spike=glass`, `?spike=webkit`.
+- **1.10 Classic**: the 1.1 look is today's default (blur 60, transparency 60) and every 1.1 Lab baseline still
+  passes unchanged.
+
+**Acceptance (PLAN-2 P1)**
+
+| Check | Result |
+| - | - |
+| Zero-truncation and contrast checks pass | ✅ 12 checks (2 stages × dark/light wallpapers × Glass/Clear looks) |
+| At blur 0 and tint 0 the wallpaper shows through sharp; text stays readable or the warning appears | ✅ `lab.html?spike=glass` (`docs/design/p1-legibility2.png`): sharp at blur 0; ink, halo and blur keep text readable, the tint rises only where needed; with "Keep text readable" off the sheet warns |
+| Tests | ✅ 147 Rust (core), 78 Vitest, 42 Playwright; clippy, rustfmt, ESLint, Prettier, tsc clean |
+| Budget (release, your layout on a config copy, both monitors, widgets visible) | RAM **415–419 MB** PSS (1.1.0 on the same copy: 414–417 MB; budget 450); the legibility map adds about 5 MB to the web process. Fixed: core re-rendered the sharp wallpaper on every start (+20 MB kept by glibc). CPU with widgets **visible**: about 2 %, the same as 1.1.0 (2.0 %) — the ring and odometer springs on every 1 Hz update; covered stays near 0 (P0). Known issue for P2's Number and Ring blocks |
+| 🧑 Tuning the default see-through look on your desktop, then your sign-off | pending |
