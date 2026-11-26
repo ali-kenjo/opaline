@@ -48,14 +48,16 @@ click, the helper lowers again on `restacked`) can't be excluded; the owner saw 
    when a layer window takes it on map. A regression test runs the focus probe and fails on a focus event at load.
 3. **Keyboard focus only while it's needed.** A click on a text input or slider keeps focus until Esc, a click
    elsewhere, or the action is done; a click on a button or toggle acts and hands focus back at once.
-4. **Handing focus back:** Native gets a helper method (`ReleaseFocus`, Shell1 API v2 with N−1 compatibility, S8)
-   that re-focuses the window that had focus before the click. Instant has no reliable way to focus another app's
+4. **Handing focus back:** Native gets a helper method, `ReleaseFocus`, that re-focuses the window that had focus
+   before the click. It's additive, so `ApiVersion` stays 1 and a new `ApiRevision` property (1) announces it:
+   older cores keep working with the new helper, and a new core calls it only when the revision says it exists. Instant has no reliable way to focus another app's
    window, so focus stays on the layer until the user clicks elsewhere (documented limitation).
 5. **No stacking change is needed:** the layer stays below normal windows while it has focus, in both modes.
 
 ## Consequences
-- P2 follow-up: the focus-theft fix (decision 2), the interactive input region (decision 1) and focus hand-back on
-  button clicks (decision 3) before the composed controls ship; `ReleaseFocus` joins the helper API v2 work.
+- Implemented in P2: decisions 1–4 (`focus-on-map` off for every layer window; the helper's focus guard and
+  `ReleaseFocus`; `[data-interactive]` elements as the input region; `release-focus` after button and toggle
+  actions). The Native focus guard takes effect once the updated helper is installed (re-login).
 - Side finding: core enables the helper on every start (`desktop::ensure_enabled`), overriding a user who turned it
   off on purpose. It should enable it only once after install (or when the user asks), not on every start.
 - `scripts/remote-input.py` stays as a tool for checks on the real desktop; the probe page and its debug-only GTK
