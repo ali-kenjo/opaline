@@ -15,7 +15,8 @@ each ending with acceptance checks, a PROGRESS entry and the owner's sign-off.
   Pushed to `origin/main`. The crash-recovery fix (open item 2) is merged into local `main` (16c36cf), not pushed yet.
 - **2.0 Phase 1** is built (PROGRESS "2.0 · Phase 1"): visual directions decided (all three become themes; Opaline is
   the hybrid), spikes S1 (ADR 0012) and S2 (ADR 0013), no-truncation rules, glass 2.0, legibility 2.0, desktop looks,
-  Lab contrast/truncation checks. Waiting for the tuning session on the owner's desktop and the sign-off.
+  Lab contrast/truncation checks. Default see-through tuned with the owner (blur 30, transparency 80,
+  "Keep text readable" on; the Opaline theme carries it). Waiting for the sign-off.
   Local commits since the P0 push are **not pushed** yet.
 - **Settings are now version 2** (blur scale). A dev build run on the owner's real `~/.config/opaline` migrates it,
   and the installed 1.1.0 then treats the file as read-only. Run dev builds with

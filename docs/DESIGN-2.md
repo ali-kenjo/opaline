@@ -117,7 +117,9 @@ How a theme is built (maps to `theme.json`, §5.2 of the brief):
 - 8.3 **Ranges**: blur 0–100 (0 = sharp), tint 0–100 independent of blur, refraction 0–2, rim 0–2, shadow 0–2,
   grain 0–2 (1 = the designed look). Opaline: tint ≈ 14 %, refraction 1.5, rim 1.6, shadow 0.8; Crystal tint 10 %,
   rim 1.9; Bloom tint 46 % in the kind's tint color; Instrument a smoked tint (`#0e0e12`) at 60 % with a 1 px
-  12 % white hairline. The default see-through amount is tuned at the Phase 1 sign-off.
+  12 % white hairline. **Opaline's default glass, tuned with the owner on the real desktop (2026-11-26): blur 30,
+  transparency 80, "Keep text readable" on.** The built-in default stays the 1.x look (blur 60, transparency 60) until
+  the theme engine (P3), so Classic stays exact; the Opaline theme carries the tuned values.
 - 8.4 **Legibility 2.0** (built in P1; `design-system/glass/backdrop.ts`, `GlassStage.tsx`). Applies only where a
   widget is clearer than the 1.x look (transparency above 60, blur below 60 or real transparency), so Classic stays
   1.x. Per widget, once per wallpaper, from the wallpaper image itself (a 768 px wide luminance map, about 1.3 MB):

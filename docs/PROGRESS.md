@@ -389,7 +389,7 @@ Brief: `OPALINE_2_BRIEF.md` §11; plan: `docs/PLAN-2.md` (approved 2026-11-25).
 | 🧑 Your sign-off | ✅ 2026-11-25 |
 
 
-## 2.0 · Phase 1: Design language and glass 2.0 (waiting for the tuning session and sign-off, 2026-11-26)
+## 2.0 · Phase 1: Design language and glass 2.0 (ready for sign-off, 2026-11-26)
 
 **Done**
 - **1.1 Visual directions** (`lab.html?only=directions`, `docs/design/`): Lens, Pebble and Instrument on Clock, CPU,
@@ -430,4 +430,5 @@ Brief: `OPALINE_2_BRIEF.md` §11; plan: `docs/PLAN-2.md` (approved 2026-11-25).
 | At blur 0 and tint 0 the wallpaper shows through sharp; text stays readable or the warning appears | ✅ `lab.html?spike=glass` (`docs/design/p1-legibility2.png`): sharp at blur 0; ink, halo and blur keep text readable, the tint rises only where needed; with "Keep text readable" off the sheet warns |
 | Tests | ✅ 147 Rust (core), 78 Vitest, 42 Playwright; clippy, rustfmt, ESLint, Prettier, tsc clean |
 | Budget (release, your layout on a config copy, both monitors, widgets visible) | RAM **415–419 MB** PSS (1.1.0 on the same copy: 414–417 MB; budget 450); the legibility map adds about 5 MB to the web process. Fixed: core re-rendered the sharp wallpaper on every start (+20 MB kept by glibc). CPU with widgets **visible**: about 2 %, the same as 1.1.0 (2.0 %) — the ring and odometer springs on every 1 Hz update; covered stays near 0 (P0). Known issue for P2's Number and Ring blocks |
-| 🧑 Tuning the default see-through look on your desktop, then your sign-off | pending |
+| 🧑 Tuning the default see-through look on your desktop | ✅ 2026-11-26, release build on a copy of your settings: **blur 30, transparency 80, "Keep text readable" on** ("Yes, keep it"); the Opaline theme carries these values (DESIGN-2 §8.3) |
+| 🧑 Your sign-off | pending |
