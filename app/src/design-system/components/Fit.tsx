@@ -6,6 +6,17 @@
 import { type ReactNode, useLayoutEffect, useRef } from "react";
 import styles from "./data.module.css";
 
+/** Runs `fit` again whenever web fonts finish loading: a font changes the text's width without
+ * resizing its box, so the ResizeObserver alone would miss it. Returns the cleanup. */
+function refitOnFonts(fit: () => void): () => void {
+  if (typeof document === "undefined" || !("fonts" in document)) return () => undefined;
+  document.fonts.addEventListener("loadingdone", fit);
+  void document.fonts.ready.then(fit);
+  return () => {
+    document.fonts.removeEventListener("loadingdone", fit);
+  };
+}
+
 /** How far a row may reach into the card's bottom padding (padding is 16–20 px). */
 const ROW_SLACK = 8;
 
@@ -61,13 +72,16 @@ export function Fit({ variants, label, className }: FitProps) {
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    fitVariants(el);
-    const ro = new ResizeObserver(() => {
+    const fit = () => {
       fitVariants(el);
-    });
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
     if (el.parentElement) ro.observe(el.parentElement);
+    const unfonts = refitOnFonts(fit);
     return () => {
       ro.disconnect();
+      unfonts();
     };
   });
   return (
@@ -94,13 +108,16 @@ export function useFitRows<T extends HTMLElement>() {
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    fitRows(el);
-    const ro = new ResizeObserver(() => {
+    const fit = () => {
       fitRows(el);
-    });
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
     ro.observe(el);
+    const unfonts = refitOnFonts(fit);
     return () => {
       ro.disconnect();
+      unfonts();
     };
   });
   return ref;
