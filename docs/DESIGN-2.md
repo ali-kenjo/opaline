@@ -91,8 +91,11 @@ How a theme is built (maps to `theme.json`, §5.2 of the brief):
   | Battery & Power | green, amber and red when low (P4) | |
   | Calendar | the calendar's own color | |
 - 6.3 **Ramps** (thermal, load, health) stay; status is never color alone (an icon, a word or a shape goes with it).
-- 6.4 **Desktop look modes**: Glass · Clear · Tinted · Dark · Light · Dimmed, plus a master transparency slider
-  (task 1.8).
+- 6.4 **Desktop look modes** (built in P1; `design-system/style/look.ts`): applied on top of every widget's own style,
+  so Glass brings every widget's look back. Clear: transparency at least 88, blur at most 24. Tinted: one tint color
+  for all (Settings → Appearance), transparency at most 55. Dark and Light: that scheme, transparency at most 45.
+  Dimmed: the dimmed state. **Master transparency** 0–100 (50 = unchanged) scales each widget relative to its own
+  transparency (0 doubles every tint, 100 makes all clear). On the Edit toolbar (Look) and in Settings → Appearance.
 
 ## 7. Shape
 - 7.1 Card shapes: rounded rectangles today; continuous squircle corners, per-corner radii and library shapes as
@@ -115,10 +118,21 @@ How a theme is built (maps to `theme.json`, §5.2 of the brief):
   grain 0–2 (1 = the designed look). Opaline: tint ≈ 14 %, refraction 1.5, rim 1.6, shadow 0.8; Crystal tint 10 %,
   rim 1.9; Bloom tint 46 % in the kind's tint color; Instrument a smoked tint (`#0e0e12`) at 60 % with a 1 px
   12 % white hairline. The default see-through amount is tuned at the Phase 1 sign-off.
-- 8.4 **Legibility 2.0** (task 1.7): text first (color from the local backdrop luminance, then the halo of §3.6,
-  optional vibrancy text), the tint raised only as the last step and only with "Keep text readable" on; the inspector
-  shows the measured contrast and warns below 4.5 : 1. Busy wallpapers need this before see-through can be the
-  default (ADR 0012).
+- 8.4 **Legibility 2.0** (built in P1; `design-system/glass/backdrop.ts`, `GlassStage.tsx`). Applies only where a
+  widget is clearer than the 1.x look (transparency above 60, blur below 60 or real transparency), so Classic stays
+  1.x. Per widget, once per wallpaper, from the wallpaper image itself (a 768 px wide luminance map, about 1.3 MB):
+  mean brightness and the darkest and brightest 1 % behind the widget (text-like detail covers 1–2 % of a card).
+  Then, in this order:
+  1. **Ink**: light or dark text (the on-surface roles of the dark and light scheme), whichever reads better against
+     the glass's worst case (light text against the brightest detail, dark text against the darkest).
+  2. **Halo** behind the text when detail shows or contrast is below 7 : 1 (§3.6).
+  3. With "Keep text readable" on and still below target (4.5 : 1, or 3 : 1 with a halo): **more blur first**, up to
+     the 1.x level, which removes the detail behind the text while the glass stays clear;
+  4. **the tint last**. Real transparency can't blur, so it goes straight to the tint.
+  Without "Keep text readable", nothing changes the look: the widget settings sheet shows the measured contrast and
+  warns below 4.5 : 1. For the 1.x path the tint is judged on the weaker secondary text color, with a 4.7 : 1 target
+  (a margin over 4.5 for the coarse brightness estimate). A solid custom surface color picks its text scheme by its own
+  brightness when the theme is Automatic.
 - 8.5 Opaque mode (reduce transparency, high contrast) wins over everything.
 - 8.6 CSS styles the content, never the glass: the glass is drawn by WebGL (`theme.css` and `user.css` can't change
   it; `docs/THEMING.md` says so).
