@@ -3,7 +3,7 @@
 // field and logs every focus, blur and key event. Inside the real layer (debug build,
 // OPALINE_LAYER_PAGE) each event goes to the layer log as key="spike-focus".
 import { useEffect, useState } from "react";
-import { report, setInputRegion } from "../../layer/bridge";
+import { command, report, setInputRegion } from "../../layer/bridge";
 
 const inTauri = "__TAURI_INTERNALS__" in window;
 
@@ -112,7 +112,11 @@ export function SpikeFocus() {
           if (inTauri) void report("spike-focus", { event: "input-blur" });
         }}
         onKeyDown={(e) => {
-          if (e.key === "Escape") e.currentTarget.blur();
+          if (e.key === "Escape") {
+            e.currentTarget.blur();
+            // As widget buttons do after acting: give focus back through core and the helper.
+            if (inTauri) void command({ cmd: "release-focus" });
+          }
         }}
         style={{ fontSize: 28, padding: "12px 16px", width: 480, borderRadius: 14 }}
       />

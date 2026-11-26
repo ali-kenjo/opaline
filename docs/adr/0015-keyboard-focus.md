@@ -38,6 +38,13 @@ the probe on both monitors. The automated trace above replaces it.
 The "no rise" check is a capture 1 s after the click, so a one-frame raise-and-lower in Native (Mutter raises on
 click, the helper lowers again on `restacked`) can't be excluded; the owner saw no jump by eye.
 
+## Verified after the fix (helper revision 1 installed, after a re-login)
+- Start-up: neither layer window has focus once loaded, in both modes. In Native, GTK still sees the window take
+  focus while mapping, and the helper hands it back in under 1 ms (focus-in and focus-out 0.4–0.6 ms apart).
+- Hand-back: with a test window focused, a click on the probe's field gave the layer focus; Esc sent
+  `release-focus` (the same request widget buttons send) through layer, core and helper, the layer lost focus and a
+  normal window had it again (`DesktopFocused` false), on `eDP-1` in Native mode.
+
 ## Decision
 1. **Interactive blocks are click targets on the desktop.** The layer's input region becomes the union of the
    rectangles of interactive blocks (button, toggle, slider, text input, and list items with an action), updated

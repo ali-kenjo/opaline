@@ -1,5 +1,7 @@
 """Drives the pointer and keyboard through Mutter's remote-desktop API, for checks on the real
-desktop (spike S3). Coordinates are logical pixels on the given monitor.
+desktop (spike S3). Coordinates are the monitor's stream pixels: physical pixels, i.e. logical ×
+the monitor's scale (on a 1.25 monitor, logical (100, 100) is (125, 125)), counted from the
+monitor's top-left (the top bar included).
 
   scripts/remote-input.py CONNECTOR STEP...
     click X Y        move to (X, Y) and click the left button
