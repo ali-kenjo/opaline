@@ -12,14 +12,11 @@ each ending with acceptance checks, a PROGRESS entry and the owner's sign-off.
 
 ## Status
 - **P0 and P1** are signed off and pushed.
-- **P2 (composition engine) is built, waiting for the owner's sign-off.** Everything is in local `main`,
-  **~33 commits ahead of `origin/main`, not pushed** (push only when the owner says so). Details: PROGRESS
-  "2.0 · Phase 2".
+- **P2 (composition engine) is signed off (2026-11-27) and pushed.** Details: PROGRESS "2.0 · Phase 2".
 - **Next steps, in order:**
-  1. Show the owner the P2 summary (PROGRESS "2.0 · Phase 2") and ask for sign-off; push on "sign off, push".
+  1. Start **P3 (style model 2.0, themes and files)** per PLAN-2 §3 P3 (P3/P4 were swapped on purpose).
   2. Optional, if the owner allows: a real-layer budget run (`scripts/measure-budget.sh 60` with a 2.0 build on a
      settings copy) to confirm the animation CPU work on the desktop; the owner skipped it on 2026-11-27.
-  3. Then **P3 (style model 2.0, themes and files)** per PLAN-2 §3 P3 (P3/P4 were swapped on purpose).
 - **Settings are version 2.** Run dev builds on a settings copy (`XDG_CONFIG_HOME=<copy>`), never on the owner's
   `~/.config/opaline` (the installed 1.1.0 then treats it as read-only).
 - RAM budget **450 MB PSS** (ADR 0009 update). Idle CPU budget ≤ 0.5 %.

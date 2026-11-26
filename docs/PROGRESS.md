@@ -433,7 +433,7 @@ Brief: `OPALINE_2_BRIEF.md` §11; plan: `docs/PLAN-2.md` (approved 2026-11-25).
 | 🧑 Tuning the default see-through look on your desktop | ✅ 2026-11-26, release build on a copy of your settings: **blur 30, transparency 80, "Keep text readable" on** ("Yes, keep it"); the Opaline theme carries these values (DESIGN-2 §8.3) |
 | 🧑 Your sign-off | ✅ 2026-11-26 |
 
-## 2.0 · Phase 2: Composition engine (built 2026-11-26/27, waiting for sign-off)
+## 2.0 · Phase 2: Composition engine (signed off 2026-11-27)
 
 **Built** (all local, not pushed):
 - **Expression language** (`docs/EXPRESSIONS.md`): `crates/opaline-expr` (Rust) and `app/src/expr` (TS), one grammar,
