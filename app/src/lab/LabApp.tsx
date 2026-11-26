@@ -8,6 +8,7 @@ import { evaluationCount } from "../compose/runtime";
 import { ComponentsDemo } from "./ComponentsDemo";
 import { DirectionsDemo } from "./directions/DirectionsDemo";
 import { SpikeGlass } from "./spike/SpikeGlass";
+import { SpikeSandbox } from "./spike/SpikeSandbox";
 import { SpikeWebkit } from "./spike/SpikeWebkit";
 import { GlassDemo } from "./GlassDemo";
 import styles from "./Lab.module.css";
@@ -162,6 +163,7 @@ export function LabApp() {
       {directions ? <DirectionsDemo /> : null}
       {spike === "webkit" ? <SpikeWebkit /> : null}
       {spike === "glass" ? <SpikeGlass /> : null}
+      {spike === "sandbox" ? <SpikeSandbox /> : null}
     </main>
   );
 }

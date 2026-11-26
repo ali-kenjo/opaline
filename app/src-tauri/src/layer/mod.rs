@@ -3,6 +3,8 @@
 pub(crate) mod assets;
 mod bridge;
 mod client;
+#[cfg(debug_assertions)]
+mod spike;
 mod windows;
 
 use std::process::ExitCode;
@@ -23,8 +25,13 @@ pub fn run(backend: Backend) -> ExitCode {
     let (outgoing_tx, outgoing_rx) = mpsc::unbounded_channel();
     let bridge = Arc::new(Bridge::new(outgoing_tx));
 
-    let app = tauri::Builder::default()
-        .register_uri_scheme_protocol("opaline-asset", |_ctx, request| assets::handle(&request))
+    let builder = tauri::Builder::default()
+        .register_uri_scheme_protocol("opaline-asset", |_ctx, request| assets::handle(&request));
+    #[cfg(debug_assertions)]
+    let builder = builder.register_uri_scheme_protocol("opaline-plugin", |ctx, request| {
+        spike::plugin_scheme(ctx.app_handle(), &request)
+    });
+    let app = builder
         .manage(bridge.clone())
         .manage(windows::Pins::default())
         .manage(windows::Recovery::default())

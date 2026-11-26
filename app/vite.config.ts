@@ -10,6 +10,8 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
   },
+  // Lab-only static files (spike probes); a normal build ships no public folder.
+  publicDir: process.env.LAB ? "lab-public" : false,
   build: {
     target: "safari17",
     outDir: "dist",

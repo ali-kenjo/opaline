@@ -4,7 +4,8 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", "src-tauri", "test-results", "playwright-report"] },
+  // lab-public holds deliberately hostile spike probes (plain browser JS, Lab builds only).
+  { ignores: ["dist", "src-tauri", "test-results", "playwright-report", "lab-public"] },
   js.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
   ...tseslint.configs.stylisticTypeChecked,

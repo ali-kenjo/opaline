@@ -20,6 +20,7 @@
         "img-src": "'self' data: blob:",
         "font-src": "'self'",
         "connect-src": "ipc: http://ipc.localhost",
+        "frame-src": "opaline-plugin:",
         "object-src": "'none'",
         "base-uri": "'none'",
         "frame-ancestors": "'none'"
