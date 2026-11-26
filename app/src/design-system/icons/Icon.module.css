@@ -1,5 +1,5 @@
 .icon {
-  font-family: "Material Symbols Rounded";
+  font-family: var(--w-icon-family, "Material Symbols Rounded");
   font-weight: normal;
   font-style: normal;
   line-height: 1;

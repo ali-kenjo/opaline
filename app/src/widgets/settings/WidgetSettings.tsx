@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button, Sheet } from "../../design-system/components";
 import { Icon, type IconName } from "../../design-system/icons";
 import {
+  type Origin,
   type ResolvedStyle,
   STYLE_FIELDS,
   STYLE_GROUPS,
@@ -181,7 +182,10 @@ export function WidgetSettings({
               <ContrastNote id={id} />
               {STYLE_GROUPS.map((g) => {
                 const fields = STYLE_FIELDS.filter(
-                  (f) => f.group === g.id && (!f.when || f.when(resolution.style)),
+                  (f) =>
+                    f.group === g.id &&
+                    f.kind !== "structured" &&
+                    (!f.when || f.when(resolution.style)),
                 );
                 return (
                   <section key={g.id} className={styles.group} aria-label={g.label}>
@@ -238,7 +242,7 @@ function StyleRow({
 }: {
   field: StyleField;
   style: ResolvedStyle;
-  origin: "default" | "global" | "widget";
+  origin: Origin;
   own: boolean;
   fonts: readonly string[];
   fallbackColor: string;
@@ -257,14 +261,14 @@ function StyleRow({
         field.options.length <= 3 ? (
           <Segmented
             label={field.label}
-            value={String(value)}
+            value={typeof value === "string" ? value : ""}
             options={field.options}
             onChange={onChange}
           />
         ) : (
           <Select
             label={field.label}
-            value={String(value)}
+            value={typeof value === "string" ? value : ""}
             options={field.options}
             onChange={onChange}
           />
@@ -323,9 +327,28 @@ function StyleRow({
       break;
     case "font":
       control = (
-        <FontField label={field.label} value={String(value)} fonts={fonts} onChange={onChange} />
+        <FontField
+          label={field.label}
+          value={typeof value === "string" ? value : ""}
+          fonts={fonts}
+          onChange={onChange}
+        />
       );
       break;
+    case "text":
+      control = (
+        <TextField
+          label={field.label}
+          value={typeof value === "string" ? value : ""}
+          maxLength={field.maxLength}
+          onCommit={(v) => {
+            onChange(v.trim() === "" ? null : v);
+          }}
+        />
+      );
+      break;
+    case "structured":
+      return null;
   }
   return (
     <Row label={field.label} help={field.help} origin={origin} onReset={reset}>
@@ -403,7 +426,7 @@ function StyleActions({
           icon="format_paint"
           disabled={Object.keys(own).length === 0}
           onClick={() => {
-            save({ style: own });
+            save({ style: own as unknown as Record<string, Json> });
           }}
         >
           Use for all widgets

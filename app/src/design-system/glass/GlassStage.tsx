@@ -21,6 +21,7 @@ import {
   type WallpaperPlacement,
 } from "./compositor";
 import { create } from "zustand";
+import type { Cubic } from "../shapes/cubic";
 import { BackdropSampler, type InkChoice, chooseInk } from "./backdrop";
 import { contrast, legibleAlpha, luminanceUnder, sliderAlpha } from "./legibility";
 import styles from "./Glass.module.css";
@@ -40,6 +41,8 @@ export interface GlassOptions {
   /** Luminance of this widget's text, when its colors differ from the stage's. */
   textLuminance?: number | undefined;
   look?: SurfaceLook | undefined;
+  /** Unit-square [0, 1] cubics for an expressive card shape; scaled to the box in `sync()`. */
+  shape?: readonly Cubic[] | undefined;
   /** Let legibility 2.0 pick the text ink and halo (off when the user chose a text color). */
   autoInk?: boolean | undefined;
   /** Key under which this surface's measured text contrast is published (`useGlassContrast`). */
@@ -399,6 +402,9 @@ export function GlassStage(props: GlassStageProps) {
         measured = contrast(glassLum, textLum);
       }
       publishContrast(o.contrastKey, measured);
+      const scaledShape = o.shape
+        ? o.shape.map((c) => c.transformed((px, py) => [px * item.w, py * item.h]))
+        : undefined;
       surfaces.push({
         x: item.x - cx,
         y: item.y - cy,
@@ -410,6 +416,7 @@ export function GlassStage(props: GlassStageProps) {
         dimmed: o.dimmed ?? 0,
         hovered: r.hovered,
         lifted: o.lifted ?? 0,
+        ...(scaledShape ? { shape: scaledShape } : {}),
         ...(r.pointer ? { pointer: [r.pointer[0] - cx, r.pointer[1] - cy] as const } : {}),
         ...(o.look || effectiveBlur !== blur ? { look: { ...o.look, blur: effectiveBlur } } : {}),
       });
@@ -492,14 +499,18 @@ export interface GlassProps extends GlassOptions {
   style?: React.CSSProperties;
   /** Accessible name of the surface (a widget's name). */
   label?: string;
+  /** Tooltip text on hover. */
+  title?: string | undefined;
+  /** Data attributes for themes & user CSS (`data-kind`, `data-size`, `data-state`, `data-theme`). */
+  dataAttrs?: Readonly<Record<string, string | undefined>> | undefined;
   /** Don't light the rim toward the pointer (style: hover lift off). */
   noHover?: boolean;
 }
 
 /** A glass surface: drawn by the compositor, or by CSS when WebGL2 is missing. */
 export function Glass(props: GlassProps) {
-  const { children, className, style, label, radius, dimmed, lifted } = props;
-  const { tint, alpha, frameless, legibility, textLuminance, look, noHover = false } = props;
+  const { children, className, style, label, title, dataAttrs, radius, dimmed, lifted } = props;
+  const { tint, alpha, frameless, legibility, textLuminance, look, shape, noHover = false } = props;
   const { autoInk, contrastKey } = props;
   const stage = useContext(Ctx);
   const el = useRef<HTMLDivElement>(null);
@@ -518,11 +529,12 @@ export function Glass(props: GlassProps) {
       legibility,
       textLuminance,
       look,
+      shape,
       autoInk,
       contrastKey,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` stands for the style objects
-    [radius, dimmed, lifted, key, contrastKey],
+    [radius, dimmed, lifted, key, shape, contrastKey],
   );
 
   useLayoutEffect(() => {
@@ -569,6 +581,8 @@ export function Glass(props: GlassProps) {
       ref={el}
       role="group"
       aria-label={label}
+      title={title}
+      {...dataAttrs}
       className={`${styles.glass} ${fb ? styles.fallback : ""} ${className ?? ""}`}
       style={{ borderRadius: radius, ...fallbackStyle, ...style }}
       onPointerMove={onMove}

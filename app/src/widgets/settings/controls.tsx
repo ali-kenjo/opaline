@@ -40,8 +40,11 @@ function useDraft<T>(value: T, commit: (v: T) => void): [T, (v: T) => void] {
 
 const ORIGIN_LABEL: Record<Origin, string> = {
   default: "Default",
+  theme: "From theme",
   global: "From all widgets",
+  kind: "From this kind",
   widget: "This widget",
+  element: "This element",
 };
 
 export interface RowProps {

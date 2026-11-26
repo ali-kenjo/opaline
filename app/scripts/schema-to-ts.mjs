@@ -62,6 +62,9 @@ function type(s, optional = false) {
         case "null":
           return "null";
         case "array":
+          if (Array.isArray(s.prefixItems)) {
+            return `[${s.prefixItems.map((p) => type(p)).join(", ")}]`;
+          }
           return `${wrap(type(s.items ?? true))}[]`;
         case "object":
           return object(s);

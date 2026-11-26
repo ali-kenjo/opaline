@@ -6,8 +6,10 @@ import { type Roles, buildRoles, cssName, cssVariables, triple } from "../color/
 import type { SurfaceLook } from "../glass/compositor";
 import type { GlassOptions, StageInks } from "../glass/GlassStage";
 import { luminance } from "../glass/legibility";
+import { type MaterialShapeName, materialShape } from "../shapes/material";
+import type { Cubic } from "../shapes/cubic";
 import { type SizeClass, cardPadding, cardRadius, type SpringToken } from "../tokens/tokens";
-import type { ResolvedStyle } from "./types";
+import type { CardShape, GradientSpec, IconSet, ResolvedStyle, RoleTypography } from "./types";
 
 /** Bundled families and their @font-face names (fontsource "… Variable"). */
 export const BUNDLED_FONTS: Readonly<Record<string, string>> = {
@@ -34,6 +36,65 @@ export function transparencyAlpha(t: number): number {
   if (c <= 60) return 1 - (c / 60) * 0.528;
   return 0.472 * (1 - (c - 60) / 40);
 }
+
+/** Turns a validated `GradientSpec` into a CSS `*-gradient(…)` expression. */
+export function gradientCss(g: GradientSpec): string {
+  const stops = g.stops.map((s) => `${s.color} ${String(s.at)}%`).join(", ");
+  if (g.kind === "radial") return `radial-gradient(circle, ${stops})`;
+  if (g.kind === "conic") return `conic-gradient(from ${String(g.angle ?? 0)}deg, ${stops})`;
+  return `linear-gradient(${String(g.angle ?? 135)}deg, ${stops})`;
+}
+
+const SHAPE_TO_MATERIAL: Partial<Record<CardShape, MaterialShapeName>> = {
+  circle: "circle",
+  square: "square",
+  slanted: "slanted",
+  arch: "arch",
+  fan: "fan",
+  arrow: "arrow",
+  "semi-circle": "semiCircle",
+  oval: "oval",
+  pill: "pill",
+  triangle: "triangle",
+  diamond: "diamond",
+  "clam-shell": "clamShell",
+  pentagon: "pentagon",
+  gem: "gem",
+  sunny: "sunny",
+  "very-sunny": "verySunny",
+  "cookie-4-sided": "cookie4Sided",
+  "cookie-6-sided": "cookie6Sided",
+  "cookie-7-sided": "cookie7Sided",
+  "cookie-9-sided": "cookie9Sided",
+  "cookie-12-sided": "cookie12Sided",
+  ghostish: "ghostish",
+  "clover-4-leaf": "clover4Leaf",
+  "clover-8-leaf": "clover8Leaf",
+  burst: "burst",
+  "soft-burst": "softBurst",
+  boom: "boom",
+  "soft-boom": "softBoom",
+  flower: "flower",
+  puffy: "puffy",
+  "puffy-diamond": "puffyDiamond",
+  "pixel-circle": "pixelCircle",
+  "pixel-triangle": "pixelTriangle",
+  bun: "bun",
+  heart: "heart",
+};
+
+/** Unit-square cubics for a library `cardShape`, or `undefined` for `rounded-rect`. */
+export function cardShapeCubics(shape: CardShape): readonly Cubic[] | undefined {
+  const name = SHAPE_TO_MATERIAL[shape];
+  return name ? materialShape(name).cubics : undefined;
+}
+
+const ICON_FONT: Record<IconSet, string> = {
+  rounded: '"Material Symbols Rounded"',
+  outlined: '"Material Symbols Outlined"',
+  sharp: '"Material Symbols Sharp"',
+  none: '"Material Symbols Rounded"',
+};
 
 export interface ColorContext {
   /** ARGB source colors the global setting can choose from. */
@@ -89,7 +150,29 @@ export function radiusFor(style: ResolvedStyle, size: SizeClass): number {
   return style.radius ?? cardRadius(size);
 }
 
-/** CSS custom properties for a widget root: its scheme plus every text/icon/spacing setting. */
+function fontFeatures(slashedZero: boolean, stylisticSet: number): string {
+  const parts: string[] = [];
+  if (slashedZero) parts.push('"zero" 1');
+  if (stylisticSet >= 1 && stylisticSet <= 20) {
+    parts.push(`"ss${String(stylisticSet).padStart(2, "0")}" 1`);
+  }
+  return parts.length ? parts.join(", ") : "normal";
+}
+
+function writeRoleVars(vars: Record<string, string | number>, role: string, r: RoleTypography) {
+  const p = `--w-role-${role}`;
+  if (r.fontFamily) vars[`${p}-font`] = fontStack(r.fontFamily);
+  if (r.fontWeight !== undefined) vars[`${p}-weight`] = r.fontWeight;
+  if (r.fontWidth !== undefined) vars[`${p}-wdth`] = r.fontWidth;
+  if (r.fontSize !== undefined) vars[`${p}-size`] = `${String(r.fontSize)}px`;
+  if (r.letterSpacing !== undefined) vars[`${p}-letter`] = `${String(r.letterSpacing)}em`;
+  if (r.textCase !== undefined) vars[`${p}-case`] = r.textCase;
+  if (r.lineHeight !== undefined) vars[`${p}-lh`] = r.lineHeight;
+  if (r.color) vars[`${p}-color`] = r.color;
+  if (r.opacity !== undefined) vars[`${p}-opacity`] = r.opacity / 100;
+}
+
+/** CSS custom properties for a widget root: its scheme plus every text/icon/spacing/role setting. */
 export function styleVariables(style: ResolvedStyle, roles: Roles, size: SizeClass): CSSProperties {
   const vars: Record<string, string | number> = { ...cssVariables(roles) };
   const set = (role: string, hex: string | null) => {
@@ -104,23 +187,61 @@ export function styleVariables(style: ResolvedStyle, roles: Roles, size: SizeCla
   vars["--w-wdth"] = style.fontWidth;
   vars["--w-scale"] = style.textScale;
   vars["--w-letter"] = `${String(style.letterSpacing)}em`;
+  vars["--w-line-height"] = style.lineHeight;
+  vars["--w-text-case"] = style.textCase;
   vars["--w-nums"] = style.tabularNumbers ? "tabular-nums" : "normal";
+  vars["--w-font-features"] = fontFeatures(style.slashedZero, style.stylisticSet);
   vars["--w-label-case"] = style.uppercaseLabels ? "uppercase" : "none";
   vars["--w-text-shadow"] = style.textShadow ? "0 1px 3px rgb(0 0 0 / 0.45)" : "none";
+  vars["--w-icon-family"] = ICON_FONT[style.iconSet];
   vars["--w-icon-fill"] = style.iconFill ? 1 : 0;
   vars["--w-icon-weight"] = style.iconWeight;
-  vars["--w-icons"] = style.icons ? "inline-block" : "none";
-  vars["--w-padding"] =
-    `${String(Math.max(8, cardPadding(size) + DENSITY_DELTA[style.density]))}px`;
-  vars["--w-gap"] = `${String(Math.max(2, 8 + DENSITY_DELTA[style.density] / 2))}px`;
+  vars["--w-icon-grade"] = style.iconGrade;
+  vars["--w-icon-size"] = `${String(style.iconSize)}px`;
+  if (style.iconColor) vars["--w-icon-color"] = style.iconColor;
+  vars["--w-icons"] = style.icons && style.iconSet !== "none" ? "inline-block" : "none";
+  const padPx = style.padding ?? Math.max(8, cardPadding(size) + DENSITY_DELTA[style.density]);
+  const gapPx = style.gap ?? Math.max(2, 8 + DENSITY_DELTA[style.density] / 2);
+  vars["--w-padding"] = `${String(padPx)}px`;
+  vars["--w-gap"] = `${String(gapPx)}px`;
   vars["--w-radius"] = `${String(radiusFor(style, size))}px`;
+  if (style.cornerRadii?.length === 4) {
+    vars["--w-radii"] = style.cornerRadii.map((r) => `${String(r)}px`).join(" ");
+  }
+  vars["--w-press-scale"] = style.pressScale;
   vars["--w-hero"] =
     style.heroColor === "custom" && style.heroCustomColor
       ? hexToRgba(style.heroCustomColor).slice(0, 3).join(" ")
       : style.heroColor === "accent"
         ? (vars[cssName("primary")] as string)
         : "";
+  if (style.roles) {
+    for (const [role, spec] of Object.entries(style.roles)) {
+      writeRoleVars(vars, role, spec);
+    }
+  }
   return vars;
+}
+
+/** Extra CSS properties for non-glass surface treatments (gradients, corner radii, glow, opacity). */
+export function surfaceCss(style: ResolvedStyle): CSSProperties {
+  const out: CSSProperties = {};
+  if (style.opacity < 100) out.opacity = style.opacity / 100;
+  if (style.cornerRadii?.length === 4) {
+    out.borderRadius = style.cornerRadii.map((r) => `${String(r)}px`).join(" ");
+  }
+  if (style.surface === "gradient" && style.backgroundGradient) {
+    out.background = gradientCss(style.backgroundGradient);
+  }
+  if (style.borderGlow > 0 && style.borderWidth > 0) {
+    const glowColor = style.borderColor ?? "rgb(var(--md-primary))";
+    out.boxShadow = `0 0 ${String(Math.round(style.borderGlow * 0.28))}px ${glowColor}`;
+  }
+  if (style.innerShadow > 0) {
+    const inset = `inset 0 2px ${String(Math.round(style.innerShadow * 0.24))}px rgb(0 0 0 / ${String((style.innerShadow / 100) * 0.45)})`;
+    out.boxShadow = out.boxShadow ? `${out.boxShadow}, ${inset}` : inset;
+  }
+  return out;
 }
 
 /** Glass options for the compositor (and the CSS fallback) from a resolved style. */
@@ -140,6 +261,14 @@ export function glassOptions(style: ResolvedStyle, roles: Roles): Omit<GlassOpti
     : style.textColor
       ? hexToRgba(style.textColor)
       : rgbOf(roles.onSurfaceVariant);
+  const shadowColor = style.shadowColor
+    ? (hexToRgba(style.shadowColor).map((c, i) => (i < 3 ? c / 255 : c)) as [
+        number,
+        number,
+        number,
+        number,
+      ])
+    : undefined;
   const look: SurfaceLook = {
     blur: style.blur / 100,
     see: style.see,
@@ -147,7 +276,7 @@ export function glassOptions(style: ResolvedStyle, roles: Roles): Omit<GlassOpti
     rim: style.rim / 50,
     grain: style.grain / 50,
     shadow: style.shadow / 50,
-    opaque: style.surface === "opaque",
+    opaque: style.surface === "opaque" || style.surface === "gradient",
     borderWidth: style.borderWidth,
     borderColor: style.borderColor
       ? (hexToRgba(style.borderColor).map((c, i) => (i < 3 ? c / 255 : c)) as [
@@ -162,15 +291,28 @@ export function glassOptions(style: ResolvedStyle, roles: Roles): Omit<GlassOpti
           number,
           number,
         ]),
+    ...(style.dispersion > 0 ? { dispersion: style.dispersion / 100 } : {}),
+    ...(style.specularAngle !== 315 ? { specularAngle: style.specularAngle } : {}),
+    ...(style.specularWidth !== 100 ? { specularWidth: style.specularWidth / 100 } : {}),
+    ...(style.innerGlow > 0 ? { innerGlow: style.innerGlow / 100 } : {}),
+    ...(style.shadowOffsetY !== 8 ? { shadowOffsetY: style.shadowOffsetY } : {}),
+    ...(style.shadowBlur !== 24 ? { shadowBlur: style.shadowBlur } : {}),
+    ...(style.shadowSpread !== 0 ? { shadowSpread: style.shadowSpread } : {}),
+    ...(shadowColor ? { shadowColor } : {}),
   };
+  const shape = cardShapeCubics(style.cardShape);
   return {
     tint,
-    alpha: style.surface === "opaque" ? 1 : transparencyAlpha(style.transparency),
+    alpha:
+      style.surface === "opaque" || style.surface === "gradient"
+        ? 1
+        : transparencyAlpha(style.transparency),
     frameless: style.surface === "clear",
     legibility: style.legibility,
     autoInk: style.textColor === null,
     textLuminance: luminance(text[0], text[1], text[2]),
     look,
+    ...(shape ? { shape } : {}),
   };
 }
 

@@ -9,11 +9,25 @@ import type { Json } from "./json";
 export interface StoredWidget {
   kind: string;
   style?: Style;
+  /** Per-element style overrides keyed by role or `#block-id`. */
+  elements?: Record<string, Style>;
   content?: Record<string, Json>;
 }
 
+/** Active theme layers supplied by the theme engine (Step 3 / brief §5.2). */
+export interface ThemeStyleLayers {
+  id: string;
+  style?: Style;
+  kinds?: Record<string, Style>;
+  elements?: Record<string, Style>;
+}
+
 export interface StoredSettings {
+  /** Active theme id (e.g. `"opaline"`, `"classic"`). */
+  theme?: string;
   style: Style;
+  /** Per-widget-kind user style overrides. */
+  kindStyles?: Record<string, Style>;
   styles: Record<string, Style>;
   widgets: Record<string, StoredWidget>;
   /** The desktop look quick mode and master transparency (default: Glass, unchanged). */
@@ -25,6 +39,8 @@ export interface WidgetHost {
   useValues<T>(selector: (values: Readonly<Record<string, Value>>) => T): T;
   subscribe(topics: readonly string[], activity: ActivityClass): void;
   settings: StoredSettings;
+  /** Active theme's resolved style layers (undefined = built-in Classic defaults). */
+  theme?: ThemeStyleLayers | undefined;
   /** A JSON merge patch on settings.json (`null` resets a field). */
   updateSettings(patch: Record<string, Json>): Promise<CommandResult>;
   /** Asks core to act (eject, media, End task, containers); the Lab only pretends. */

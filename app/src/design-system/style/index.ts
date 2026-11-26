@@ -7,12 +7,25 @@ export {
   type StyleField,
   type StyleGroup,
 } from "./fields";
-export { resolveStyle, sanitizeStyle, stylePatch, type Origin, type Resolution } from "./resolve";
+export {
+  applyConditionalStyles,
+  exprHostFromTopics,
+  resolveCascade,
+  resolveStyle,
+  sanitizeStyle,
+  stylePatch,
+  type ConditionEvaluation,
+  type Origin,
+  type Resolution,
+  type StyleCascade,
+} from "./resolve";
 export {
   BUNDLED_FONTS,
   type ColorContext,
+  cardShapeCubics,
   fontStack,
   glassOptions,
+  gradientCss,
   hexToRgba,
   inksFor,
   isDark,
@@ -21,6 +34,7 @@ export {
   sourceColor,
   springFor,
   styleVariables,
+  surfaceCss,
   transparencyAlpha,
 } from "./apply";
 export {

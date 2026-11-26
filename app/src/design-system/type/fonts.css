@@ -12,6 +12,22 @@
   src: url("../icons/material-symbols-rounded-subset.woff2") format("woff2");
 }
 
+@font-face {
+  font-family: "Material Symbols Outlined";
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url("../icons/material-symbols-outlined-subset.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Material Symbols Sharp";
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url("../icons/material-symbols-sharp-subset.woff2") format("woff2");
+}
+
 :root {
   --font-display: "Roboto Flex Variable", system-ui, sans-serif;
   --font-ui: "Inter Variable", system-ui, sans-serif;

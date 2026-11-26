@@ -6,12 +6,18 @@ import {
   BUILTIN_STYLE,
   STYLE_FIELDS,
   STYLE_KEYS,
+  applyConditionalStyles,
+  cardShapeCubics,
+  exprHostFromTopics,
   fontStack,
   glassOptions,
+  gradientCss,
+  resolveCascade,
   resolveStyle,
   rolesFor,
   sanitizeStyle,
   styleVariables,
+  surfaceCss,
   transparencyAlpha,
 } from ".";
 
@@ -106,5 +112,104 @@ describe("style", () => {
     expect(v["--w-radius"]).toBe("28px");
     expect(fontStack("Inter")).toMatch(/^"Inter Variable"/);
     expect(fontStack("DejaVu Serif")).toMatch(/^"DejaVu Serif"/);
+  });
+
+  it("resolves the 6-layer cascade with accurate origins and merges roles", () => {
+    const r = resolveCascade({
+      theme: { blur: 30, transparency: 80, roles: { hero: { fontWeight: 780 } } },
+      themeKind: { accentColor: "#f2903a" },
+      global: { transparency: 70, roles: { label: { fontSize: 12 } } },
+      kind: { borderWidth: 1 },
+      widget: { blur: 15 },
+      element: { fontWeight: 900 },
+    });
+    expect(r.style.blur).toBe(15);
+    expect(r.origin.blur).toBe("widget");
+    expect(r.style.transparency).toBe(70);
+    expect(r.origin.transparency).toBe("global");
+    expect(r.style.accentColor).toBe("#f2903a");
+    expect(r.origin.accentColor).toBe("theme");
+    expect(r.style.borderWidth).toBe(1);
+    expect(r.origin.borderWidth).toBe("kind");
+    expect(r.style.fontWeight).toBe(900);
+    expect(r.origin.fontWeight).toBe("element");
+    expect(r.origin.grain).toBe("default");
+    expect(r.style.roles?.hero?.fontWeight).toBe(780);
+    expect(r.style.roles?.label?.fontSize).toBe(12);
+  });
+
+  it("evaluates conditional styles in order and ignores invalid expressions", () => {
+    const base = resolveStyle(
+      {},
+      {
+        conditions: [
+          { when: "cpu.temp >= 85", set: { borderColor: "#ff3b30", cardShape: "burst" } },
+          { when: "cpu.load > 50", set: { borderWidth: 2, animate: true } },
+          { when: "not valid ===", set: { blur: 0 } },
+        ],
+      },
+    ).style;
+    const cool = applyConditionalStyles(
+      base,
+      exprHostFromTopics({ "cpu.temp": 45, "cpu.load": 10 }),
+    );
+    expect(cool.matched).toEqual([]);
+    expect(cool.style.cardShape).toBe("rounded-rect");
+
+    const hot = applyConditionalStyles(
+      base,
+      exprHostFromTopics({ "cpu.temp": 90, "cpu.load": 75 }),
+    );
+    expect(hot.matched).toEqual([0, 1]);
+    expect(hot.animate).toBe(true);
+    expect(hot.style.borderColor).toBe("#ff3b30");
+    expect(hot.style.cardShape).toBe("burst");
+    expect(hot.style.borderWidth).toBe(2);
+  });
+
+  it("maps Style 2.0 glass controls, card shapes, gradients, and icon sets", () => {
+    const s = {
+      ...BUILTIN_STYLE,
+      cardShape: "cookie-12-sided" as const,
+      dispersion: 40,
+      specularAngle: 180,
+      specularWidth: 150,
+      innerGlow: 30,
+      shadowBlur: 32,
+      shadowOffsetY: 12,
+      shadowColor: "#102030",
+      iconSet: "outlined" as const,
+      iconGrade: 50,
+      slashedZero: true,
+      stylisticSet: 2,
+      surface: "gradient" as const,
+      backgroundGradient: {
+        kind: "linear" as const,
+        angle: 90,
+        stops: [
+          { color: "#112233", at: 0 },
+          { color: "#445566", at: 100 },
+        ],
+      },
+    };
+    const g = glassOptions(s, rolesFor(s, ctx));
+    expect(g.look).toMatchObject({
+      dispersion: 0.4,
+      specularAngle: 180,
+      specularWidth: 1.5,
+      innerGlow: 0.3,
+      shadowBlur: 32,
+      shadowOffsetY: 12,
+    });
+    expect(g.shape).toBeDefined();
+    expect(cardShapeCubics("rounded-rect")).toBeUndefined();
+    expect(gradientCss(s.backgroundGradient)).toBe(
+      "linear-gradient(90deg, #112233 0%, #445566 100%)",
+    );
+    expect(surfaceCss(s).background).toContain("linear-gradient");
+    const v = styleVariables(s, rolesFor(s, ctx), "M") as Record<string, string | number>;
+    expect(v["--w-icon-family"]).toBe('"Material Symbols Outlined"');
+    expect(v["--w-icon-grade"]).toBe(50);
+    expect(v["--w-font-features"]).toBe('"zero" 1, "ss02" 1');
   });
 });

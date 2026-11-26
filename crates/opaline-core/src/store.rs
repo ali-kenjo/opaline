@@ -28,9 +28,14 @@ pub enum Language {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Settings {
+    /// JSON Schema URL for editor autocomplete and validation (brief §5.4).
+    #[serde(rename = "$schema", skip_serializing_if = "Option::is_none")]
+    pub schema: Option<String>,
     pub version: u32,
     pub onboarding_done: bool,
     pub language: Language,
+    /// Active theme package id (`"opaline"`, `"classic"`, or a user theme id).
+    pub theme: String,
     pub appearance: AppearancePrefs,
     pub layout: LayoutPrefs,
     pub performance: PerformancePrefs,
@@ -41,18 +46,30 @@ pub struct Settings {
     pub alerts: Vec<crate::alerts::Rule>,
     /// Global widget style (Settings → Appearance); each widget may override any field.
     pub style: Style,
+    /// Per-widget-kind style overrides (cascade layer between global and widget instance).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub kind_styles: BTreeMap<String, Style>,
     /// Named styles the user saved ("Night", "Minimal").
     pub styles: BTreeMap<String, Style>,
     /// Placed widgets by instance id.
     pub widgets: BTreeMap<String, WidgetConfig>,
 }
 
+/// Default theme for fresh 2.0 accounts (brief §3.1). Upgraded 1.x files get `"classic"`.
+pub const DEFAULT_THEME: &str = "opaline";
+/// The 1.1 look theme id (brief §0.6).
+pub const CLASSIC_THEME: &str = "classic";
+/// Installed schema path written as `$schema` into `settings.json` (brief §5.4).
+pub const SCHEMA_URL: &str = "file:///usr/share/opaline/schemas/settings.schema.json";
+
 impl Default for Settings {
     fn default() -> Self {
         Self {
+            schema: Some(SCHEMA_URL.to_owned()),
             version: VERSION,
             onboarding_done: false,
             language: Language::System,
+            theme: DEFAULT_THEME.to_owned(),
             appearance: AppearancePrefs::default(),
             layout: LayoutPrefs::default(),
             performance: PerformancePrefs::default(),
@@ -62,6 +79,7 @@ impl Default for Settings {
             privacy: Privacy::default(),
             alerts: crate::alerts::default_rules(),
             style: Style::default(),
+            kind_styles: BTreeMap::new(),
             styles: BTreeMap::new(),
             widgets: BTreeMap::new(),
         }
@@ -293,7 +311,11 @@ impl Settings {
         if !(12..=64).contains(&self.layout.margin_px) {
             return Err("margin-out-of-range".into());
         }
+        if !crate::style::id_ok(&self.theme, 64) {
+            return Err("invalid-theme-id".into());
+        }
         self.style.validate()?;
+        crate::style::validate_kind_styles(&self.kind_styles)?;
         crate::style::validate_widgets(&self.widgets, &self.styles)?;
         Ok(())
     }
@@ -346,12 +368,18 @@ pub fn migrate(mut json: serde_json::Value) -> (Settings, bool) {
     }
     let writable = version <= u64::from(VERSION);
     let has_onboarding = json.get("onboardingDone").is_some();
+    let has_theme = json.get("theme").is_some();
     crate::style::sanitize(&mut json);
     let mut settings: Settings = serde_json::from_value(json).unwrap_or_default();
+    if !has_theme && version <= 1 {
+        // Upgraded 1.x users keep the Classic 1.1 look so nobody is forced into the new design.
+        settings.theme = CLASSIC_THEME.to_owned();
+    }
     if !has_onboarding && !settings.widgets.is_empty() {
         // Upgraded from Phase 4/5 where widgets were already configured.
         settings.onboarding_done = true;
     }
+    settings.schema = Some(SCHEMA_URL.to_owned());
     settings.version = VERSION;
     if settings.validate().is_err() {
         tracing::warn!("stored settings failed validation; using defaults for this run");

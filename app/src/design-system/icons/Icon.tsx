@@ -21,7 +21,7 @@ export function Icon({ name, fill, weight, size = 24, label, className }: IconPr
       className={`${styles.icon} ${className ?? ""}`}
       style={{
         fontSize: size,
-        fontVariationSettings: `"FILL" ${fill ?? "var(--w-icon-fill, 0)"}, "wght" ${weight ?? "var(--w-icon-weight, 400)"}, "GRAD" 0, "opsz" ${Math.min(48, Math.max(20, size))}`,
+        fontVariationSettings: `"FILL" ${fill ?? "var(--w-icon-fill, 0)"}, "wght" ${weight ?? "var(--w-icon-weight, 400)"}, "GRAD" var(--w-icon-grade, 0), "opsz" ${Math.min(48, Math.max(20, size))}`,
       }}
       role={label ? "img" : undefined}
       aria-label={label}

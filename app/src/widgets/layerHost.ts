@@ -45,17 +45,28 @@ export function storedSettings(v: Value | undefined): StoredSettings {
   const widgets: Record<string, StoredWidget> = {};
   for (const [id, w] of Object.entries(record(j.widgets ?? null))) {
     const r = record(w);
-    if (typeof r.kind === "string")
+    if (typeof r.kind === "string") {
+      const elements: Record<string, Record<string, Json>> = {};
+      for (const [ek, ev] of Object.entries(record(r.elements ?? null))) {
+        elements[ek] = record(ev);
+      }
       widgets[id] = {
         kind: r.kind,
         style: record(r.style ?? null),
+        ...(Object.keys(elements).length ? { elements } : {}),
         content: record(r.content ?? null),
       };
+    }
   }
   const styles: Record<string, Record<string, Json>> = {};
   for (const [name, s] of Object.entries(record(j.styles ?? null))) styles[name] = record(s);
+  const kindStyles: Record<string, Record<string, Json>> = {};
+  for (const [kind, s] of Object.entries(record(j.kindStyles ?? null)))
+    kindStyles[kind] = record(s);
   return {
+    ...(typeof j.theme === "string" ? { theme: j.theme } : {}),
     style: record(j.style ?? null),
+    ...(Object.keys(kindStyles).length ? { kindStyles } : {}),
     styles,
     widgets,
     look: lookPrefs(j.appearance ?? null),

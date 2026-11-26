@@ -13,16 +13,21 @@ import { LoadingIndicator } from "../design-system/components/LoadingIndicator";
 import {
   type ResolvedStyle,
   DEFAULT_LOOK,
+  applyConditionalStyles,
   applyDesktopLook,
+  exprHostFromTopics,
   glassOptions,
   isDark,
   radiusFor,
-  resolveStyle,
+  resolveCascade,
   rolesFor,
   sanitizeStyle,
   sourceColor,
   styleVariables,
+  surfaceCss,
 } from "../design-system/style";
+import type { Value as ExprValue } from "../expr";
+import { toJson } from "./json";
 import { type SizeClass, sizes, spanPx } from "../design-system/tokens/tokens";
 import type { ActivityClass, Value } from "../layer/protocol";
 import { type ResolvedContent, resolveContent } from "./content";
@@ -159,18 +164,26 @@ export function WidgetFrame({
   );
   const stored = host.settings.widgets[id];
   const look = host.settings.look ?? DEFAULT_LOOK;
-  const style = useMemo(
+  const themeLayers = host.theme;
+  const baseStyle = useMemo(
     () =>
       applyDesktopLook(
-        resolveStyle(sanitizeStyle(host.settings.style), sanitizeStyle(stored?.style)).style,
+        resolveCascade({
+          theme: themeLayers?.style ? sanitizeStyle(themeLayers.style) : undefined,
+          themeKind: themeLayers?.kinds?.[def.kind]
+            ? sanitizeStyle(themeLayers.kinds[def.kind])
+            : undefined,
+          global: sanitizeStyle(host.settings.style),
+          kind: host.settings.kindStyles?.[def.kind]
+            ? sanitizeStyle(host.settings.kindStyles[def.kind])
+            : undefined,
+          widget: sanitizeStyle(stored?.style),
+        }).style,
         look,
       ),
-    [host.settings.style, stored?.style, look],
+    [themeLayers, def.kind, host.settings.style, host.settings.kindStyles, stored?.style, look],
   );
   const content = useMemo(() => resolveContent(def, stored?.content), [def, stored?.content]);
-  const roles = rolesFor(style, host.colors);
-  const vars = useMemo(() => styleVariables(style, roles, size), [style, roles, size]);
-  const glass = useMemo(() => glassOptions(style, roles), [style, roles]);
 
   const shown = useMemo(
     () =>
@@ -207,6 +220,24 @@ export function WidgetFrame({
     useShallow((all: Readonly<Record<string, Value>>) => pick(all, topics)),
   );
   const values = useRelaxed(live, content.updateRate === "relaxed");
+
+  // Evaluate conditional style rules against live topic values when any rules are configured.
+  const style = useMemo(() => {
+    if (!baseStyle.conditions || baseStyle.conditions.length === 0) return baseStyle;
+    const plain: Record<string, ExprValue> = {};
+    for (const [k, v] of Object.entries(values)) {
+      plain[k] = toJson(v);
+    }
+    const fixedNow = host.now;
+    return applyConditionalStyles(
+      baseStyle,
+      exprHostFromTopics(plain, fixedNow ? () => fixedNow().getTime() : undefined),
+    ).style;
+  }, [baseStyle, values, host]);
+  const roles = rolesFor(style, host.colors);
+  const vars = useMemo(() => styleVariables(style, roles, size), [style, roles, size]);
+  const glass = useMemo(() => glassOptions(style, roles), [style, roles]);
+  const extraSurface = useMemo(() => surfaceCss(style), [style]);
 
   const ctx: ReadCtx = useMemo(
     () => ({ get: (t: string) => values[t], content }),
@@ -259,7 +290,19 @@ export function WidgetFrame({
   const { w, h } = sizes[size];
   const radius = radiusFor(style, size);
   const render: RenderCtx = { ...ctx, size, style, readings };
-  const title = content.showTitle && content.title.trim() !== "" ? content.title : null;
+  const title =
+    content.showTitle && content.title.trim() !== "" && style.headerStyle !== "none"
+      ? content.title
+      : null;
+
+  if (style.autoHideEmpty && status.kind === "unavailable") {
+    return null;
+  }
+
+  const stateAttr = level === "crit" ? "alert" : status.kind;
+  const noHover = !style.hoverLift || style.hoverEffect === "none";
+  const showHeaderIcon = style.headerStyle === "icon-title" || style.headerStyle === "icon";
+  const showHeaderTitle = style.headerStyle === "icon-title" || style.headerStyle === "title";
 
   const body =
     status.kind === "loading" ? (
@@ -304,9 +347,16 @@ export function WidgetFrame({
     <Glass
       radius={radius}
       label={content.title || def.name}
+      title={style.tooltip ?? undefined}
+      dataAttrs={{
+        "data-kind": def.kind,
+        "data-size": size,
+        "data-state": stateAttr,
+        ...(themeLayers?.id ? { "data-theme": themeLayers.id } : {}),
+      }}
       dimmed={dimmed}
       lifted={lifted ? 1 : 0}
-      noHover={!style.hoverLift}
+      noHover={noHover}
       {...glass}
       contrastKey={id}
       className={`${styles.frame} ${level === "crit" ? styles.alert : ""}`}
@@ -316,13 +366,14 @@ export function WidgetFrame({
         height: spanPx(h),
         padding: "var(--w-padding)",
         opacity: 1,
+        ...extraSurface,
       }}
     >
       <div className={styles.inner} data-size={size} data-fit-bounds="">
         {title && sizes[size].h > 1 ? (
           <div className={styles.header}>
-            <Icon name={def.icon} size={18} className={styles.icon} />
-            <span className={styles.title}>{title}</span>
+            {showHeaderIcon ? <Icon name={def.icon} size={18} className={styles.icon} /> : null}
+            {showHeaderTitle ? <span className={styles.title}>{title}</span> : null}
             {onOpenSettings ? (
               <button
                 type="button"
