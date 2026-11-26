@@ -151,7 +151,7 @@ pub struct Boxing {
     pub justify: Option<Justify>,
     /// Share of the free space this container takes in its parent (like flex-grow).
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub grow: Option<f32>,
+    pub grow: Option<f64>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -249,7 +249,7 @@ pub enum Kind {
     /// Empty space that takes a share of what's left.
     Spacer {
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        grow: Option<f32>,
+        grow: Option<f64>,
     },
     /// Text from a template.
     Text {

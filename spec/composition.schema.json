@@ -153,7 +153,7 @@
             },
             "grow": {
               "description": "Share of the free space this container takes in its parent (like flex-grow).",
-              "format": "float",
+              "format": "double",
               "type": [
                 "number",
                 "null"
@@ -221,7 +221,7 @@
             },
             "grow": {
               "description": "Share of the free space this container takes in its parent (like flex-grow).",
-              "format": "float",
+              "format": "double",
               "type": [
                 "number",
                 "null"
@@ -289,7 +289,7 @@
             },
             "grow": {
               "description": "Share of the free space this container takes in its parent (like flex-grow).",
-              "format": "float",
+              "format": "double",
               "type": [
                 "number",
                 "null"
@@ -364,7 +364,7 @@
             },
             "grow": {
               "description": "Share of the free space this container takes in its parent (like flex-grow).",
-              "format": "float",
+              "format": "double",
               "type": [
                 "number",
                 "null"
@@ -433,7 +433,7 @@
             },
             "grow": {
               "description": "Share of the free space this container takes in its parent (like flex-grow).",
-              "format": "float",
+              "format": "double",
               "type": [
                 "number",
                 "null"
@@ -474,7 +474,7 @@
           "description": "Empty space that takes a share of what's left.",
           "properties": {
             "grow": {
-              "format": "float",
+              "format": "double",
               "type": [
                 "number",
                 "null"

@@ -28,13 +28,27 @@ fn fixtures_are_valid_and_round_trip() {
         // Serializing writes only what was given (no defaults spelled out).
         let original: serde_json::Value = serde_json::from_str(&text).unwrap();
         assert_eq!(
-            serde_json::to_value(&c).unwrap(),
-            original,
+            numbers_as_f64(serde_json::to_value(&c).unwrap()),
+            numbers_as_f64(original),
             "{}",
             path.display()
         );
     }
     assert!(n > 0);
+}
+
+/// `1` and `1.0` are the same number.
+fn numbers_as_f64(v: serde_json::Value) -> serde_json::Value {
+    use serde_json::Value as J;
+    match v {
+        J::Number(n) => n
+            .as_f64()
+            .and_then(serde_json::Number::from_f64)
+            .map_or(J::Null, J::Number),
+        J::Array(a) => J::Array(a.into_iter().map(numbers_as_f64).collect()),
+        J::Object(o) => J::Object(o.into_iter().map(|(k, v)| (k, numbers_as_f64(v))).collect()),
+        other => other,
+    }
 }
 
 #[test]
