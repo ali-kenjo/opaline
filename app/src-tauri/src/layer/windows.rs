@@ -392,6 +392,14 @@ fn create(
     backend: BackendKind,
     related: Option<webkit2gtk::WebView>,
 ) {
+    // Monitor changes can arrive back to back (screen unlock): two `sync` calls may both queue a
+    // window for the same monitor before the first is built. This runs on the main thread, in
+    // order, so the second sees the first window here and only places it.
+    if let Some(window) = app.get_webview_window(label) {
+        tracing::debug!(label, "layer window already created; placing it");
+        place(app, &window, monitor, backend);
+        return;
+    }
     // The helper (Native) finds our windows by this title.
     let title = format!("opaline-layer:{}", monitor.connector);
     let builder = WebviewWindowBuilder::new(app, label, WebviewUrl::App(layer_page().into()))
