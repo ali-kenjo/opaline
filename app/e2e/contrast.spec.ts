@@ -11,7 +11,7 @@ for (const [name, query] of [
   ["dusk, Clear look", "wallpaper=dusk&look=clear"],
   ["snow, Clear look", "wallpaper=snow&theme=light&look=clear"],
 ] as const) {
-  for (const stage of ["widgets", "more-widgets"] as const) {
+  for (const stage of ["widgets", "more-widgets", "blocks"] as const) {
     test(`text contrast: ${stage} on ${name}`, async ({ page }) => {
       await page.goto(`/lab.html?still&${query}`);
       await page.evaluate(() => document.fonts.ready);

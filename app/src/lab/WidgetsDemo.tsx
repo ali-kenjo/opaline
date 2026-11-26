@@ -12,7 +12,8 @@ import { type StoredSettings, HostContext, type WidgetHost } from "../widgets/ho
 import { type Json, mergePatch } from "../widgets/json";
 import { listFonts, subscribeTopics, useCoreColors, useLayerValues } from "../widgets/layerHost";
 import { onSpectrum } from "../widgets/spectrum";
-import { widgetByKind } from "../widgets/registry";
+import { widgetByKind as registryKind } from "../widgets/registry";
+import { blocksDemo } from "./blocksDemo";
 import { WidgetSettings } from "../widgets/settings/WidgetSettings";
 import { WidgetFrame } from "../widgets/WidgetFrame";
 import { labTint } from "./labTint";
@@ -32,6 +33,8 @@ import { type LabWallpaper, makeWallpaper } from "./wallpapers";
 /** `?kinds=cpu,clock` limits the Lab to some widget kinds (for memory and perf bisecting). */
 const KINDS = new URLSearchParams(location.search).get("kinds")?.split(",") ?? null;
 const showsKind = (kind: string) => KINDS === null || KINDS.includes(kind);
+/** Real widgets, plus the Lab's composition-blocks demo. */
+const widgetByKind = (kind: string) => (kind === blocksDemo.kind ? blocksDemo : registryKind(kind));
 
 const STAGE_W = 1100;
 

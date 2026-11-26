@@ -56,6 +56,7 @@ export const LAB_SETTINGS: StoredSettings = {
   },
   widgets: {
     "clock-m": { kind: "clock" },
+    "blocks-l": { kind: "lab-blocks" },
     "cpu-s": { kind: "cpu" },
     "cpu-m": {
       kind: "cpu",
@@ -183,6 +184,12 @@ export const LAB_STAGES: readonly LabStage[] = [
       { id: "visualizer", size: "M" },
       { id: "docker", size: "M" },
     ],
+  },
+  {
+    id: "blocks",
+    title: "Composition blocks",
+    height: 420,
+    items: [{ id: "blocks-l", size: "L" }],
   },
 ];
 

@@ -10,6 +10,7 @@ for (const [stage, look] of [
   ["more-widgets", "glass"],
   ["widgets", "clear"],
   ["more-widgets", "clear"],
+  ["blocks", "glass"],
 ] as const) {
   test(`no label or value is cut: ${stage}, ${look} look`, async ({ page }) => {
     await page.goto(`/lab.html?still&wallpaper=dusk&look=${look}`);

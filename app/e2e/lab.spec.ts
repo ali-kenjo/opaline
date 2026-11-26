@@ -51,6 +51,21 @@ test("an idle Lab requests no frames", async ({ page }) => {
   expect(await frames()).toBe(before);
 });
 
+test("an idle Lab evaluates no expressions (spike S10)", async ({ page }) => {
+  await page.goto("/lab.html?still&wallpaper=dusk");
+  await page.waitForTimeout(800);
+  const evaluations = () =>
+    page.evaluate(
+      () => (window as unknown as { __labEvaluations: { total: number } }).__labEvaluations.total,
+    );
+  const before = await evaluations();
+  // The composed widgets evaluated once to draw…
+  expect(before).toBeGreaterThan(0);
+  await page.waitForTimeout(1500);
+  // …and nothing since: no inputs changed, and the Lab's clock is fixed.
+  expect(await evaluations()).toBe(before);
+});
+
 test("the card states announce their reasons", async ({ page }) => {
   await page.goto("/lab.html?still");
   await expect(
@@ -74,6 +89,7 @@ test("widgets: every size and two custom styles", async ({ page }) => {
     "more-widgets-dusk-dark.png",
     SNAPSHOT,
   );
+  await expect(page.getByTestId("blocks")).toHaveScreenshot("blocks-dusk-dark.png", SNAPSHOT);
   expect(errors).toEqual([]);
 });
 

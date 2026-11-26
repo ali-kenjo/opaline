@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import type { Variant } from "../design-system/color/scheme";
 import { scheduler, setReducedMotion } from "../design-system/motion";
+import { evaluationCount } from "../compose/runtime";
 import { ComponentsDemo } from "./ComponentsDemo";
 import { DirectionsDemo } from "./directions/DirectionsDemo";
 import { SpikeGlass } from "./spike/SpikeGlass";
@@ -20,6 +21,9 @@ import { attachLayer } from "../widgets/layerHost";
 const params = new URLSearchParams(location.search);
 // Screenshot tests read the frame counter to prove that an idle Lab draws nothing.
 (window as unknown as { __labScheduler?: typeof scheduler }).__labScheduler = scheduler;
+// …and the composition runtimes' evaluation counter, to prove an idle Lab evaluates nothing.
+(window as unknown as { __labEvaluations?: typeof evaluationCount }).__labEvaluations =
+  evaluationCount;
 const still = params.has("still");
 /** `?only=glass|widgets|components|specimen` shows one section (for memory and perf bisecting). */
 const only = params.get("only");
