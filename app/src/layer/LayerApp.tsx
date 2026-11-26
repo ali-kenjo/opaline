@@ -32,7 +32,8 @@ import {
 } from "../widgets/layerHost";
 import { widgetByKind } from "../widgets/registry";
 import { WidgetSettings } from "../widgets/settings/WidgetSettings";
-import { inTauri, report, setInputRegion } from "./bridge";
+import { type Rect, inTauri, report, setInputRegion } from "./bridge";
+import { useInputRegion } from "./interactiveRegion";
 import { DetailModal } from "./DetailModal";
 import {
   type LayoutItem,
@@ -532,35 +533,25 @@ export function LayerApp() {
     [width, height],
   );
 
-  // Input region: full window only while Edit mode, Peek, or an overlay is open;
-  // otherwise empty so every click on the desktop (including over widgets) passes straight through.
-  useLayoutEffect(() => {
+  // Input region (ADR 0015): the whole window while Edit mode, Peek or an overlay is open;
+  // otherwise only the widgets' interactive elements, so other clicks reach the desktop.
+  const fullRegion =
+    peek ||
+    edit ||
+    openSettings !== null ||
+    detail !== null ||
+    pickerOpen ||
+    stackEditId !== null ||
+    contextMenu !== null ||
+    undoToast !== null;
+  const applyRegion = useCallback((rects: Rect[]) => {
     if (!inTauri) return;
-    const full =
-      peek ||
-      edit ||
-      openSettings !== null ||
-      detail !== null ||
-      pickerOpen ||
-      stackEditId !== null ||
-      contextMenu !== null ||
-      undoToast !== null;
-    const rects = full ? [{ x: 0, y: 0, width, height }] : [];
     setInputRegion(rects).catch((e: unknown) => {
       console.error("input region failed", e);
     });
-  }, [
-    peek,
-    edit,
-    openSettings,
-    detail,
-    pickerOpen,
-    stackEditId,
-    contextMenu,
-    undoToast,
-    width,
-    height,
-  ]);
+  }, []);
+  const regionSize = useMemo(() => ({ width, height }), [width, height]);
+  useInputRegion(root, fullRegion, regionSize, applyRegion);
 
   // Appearance state (brief §2.6): Automatic (default), Full color, or Dimmed.
   const desktopActive = backend === "native" ? (desktopFocused ?? true) : focused;

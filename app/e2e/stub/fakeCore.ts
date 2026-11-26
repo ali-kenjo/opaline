@@ -33,6 +33,8 @@ export interface FakeCoreHandle {
   emit: (event: Json) => void;
   settings: () => Json;
   layouts: () => Json;
+  /** Every input region the page set, in order (`layer_set_input_region`). */
+  regions: { x: number; y: number; width: number; height: number }[][];
 }
 
 declare global {
@@ -86,6 +88,7 @@ export function installFakeCore(init: FakeCoreInit): void {
   let seq = 0;
   const commands: FakeCommand[] = [];
   const subscriptions: string[] = [];
+  const regions: FakeCoreHandle["regions"] = [];
 
   const send = (event: Json) => {
     if (!channel) return;
@@ -163,8 +166,11 @@ export function installFakeCore(init: FakeCoreInit): void {
         return null;
       case "layer_asset":
         throw new Error("no assets in tests");
+      case "layer_set_input_region":
+        regions.push(args.rects as FakeCoreHandle["regions"][number]);
+        return null;
       default:
-        // layer_set_input_region, layer_report, layer_set_raised: nothing to do.
+        // layer_report, layer_set_raised: nothing to do.
         return null;
     }
   };
@@ -196,6 +202,7 @@ export function installFakeCore(init: FakeCoreInit): void {
   const fake: FakeCoreHandle = {
     commands,
     subscriptions,
+    regions,
     emit: send,
     settings: () => settings,
     layouts: () => layouts,

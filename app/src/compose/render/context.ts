@@ -15,6 +15,8 @@ export interface Services {
   history(series: string, seconds: number): Promise<number[]>;
   /** A meaning ramp in the widget's colors. */
   ramp(name: RampName): Ramp;
+  /** A button or toggle acted: give keyboard focus back to the window that had it (ADR 0015). */
+  releaseFocus(): void;
 }
 
 export interface ViewCtx {

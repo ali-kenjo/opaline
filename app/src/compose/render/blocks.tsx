@@ -498,6 +498,7 @@ function useSend(at: string, command: { cmd: string; args?: Record<string, strin
 }
 
 export function ButtonBlock({ node, at, attrs }: BlockProps<"button">) {
+  const { services } = useView();
   const field = useField(at);
   const send = useSend(at, node.command);
   const [asking, setAsking] = useState(false);
@@ -508,7 +509,12 @@ export function ButtonBlock({ node, at, attrs }: BlockProps<"button">) {
   const enabled = node.enabled === undefined || field("enabled").value === true;
   const confirm = node.confirm !== undefined ? asString(field("confirm").value) : null;
   return (
-    <div className={styles.block} {...attrs} data-state={error ? "error" : undefined}>
+    <div
+      className={styles.block}
+      {...attrs}
+      data-interactive=""
+      data-state={error ? "error" : undefined}
+    >
       <Button
         variant="tonal"
         disabled={!enabled}
@@ -520,7 +526,11 @@ export function ButtonBlock({ node, at, attrs }: BlockProps<"button">) {
             return;
           }
           setAsking(false);
-          void send(null, confirm !== null).then(setError);
+          void send(null, confirm !== null)
+            .then(setError)
+            .finally(() => {
+              services?.releaseFocus();
+            });
         }}
       >
         {asking && confirm ? confirm : text}
@@ -535,19 +545,22 @@ export function ButtonBlock({ node, at, attrs }: BlockProps<"button">) {
 }
 
 export function ToggleBlock({ node, at, attrs }: BlockProps<"toggle">) {
+  const { services } = useView();
   const field = useField(at);
   const send = useSend(at, node.command);
   const on = field("value").value === true;
   const text =
     node.text !== undefined ? asString(field("text").value) : (attrs["aria-label"] ?? "");
   return (
-    <div className={`${styles.block ?? ""} ${styles.control ?? ""}`} {...attrs}>
+    <div className={`${styles.block ?? ""} ${styles.control ?? ""}`} {...attrs} data-interactive="">
       {node.text !== undefined ? <span className={styles.controlLabel}>{text}</span> : null}
       <Switch
         checked={on}
         label={text}
         onChange={(next) => {
-          void send(next, false);
+          void send(next, false).finally(() => {
+            services?.releaseFocus();
+          });
         }}
       />
     </div>
@@ -571,7 +584,7 @@ export function SliderBlock({ node, at, attrs }: BlockProps<"slider">) {
     [],
   );
   return (
-    <div className={`${styles.block ?? ""} ${styles.control ?? ""}`} {...attrs}>
+    <div className={`${styles.block ?? ""} ${styles.control ?? ""}`} {...attrs} data-interactive="">
       <Slider
         value={held ?? data}
         min={node.min}
@@ -601,6 +614,7 @@ export function InputBlock({ node, at, attrs }: BlockProps<"input">) {
   return (
     <form
       className={`${styles.block ?? ""} ${styles.control ?? ""}`}
+      data-interactive=""
       onSubmit={(e) => {
         e.preventDefault();
         void send(draft ?? current, false).then(() => {

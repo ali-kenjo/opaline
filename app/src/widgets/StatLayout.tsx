@@ -204,6 +204,8 @@ export function ActionBar({
         <button
           key={a.id}
           type="button"
+          // A click target on the desktop, not only in Peek and Edit (ADR 0015).
+          data-interactive=""
           className={`${styles.action} ${a.active ? styles.actionOn : ""} ${asking === a.id ? styles.actionAsk : ""}`}
           aria-pressed={a.active}
           aria-label={compact ? a.label : undefined}

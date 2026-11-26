@@ -291,7 +291,12 @@ export function WidgetFrame({
         history={history.of(content.hero)}
         historyMinutes={content.historyMinutes}
         actions={def.actions ? safeActions(def, ctx) : []}
-        onAction={(cmd) => host.command(cmd)}
+        onAction={(cmd) =>
+          // Buttons don't need the keyboard: hand focus back once the command ran (ADR 0015).
+          host.command(cmd).finally(() => {
+            void host.command({ cmd: "release-focus" });
+          })
+        }
       />
     );
 

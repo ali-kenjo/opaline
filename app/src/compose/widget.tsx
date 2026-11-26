@@ -67,6 +67,9 @@ export function ComposedBody({
         return Array.isArray(v) ? v.filter((n): n is number => typeof n === "number") : [];
       },
       ramp: (name: RampName) => makeRamp(name, colorSource, dark),
+      releaseFocus: () => {
+        void host.command({ cmd: "release-focus" });
+      },
     }),
     [host, colorSource, dark],
   );
