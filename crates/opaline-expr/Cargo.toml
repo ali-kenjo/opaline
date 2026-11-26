@@ -1,0 +1,19 @@
+[package]
+name = "opaline-expr"
+description = "The Opaline expression language (docs/EXPRESSIONS.md): parser, checker and evaluator"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+serde_json = "1"
+
+[dev-dependencies]
+proptest = "1"
+serde_json = "1"
+
+[lints]
+workspace = true
