@@ -56,6 +56,15 @@ export class Program {
     return [...out];
   }
 
+  /** The functions this program calls (`round`, `date`, …; history forms as `hist-avg`). */
+  calls(): Set<string> {
+    const out = new Set<string>();
+    walk(this.exprs(), (e) => {
+      if (e.kind.k === "call") out.add(e.kind.f);
+    });
+    return out;
+  }
+
   /** Whether the result depends on the clock (`now()`, `until()`). */
   usesNow(): boolean {
     let found = false;
