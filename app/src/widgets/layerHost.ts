@@ -84,6 +84,7 @@ export function storedSettings(v: Value | undefined): StoredSettings {
     kindStyles[kind] = record(s);
   return {
     ...(typeof j.theme === "string" ? { theme: j.theme } : {}),
+    ...(typeof j.language === "string" ? { language: j.language } : {}),
     style: record(j.style ?? null),
     ...(Object.keys(kindStyles).length ? { kindStyles } : {}),
     styles,

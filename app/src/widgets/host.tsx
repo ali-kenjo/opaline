@@ -25,6 +25,8 @@ export interface ThemeStyleLayers {
 export interface StoredSettings {
   /** Active theme id (e.g. `"opaline"`, `"classic"`). */
   theme?: string;
+  /** Active UI language preference (`"system"`, `"en"`, `"de"`, `"ar"`). */
+  language?: string;
   style: Style;
   /** Per-widget-kind user style overrides. */
   kindStyles?: Record<string, Style>;

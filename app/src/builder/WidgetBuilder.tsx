@@ -14,6 +14,7 @@ import { Icon, type IconName } from "../design-system/icons";
 import { ICONS } from "../design-system/icons/codepoints";
 import { sizes, spanPx } from "../design-system/tokens/tokens";
 import type { Host, Value as ExprValue } from "../expr";
+import { isRtl, resolveLocale } from "../i18n";
 import { type CustomWidgetPackage, useCustomWidgets } from "../widgets/customWidgets";
 import { useHost } from "../widgets/host";
 import { fromJson, toJson } from "../widgets/json";
@@ -320,8 +321,10 @@ export function WidgetBuilder({ open, initial, onClose, onSaved }: WidgetBuilder
   const cardH = spanPx(previewDims.h);
   const bindings = pkg.composition.bindings ?? {};
 
+  const dialogDir = isRtl(resolveLocale(host.settings.language)) ? "rtl" : "ltr";
+
   return (
-    <div className={styles.backdrop} role="dialog" aria-label="Widget Builder">
+    <div className={styles.backdrop} role="dialog" dir={dialogDir} aria-label="Widget Builder">
       <div className={styles.studio}>
         <header className={styles.header}>
           <div className={styles.headerTitle}>

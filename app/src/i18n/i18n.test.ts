@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isRtl, resolveLocale, t } from "./index";
+import { isRtl, resolveLocale, resolvePackageString, t } from "./index";
 import { AR, DE, EN, type MessageKey } from "./messages";
 
 function placeholders(str: string): string[] {
@@ -35,5 +35,18 @@ describe("i18n catalogs (en, de, ar)", () => {
     expect(t("en", "action.moveTo", { display: "HDMI-2" })).toBe("Move to HDMI-2");
     expect(t("de", "action.moveTo", { display: "HDMI-2" })).toBe("Nach HDMI-2 verschieben");
     expect(t("ar", "action.moveTo", { display: "HDMI-2" })).toBe("نقل إلى HDMI-2");
+    expect(t("de", "inspector.scope.kind", { kind: "Clock" })).toBe("Alle Clock-Widgets");
+    expect(t("ar", "inspector.scope.kind", { kind: "Clock" })).toBe("كل ودجات Clock");
+  });
+
+  it("resolves package-bundled translations with en and fallback chain", () => {
+    const pkgTrans = {
+      de: { title: "Systempuls" },
+      ar: { title: "نبض النظام" },
+      en: { title: "System Pulse" },
+    };
+    expect(resolvePackageString("de", pkgTrans, "title", "Fallback")).toBe("Systempuls");
+    expect(resolvePackageString("ar", pkgTrans, "title", "Fallback")).toBe("نبض النظام");
+    expect(resolvePackageString("en", pkgTrans, "missing", "Fallback")).toBe("Fallback");
   });
 });

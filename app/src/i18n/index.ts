@@ -46,3 +46,17 @@ export function formatNumber(locale: Locale, value: number, digits = 0): string 
     maximumFractionDigits: digits,
   }).format(value);
 }
+
+/** Resolves a package/plugin-provided translation map (`translations[locale][key]`) with English and fallback resolution (brief §12). */
+export function resolvePackageString(
+  locale: Locale,
+  translations: Readonly<Record<string, Readonly<Record<string, string>>>> | undefined,
+  key: string,
+  fallback: string,
+): string {
+  const exact = translations?.[locale]?.[key];
+  if (exact && exact.trim().length > 0) return exact;
+  const en = translations?.en?.[key];
+  if (en && en.trim().length > 0) return en;
+  return fallback;
+}

@@ -2,6 +2,7 @@
 // Code-split so it loads only when inspecting a widget in Edit mode. Replaces both the 1.1
 // WidgetSettings sheet and Settings → WidgetCustomizer.
 import { useEffect, useMemo, useState } from "react";
+import { isRtl, resolveLocale } from "../i18n";
 import { Button } from "../design-system/components";
 import { useGlassContrast } from "../design-system/glass";
 import { Icon, type IconName } from "../design-system/icons";
@@ -348,9 +349,12 @@ export function Inspector({
     />
   );
 
+  const panelDir = isRtl(resolveLocale(host.settings.language)) ? "rtl" : "ltr";
+
   return (
     <div
       role="dialog"
+      dir={panelDir}
       aria-label={`${content.title || def.name} inspector`}
       className={`${styles.panel} ${dockClass}`}
       style={dock === "float" ? { left: pos.left, top: pos.top } : undefined}
