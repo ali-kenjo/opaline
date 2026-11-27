@@ -519,4 +519,48 @@ existing baselines/checks + new `themes.spec.ts`), `eslint`, `prettier`, `tsc`, 
 
 **Sign-off:** ✅ 2026-11-27. Next: Phase 4 (redesign the 14 widgets and build the ten looks, in rounds).
 
+## 2.0 · Phase 4 · Round 1: Clock, CPU, Memory, GPU (2026-11-27)
+
+**Done**
+- **Core provider upgrades (4.2–4.4):**
+  - Added `crates/opaline-core/src/icons.rs` (`IconResolver`) resolving FreeDesktop `.desktop` icon names across
+    user/system XDG icon themes (`Yaru`, `Adwaita`, `hicolor`, `Papirus`, `breeze`, `pixmaps`) into content-hashed
+    files under `$XDG_CACHE_HOME/opaline/icons/` (rejecting unsafe SVGs and files > 512 KiB). Exposed `iconUrl` on
+    `processes.apps` and enabled `opaline-asset://icons/<file>` (including `image/svg+xml`) in
+    `app/src-tauri/src/layer/assets.rs`.
+  - Added `memory.zram` (`/sys/block/zram*/mm_stat`) to `crates/opaline-core/src/providers/memory.rs` alongside
+    `memory.zswap` (`origDataB`, `comprDataB`, `memUsedB`, `ratio`, `devices`).
+  - Added `gpu.<index>.engines` (`render3d`, `video`, `copy`, `compute`) to `crates/opaline-core/src/providers/gpu.rs`
+    from DRM fdinfo per-engine buckets and NVML, keeping the ADR 0003 sleep guard intact (sleeping dGPUs report
+    `Availability::Asleep` and are never touched).
+- **4.1 Clock redesign (`clock.ts`, `clock.composition.ts`, `clockVisuals.tsx`, `spec/compositions/clock.json`):**
+  - All 11 faces: Digital (inline or stacked), Expressive (digits on Material shapes), Analog ×6 dial styles
+    (`minimal`, `classic`, `numerals`, `roman`, `chronograph`, `railway`), Flip, Word clock, Typographic, Segment/LCD,
+    Binary BCD, Terminal (`$ date`), Day ring, and Big date.
+  - Per-element colors (`handColor`, `tickColor`, `numeralColor`), second-hand modes (`tick` / `sweep` via shared
+    scheduler / `hide`), custom ICU skeleton date option, second time zone, and optional next-event subline
+    (`calendar.events`). Preserved exact minute-clock wakeups and existing Classic Lab baselines.
+- **4.2–4.4 CPU, Memory, GPU redesign (`{cpu,memory,gpu}.composition.ts`, `monitorVisuals.tsx`, `spec/compositions/{cpu,memory,gpu}.json`):**
+  - Added `useClassicStat` + `compositionTopics` in `WidgetFrame.tsx` / `compose/widget.tsx` so the **Classic** theme
+    (and unthemed Classic Lab) preserves `StatLayout` pixel-for-pixel while **Opaline** and 2.0 themes render the
+    redesigned compositions.
+  - **CPU**: hero visual switcher (thermal shape badge shifting `circle → cookie7Sided → softBurst → burst` by °C,
+    load gauge, per-core bars, heatmap, 15m load area chart), temperature source (`package` / `core-max`), frequency
+    mode (`avg` / `max`), power, throttling badge, per-core grid and top CPU apps with icons at L/XL.
+  - **Memory**: liquid-fill canvas whose wave choppiness follows `memory.pressure` (0 frames when still/reduced-motion),
+    stacked composition bar (apps, shared, cache, buffers, zram/zswap, swap, free), `zram` field, GB/GiB, top memory
+    apps with icons at L/XL.
+  - **GPU**: side-by-side iGPU + dGPU at M/L/XL when multiple GPUs exist, engine busyness bars (`3D`, `Video`, `Copy`,
+    `Compute`), VRAM bar, power-vs-limit gauge, clocks, fan, top GPU apps, and moon + `"Asleep · 0 W"` state for
+    sleeping dGPUs without waking them.
+- **Lab & E2E:** Added `lab.html?only=round1&still` (`Round1Demo.tsx`) and `app/e2e/round1.spec.ts` verifying all
+  Clock faces, CPU/Memory/GPU Opaline cards, sleeping dGPU side-by-side behavior, and 0 idle frames.
+
+**Checks:** 202 Rust workspace tests (all 4 `spec/compositions/*.json` validated by `opaline-compose`), `clippy -D warnings`,
+`rustfmt`; 280 Vitest, 58 Playwright WebKit e2e (all 56 existing baselines/contrast/truncation/edit/themes + 2 new
+`round1.spec.ts`), `eslint`, `prettier`, `tsc`.
+
+**Sign-off:** Pending (Phase 4 · Round 1). Next: Round 2 (4.5 Storage, 4.6 Network, 4.7 Battery & Power, 4.8 Fans).
+
+
 

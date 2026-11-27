@@ -12,10 +12,12 @@ each ending with acceptance checks, a PROGRESS entry and the owner's sign-off.
 
 ## Status
 - **P0, P1, P2, and P3** are signed off and pushed.
-- **P4 (redesign the 14 widgets and the ten looks)** is in progress, starting with Round 1 (Clock, CPU, Memory, GPU).
+- **P4 (redesign the 14 widgets and the ten looks):** **Round 1** (Clock, CPU, Memory, GPU + core app icons, zram,
+  GPU engines) is implemented and verified, awaiting owner sign-off.
 - **Next steps, in order:**
-  1. Complete **P4 Round 1** (Clock, CPU, Memory, GPU + core additions for app icons, zram/zswap, GPU engines).
-  2. Complete **P4 Rounds 2–5** (remaining 10 widgets + the ten looks + Lab baselines).
+  1. Owner sign-off on **P4 Round 1** (Clock, CPU, Memory, GPU), then push Round 1 commits.
+  2. Complete **P4 Rounds 2–5** (Round 2: Storage, Network, Battery & Power, Fans; Round 3: Processes, Now Playing,
+     Visualizer; Round 4: Weather, Calendar, Docker; Round 5: the ten looks + Lab baselines).
   3. Optional, if the owner allows: a real-layer budget run (`scripts/measure-budget.sh 60` with a 2.0 build on a
      settings copy) to confirm animation CPU and RAM on the desktop.
 - **Settings are version 2.** Run dev builds on a settings copy (`XDG_CONFIG_HOME=<copy>`), never on the owner's
