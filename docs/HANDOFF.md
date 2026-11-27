@@ -74,7 +74,7 @@ All checks pass cleanly with zero warnings/errors:
 
 ---
 
-## 4b. After v2.0.0 (on `main`, not released yet — candidate 2.0.1)
+## 4b. v2.0.1 (released 2026-11-27, tag on `ae28c98`, signature verified; https://github.com/ali-kenjo/opaline/releases/tag/v2.0.1)
 
 - `fix(widgets)`: GPU without usage figures says "This GPU doesn't report usage"; drive health `unknown` shows no badge.
 - `fix(compose)`: M cards no longer cut their first line (line-height 1.25 in weather/calendar/processes/docker lists, 4×2 weather = hero + hourly, `align-items: safe center` in canvas blocks); S weather stacks condition under the temperature.

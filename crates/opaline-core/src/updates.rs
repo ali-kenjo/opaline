@@ -564,6 +564,29 @@ mod tests {
         assert!(verify_minisign(pubkey, &forged_comment, sums).is_err());
     }
 
+    /// The published v2.0.1 release (`SHA256SUMS` and `SHA256SUMS.minisig` as GitHub serves them)
+    /// verifies with the key built into the app: the whole chain from the release workflow's
+    /// signing step to the installed updater.
+    #[test]
+    fn built_in_release_key_verifies_the_published_v2_0_1_release() {
+        let sums =
+            b"003ab3eb45c3deeef356e26c4d2831bf43fd50a006ec65f553fb835969198c74  Opaline_2.0.1_amd64.deb\n";
+        let minisig = "untrusted comment: signature from minisign secret key\n\
+             RUTTqljDWjibXtAahWlv0wH+H6QJT+5zMI6D6EjJk0e6xtyietuhBhADrFjUTLJ6udtaHu85quZtF7Wqw9NafgUZ10FM0nkBMwU=\n\
+             trusted comment: timestamp:1795810897\tfile:SHA256SUMS\thashed\n\
+             tm6RRj682RDESISFtFHJDIfnBPLaQ2axVm+hjueSkQ7fMz90uY41LxdR2jy5rbQ+hUt8Xf2RZW8Gz8nlASqVDg==\n";
+        assert_eq!(
+            verify_minisign(RELEASE_MINISIGN_PUBKEY, minisig, sums),
+            Ok(())
+        );
+        assert!(verify_minisign(RELEASE_MINISIGN_PUBKEY, minisig, b"tampered").is_err());
+        assert_eq!(
+            verify_minisign(crate::gallery::GALLERY_MINISIGN_PUBKEY, minisig, sums),
+            Err("minisign-key-id-mismatch".into()),
+            "a release must not verify with the gallery key"
+        );
+    }
+
     #[test]
     fn built_in_signing_keys_are_well_formed() {
         assert!(decode_minisign_pubkey(RELEASE_MINISIGN_PUBKEY).is_ok());
