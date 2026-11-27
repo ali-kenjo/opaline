@@ -471,9 +471,9 @@ test; helper lint.
 **Not done / deferred:** a real-layer budget run (owner skipped it on 2026-11-27; the animation work is measured only
 headless); the `ensure_enabled` side finding; P7 control widgets.
 
-## 2.0 · Phase 3: Style model 2.0, themes and files (ready for sign-off 2026-11-27)
+## 2.0 · Phase 3: Style model 2.0, themes and files (signed off 2026-11-27)
 
-**Built** (all local, not pushed):
+**Built** (pushed):
 - **Mechanical style-key parity (3.1, S7, ADR 0017):** `crates/opaline-core/src/style.rs` is the single source of
   truth (`schemars::JsonSchema`) → `spec/style.schema.json` → `app/src/design-system/style/style.gen.ts` +
   `STYLE_KEYS` via `app/scripts/schema-to-ts.mjs`. Staleness checks fail both `cargo test -p opaline-core --test
@@ -517,7 +517,6 @@ headless); the `ensure_enabled` side finding; P7 control widgets.
 7 expr + 3 privileged; 1 NVML ignored), `clippy -D warnings`, `rustfmt`; 275 Vitest, 56 Playwright WebKit e2e (all 55
 existing baselines/checks + new `themes.spec.ts`), `eslint`, `prettier`, `tsc`, helper lint, `desktop-file-validate`.
 
-**Needs you:** Phase 3 sign-off (and optional live desktop check editing a theme or `user.css` in VS Code), then Phase
-4 (redesign the 14 widgets and build the ten looks).
+**Sign-off:** ✅ 2026-11-27. Next: Phase 4 (redesign the 14 widgets and build the ten looks, in rounds).
 
 

@@ -11,13 +11,11 @@ transparent WebKitGTK window per monitor, React 19 frontend) + a small GNOME She
 each ending with acceptance checks, a PROGRESS entry and the owner's sign-off.
 
 ## Status
-- **P0, P1, and P2** are signed off and pushed.
-- **P3 (style model 2.0, themes and files) is built and verified locally (2026-11-27), ready for sign-off.** Details:
-  PROGRESS "2.0 · Phase 3".
+- **P0, P1, P2, and P3** are signed off and pushed.
+- **P4 (redesign the 14 widgets and the ten looks)** is in progress, starting with Round 1 (Clock, CPU, Memory, GPU).
 - **Next steps, in order:**
-  1. Owner sign-off on **P3** (push local commits once approved).
-  2. Start **P4 (redesign the 14 widgets and the ten looks)** per PLAN-2 §3 P4 (in rounds of 3–4 widgets with visual
-     sign-off per round).
+  1. Complete **P4 Round 1** (Clock, CPU, Memory, GPU + core additions for app icons, zram/zswap, GPU engines).
+  2. Complete **P4 Rounds 2–5** (remaining 10 widgets + the ten looks + Lab baselines).
   3. Optional, if the owner allows: a real-layer budget run (`scripts/measure-budget.sh 60` with a 2.0 build on a
      settings copy) to confirm animation CPU and RAM on the desktop.
 - **Settings are version 2.** Run dev builds on a settings copy (`XDG_CONFIG_HOME=<copy>`), never on the owner's
