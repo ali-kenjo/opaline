@@ -985,3 +985,6 @@ Both now follow the system clock; an audit of every timer found and fixed the sa
 watchdog (restarted plugins after a covered window), weather, custom sources and the update check (stale after
 suspend), plus the renderer's English number formatting and the memory pill's dangling "/". Details, evidence and
 the not-a-bug list: `docs/HANDOFF.md` §4c. Gate: 279 Rust tests, 331 Vitest, 101/101 Playwright, clippy/fmt/lint.
+
+**Released as v2.0.2** (2026-11-27): commit `c6b4b77` (`release: v2.0.2`, CI green), tag `v2.0.2`, signed by the
+release workflow. Installed on the owner's laptop over 2.0.1 (`apt install`, Native mode, theme Air, 5 widgets).

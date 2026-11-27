@@ -84,7 +84,7 @@ All checks pass cleanly with zero warnings/errors:
 
 ---
 
-## 4c. Fixes after v2.0.1 (on `main`, not released yet)
+## 4c. Fixes after v2.0.1 (released as **v2.0.2**, 2026-11-27)
 
 Done by Claude Code from `FIX_PROMPT.md`; the full evidence log is `FIX_HANDOFF.md` (both are temporary files, removed at the end but kept in git history).
 
