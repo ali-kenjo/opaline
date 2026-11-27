@@ -634,7 +634,7 @@ existing baselines/checks + new `themes.spec.ts`), `eslint`, `prettier`, `tsc`, 
 `clippy -D warnings`, `rustfmt`; 289 Vitest, 60 Playwright WebKit e2e (all existing baselines/checks +
 `round3.spec.ts` verifying 0 idle frames), `eslint`, `prettier`, `tsc`.
 
-**Sign-off:** Pending owner review of Round 3. Next: Round 4 (4.12 Weather, 4.13 Calendar, 4.14 Docker) and Round 5
+**Sign-off:** ✅ 2026-11-27. Next: Round 4 (4.12 Weather, 4.13 Calendar, 4.14 Docker) and Round 5
 (4.15 The ten looks + 4.16 Lab baselines).
 
 
