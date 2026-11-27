@@ -91,6 +91,90 @@ pub async fn execute(hub: &Arc<Hub>, command: Command) -> CommandResult {
             Some(mgr) => mgr.delete_custom_widget(&id, hub).map(|()| None),
             None => Err("sources-unavailable".into()),
         },
+        Command::ControlToggle { control, enabled } => {
+            crate::providers::controls::set_toggle(hub, &control, enabled)
+                .await
+                .map(|()| None)
+        }
+        Command::ControlSetSlider {
+            control,
+            percent,
+            target,
+        } => crate::providers::controls::set_slider(hub, &control, percent, target.as_deref())
+            .await
+            .map(|()| None),
+        Command::LaunchTarget { kind, target } => {
+            crate::providers::controls::launch_target(&kind, &target)
+                .await
+                .map(|()| None)
+        }
+        Command::NoteSave {
+            id,
+            body,
+            expected_sha256,
+        } => crate::providers::notes::save_note(hub, &id, &body, expected_sha256.as_deref())
+            .map(|()| None),
+        Command::NoteToggleCheckbox { id, line } => {
+            crate::providers::notes::toggle_checkbox(hub, &id, line).map(|()| None)
+        }
+        Command::TodoAdd {
+            text,
+            priority,
+            due,
+        } => crate::providers::todos::add_todo(hub, &text, priority.as_deref(), due.as_deref())
+            .map(|()| None),
+        Command::TodoToggle { index } => {
+            crate::providers::todos::toggle_todo(hub, index).map(|()| None)
+        }
+        Command::TodoDelete { index } => {
+            crate::providers::todos::delete_todo(hub, index).map(|()| None)
+        }
+        Command::TimerAction {
+            action,
+            id,
+            label,
+            duration_s,
+            kind,
+        } => crate::providers::timers::apply_action(
+            hub,
+            &action,
+            &id,
+            label.as_deref(),
+            duration_s,
+            kind.as_deref(),
+        )
+        .map(|()| None),
+        Command::HaToggleEntity {
+            base_url,
+            entity_id,
+            secret_name,
+            allow_local_http,
+        } => crate::providers::integrations::ha_toggle_entity(
+            &base_url,
+            &entity_id,
+            &secret_name,
+            allow_local_http,
+        )
+        .await
+        .map(|()| None),
+        Command::N8nSetWorkflowActive {
+            base_url,
+            workflow_id,
+            active,
+            secret_name,
+            allow_local_http,
+        } => crate::providers::integrations::n8n_set_workflow_active(
+            &base_url,
+            &workflow_id,
+            active,
+            &secret_name,
+            allow_local_http,
+        )
+        .await
+        .map(|()| None),
+        Command::FetchFeed { url } => crate::providers::integrations::fetch_feed(&url)
+            .await
+            .map(Some),
         other => run(other).await.map(|()| None),
     };
     match result {
@@ -151,6 +235,18 @@ async fn run(command: Command) -> Result<(), String> {
         | Command::RunSourceNow { .. }
         | Command::SetVariable { .. }
         | Command::SaveCustomWidget { .. }
-        | Command::DeleteCustomWidget { .. } => Err("handled-above".into()),
+        | Command::DeleteCustomWidget { .. }
+        | Command::ControlToggle { .. }
+        | Command::ControlSetSlider { .. }
+        | Command::LaunchTarget { .. }
+        | Command::NoteSave { .. }
+        | Command::NoteToggleCheckbox { .. }
+        | Command::TodoAdd { .. }
+        | Command::TodoToggle { .. }
+        | Command::TodoDelete { .. }
+        | Command::TimerAction { .. }
+        | Command::HaToggleEntity { .. }
+        | Command::N8nSetWorkflowActive { .. }
+        | Command::FetchFeed { .. } => Err("handled-above".into()),
     }
 }

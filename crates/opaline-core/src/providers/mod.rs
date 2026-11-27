@@ -2,23 +2,29 @@
 
 pub mod audio;
 pub mod calendar;
+pub mod controls;
 pub mod cpu;
 pub mod desktop_settings;
 pub mod docker;
 pub mod fans;
 pub mod gpu;
 pub mod hwmon;
+pub mod integrations;
 pub mod latency;
 pub mod media;
 pub mod memory;
 pub mod network;
 pub mod nm;
+pub mod notes;
+pub mod photos;
 pub mod processes;
 pub mod props;
 pub mod psi;
 pub mod public_ip;
 pub mod rapl;
 pub mod storage;
+pub mod timers;
+pub mod todos;
 pub mod udisks;
 pub mod upower;
 pub mod usage;
@@ -79,6 +85,11 @@ pub const ASYNC_TOPICS: &[&str] = &[
     wallpaper::SOURCE,
     rapl::POWER,
     rapl::PACKAGE_W,
+    controls::STATE,
+    notes::NOTES,
+    todos::TODOS,
+    timers::STATE,
+    photos::PHOTOS,
 ];
 
 type Task = Pin<Box<dyn Future<Output = ()> + Send>>;
@@ -107,6 +118,11 @@ pub async fn run_async(hub: Arc<Hub>) {
         task!("calendar", calendar::run),
         task!("wallpaper", wallpaper::run),
         task!("cpu-power", rapl::run),
+        task!("controls", controls::run),
+        task!("notes", notes::run),
+        task!("todos", todos::run),
+        task!("timers", timers::run),
+        task!("photos", photos::run),
     ];
     futures_util::future::join_all(tasks).await;
 }

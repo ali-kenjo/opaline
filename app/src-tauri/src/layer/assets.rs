@@ -6,7 +6,7 @@ use std::borrow::Cow;
 
 use tauri::http::{Request, Response, StatusCode, header};
 
-const KINDS: [&str; 3] = ["wallpaper", "art", "icons"];
+const KINDS: [&str; 4] = ["wallpaper", "art", "icons", "photos"];
 
 /// A file name we would have written ourselves: `[A-Za-z0-9._-]+` with an image extension.
 pub fn safe_name(name: &str) -> Option<&'static str> {

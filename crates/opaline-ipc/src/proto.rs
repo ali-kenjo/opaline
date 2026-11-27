@@ -294,6 +294,68 @@ pub enum Command {
     SaveCustomWidget { widget: Value },
     /// Delete a custom widget package by id.
     DeleteCustomWidget { id: String },
+    /// Quick Controls toggle (wifi, bluetooth, airplane, dnd, night-light, dark-style, keep-awake, output-mute, input-mute).
+    ControlToggle { control: String, enabled: bool },
+    /// Quick Controls slider (output-volume, input-volume, brightness, kbd-brightness).
+    ControlSetSlider {
+        control: String,
+        percent: f64,
+        #[serde(default)]
+        target: Option<String>,
+    },
+    /// Validated launcher (app, url, path).
+    LaunchTarget { kind: String, target: String },
+    /// Save a Markdown note with conflict-check sha256.
+    NoteSave {
+        id: String,
+        body: String,
+        #[serde(default)]
+        expected_sha256: Option<String>,
+    },
+    /// Toggle a Markdown checkbox line in place.
+    NoteToggleCheckbox { id: String, line: usize },
+    /// Add a todo.txt item.
+    TodoAdd {
+        text: String,
+        #[serde(default)]
+        priority: Option<String>,
+        #[serde(default)]
+        due: Option<String>,
+    },
+    /// Toggle a todo.txt item completion state.
+    TodoToggle { index: usize },
+    /// Delete a todo.txt item.
+    TodoDelete { index: usize },
+    /// Core-owned timer, stopwatch, or Pomodoro action.
+    TimerAction {
+        action: String,
+        id: String,
+        #[serde(default)]
+        label: Option<String>,
+        #[serde(default)]
+        duration_s: Option<u64>,
+        #[serde(default)]
+        kind: Option<String>,
+    },
+    /// Home Assistant toggle entity (token from GNOME Keyring).
+    HaToggleEntity {
+        base_url: String,
+        entity_id: String,
+        secret_name: String,
+        #[serde(default)]
+        allow_local_http: bool,
+    },
+    /// n8n activate/deactivate workflow (API key from GNOME Keyring).
+    N8nSetWorkflowActive {
+        base_url: String,
+        workflow_id: String,
+        active: bool,
+        secret_name: String,
+        #[serde(default)]
+        allow_local_http: bool,
+    },
+    /// Fetch and sanitize an RSS/Atom/JSON Feed URL into plain-text items.
+    FetchFeed { url: String },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
