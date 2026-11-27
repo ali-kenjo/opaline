@@ -28,6 +28,9 @@ pub const MAX_BINDINGS: usize = 64;
 pub const COMMANDS: &[(&str, bool)] = &[
     ("media", false),
     ("media-seek", false),
+    ("media-shuffle", false),
+    ("media-loop", false),
+    ("media-volume", false),
     ("set-power-profile", false),
     ("container", false),
     ("start-docker-desktop", false),

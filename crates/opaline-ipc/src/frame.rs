@@ -17,8 +17,12 @@ const SPECTRUM_HEADER_LEN: usize = 2 + 4;
 pub enum FrameKind {
     /// A MessagePack-encoded [`crate::ClientMsg`] or [`crate::ServerMsg`].
     Message = 0x01,
-    /// A raw [`SpectrumFrame`].
+    /// A raw mono [`SpectrumFrame`] (32 band levels + 32 peaks).
     Spectrum = 0x02,
+    /// A raw PCM waveform [`SpectrumFrame`] (128 downsampled samples mapped to 0..=255, center 128).
+    Waveform = 0x03,
+    /// A raw stereo [`SpectrumFrame`] (`[left_rms, right_rms, left_32_bands..., right_32_bands...]`).
+    Stereo = 0x04,
 }
 
 impl TryFrom<u8> for FrameKind {
@@ -28,6 +32,8 @@ impl TryFrom<u8> for FrameKind {
         match value {
             0x01 => Ok(Self::Message),
             0x02 => Ok(Self::Spectrum),
+            0x03 => Ok(Self::Waveform),
+            0x04 => Ok(Self::Stereo),
             other => Err(IpcError::UnknownKind(other)),
         }
     }
@@ -105,13 +111,22 @@ pub fn encode_message<T: Serialize>(msg: &T, buf: &mut Vec<u8>) -> Result<(), Ip
     Ok(())
 }
 
-/// Encodes a spectrum frame into `buf` (cleared first).
-pub fn encode_spectrum(frame: &SpectrumFrame, buf: &mut Vec<u8>) -> Result<(), IpcError> {
+/// Encodes an audio binary frame (spectrum, waveform, or stereo) into `buf` (cleared first).
+pub fn encode_audio_frame(
+    kind: FrameKind,
+    frame: &SpectrumFrame,
+    buf: &mut Vec<u8>,
+) -> Result<(), IpcError> {
     buf.clear();
-    let header = frame_header(FrameKind::Spectrum, frame.encoded_len())?;
+    let header = frame_header(kind, frame.encoded_len())?;
     buf.extend_from_slice(&header);
     frame.encode_into(buf);
     Ok(())
+}
+
+/// Encodes a spectrum frame into `buf` (cleared first).
+pub fn encode_spectrum(frame: &SpectrumFrame, buf: &mut Vec<u8>) -> Result<(), IpcError> {
+    encode_audio_frame(FrameKind::Spectrum, frame, buf)
 }
 
 /// Encodes and writes one message frame. `scratch` is reused between calls to avoid
@@ -126,6 +141,21 @@ where
     Ok(())
 }
 
+/// Encodes and writes an audio frame (`Spectrum`, `Waveform`, or `Stereo`).
+pub async fn write_audio_frame<W>(
+    w: &mut W,
+    kind: FrameKind,
+    frame: &SpectrumFrame,
+    scratch: &mut Vec<u8>,
+) -> Result<(), IpcError>
+where
+    W: AsyncWrite + Unpin,
+{
+    encode_audio_frame(kind, frame, scratch)?;
+    w.write_all(scratch).await?;
+    Ok(())
+}
+
 /// Encodes and writes one spectrum frame.
 pub async fn write_spectrum<W>(
     w: &mut W,
@@ -135,9 +165,7 @@ pub async fn write_spectrum<W>(
 where
     W: AsyncWrite + Unpin,
 {
-    encode_spectrum(frame, scratch)?;
-    w.write_all(scratch).await?;
-    Ok(())
+    write_audio_frame(w, FrameKind::Spectrum, frame, scratch).await
 }
 
 /// Reads one frame. Returns `Ok(None)` when the peer closed the connection cleanly
@@ -285,6 +313,37 @@ mod tests {
             frame.decode_spectrum(),
             Err(IpcError::MalformedSpectrum)
         ));
+    }
+
+    #[tokio::test]
+    async fn waveform_and_stereo_frames_round_trip() {
+        let wave = SpectrumFrame {
+            topic: 2,
+            seq: 11,
+            levels: vec![128, 200, 56, 128],
+        };
+        let stereo = SpectrumFrame {
+            topic: 3,
+            seq: 12,
+            levels: vec![90, 110, 10, 20, 30, 40],
+        };
+        let (mut a, mut b) = tokio::io::duplex(256);
+        let mut scratch = Vec::new();
+        write_audio_frame(&mut a, FrameKind::Waveform, &wave, &mut scratch)
+            .await
+            .unwrap();
+        write_audio_frame(&mut a, FrameKind::Stereo, &stereo, &mut scratch)
+            .await
+            .unwrap();
+        drop(a);
+
+        let f1 = read_frame(&mut b).await.unwrap().unwrap();
+        assert_eq!(f1.kind, FrameKind::Waveform);
+        assert_eq!(f1.decode_spectrum().unwrap(), wave);
+
+        let f2 = read_frame(&mut b).await.unwrap().unwrap();
+        assert_eq!(f2.kind, FrameKind::Stereo);
+        assert_eq!(f2.decode_spectrum().unwrap(), stereo);
     }
 
     proptest! {

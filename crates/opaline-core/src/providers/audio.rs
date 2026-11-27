@@ -21,7 +21,12 @@ pub const SPECTRUM: &str = "audio.spectrum";
 pub const STATE: &str = "audio.state";
 /// The `u16` id of `audio.spectrum` in binary frames.
 pub const SPECTRUM_ID: u16 = 1;
+/// The `u16` id of PCM waveform frames (`FrameKind::Waveform`).
+pub const WAVEFORM_ID: u16 = 2;
+/// The `u16` id of stereo RMS + L/R band frames (`FrameKind::Stereo`).
+pub const STEREO_ID: u16 = 3;
 pub const BANDS: usize = 32;
+pub const WAVEFORM_SAMPLES: usize = 128;
 pub const FFT_SIZE: usize = 2048;
 const FRAME: Duration = Duration::from_micros(16_667);
 const SILENCE_STOP: Duration = Duration::from_secs(3);
@@ -147,10 +152,87 @@ impl Analyzer {
     }
 }
 
-/// The newest mono samples from the capture thread.
+/// Downsamples the newest PCM samples into `WAVEFORM_SAMPLES` bytes (`[-1, 1] → 0..=255`, 128 = 0).
+pub fn waveform_bytes(samples: &[f32]) -> Vec<u8> {
+    if samples.is_empty() {
+        return vec![128; WAVEFORM_SAMPLES];
+    }
+    let window = &samples[samples.len().saturating_sub(FFT_SIZE)..];
+    let step = window.len() as f32 / WAVEFORM_SAMPLES as f32;
+    (0..WAVEFORM_SAMPLES)
+        .map(|i| {
+            let idx = ((i as f32) * step).floor() as usize;
+            let s = window.get(idx).copied().unwrap_or(0.0).clamp(-1.0, 1.0);
+            ((s * 0.5 + 0.5) * 255.0).round() as u8
+        })
+        .collect()
+}
+
+fn channel_rms(samples: &[f32]) -> f32 {
+    if samples.is_empty() {
+        return 0.0;
+    }
+    let window = &samples[samples.len().saturating_sub(FFT_SIZE)..];
+    let mean_sq = window.iter().map(|s| s * s).sum::<f32>() / window.len() as f32;
+    // Map RMS to 0..1 with a gentle musical curve matching VU meters.
+    let db = 20.0 * (mean_sq.sqrt() + 1e-6).log10();
+    ((db + 54.0) / 54.0).clamp(0.0, 1.0)
+}
+
+/// Per-channel stereo analyzer emitting `[left_rms, right_rms, left_32_bands..., right_32_bands...]`.
+#[derive(Debug)]
+pub struct StereoAnalyzer {
+    left: Analyzer,
+    right: Analyzer,
+    left_rms: f32,
+    right_rms: f32,
+}
+
+impl StereoAnalyzer {
+    pub fn new(rate: u32) -> Self {
+        Self {
+            left: Analyzer::new(rate),
+            right: Analyzer::new(rate),
+            left_rms: 0.0,
+            right_rms: 0.0,
+        }
+    }
+
+    pub fn set_rate(&mut self, rate: u32) {
+        self.left.set_rate(rate);
+        self.right.set_rate(rate);
+    }
+
+    pub fn process(&mut self, left: &[f32], right: &[f32]) {
+        self.left.process(left);
+        self.right.process(right);
+        let l = channel_rms(left);
+        let r = channel_rms(right);
+        self.left_rms += (l - self.left_rms) * if l > self.left_rms { 0.45 } else { 0.14 };
+        self.right_rms += (r - self.right_rms) * if r > self.right_rms { 0.45 } else { 0.14 };
+    }
+
+    pub fn bytes(&self) -> Vec<u8> {
+        let mut out = Vec::with_capacity(2 + BANDS * 2);
+        out.push((self.left_rms * 255.0).round() as u8);
+        out.push((self.right_rms * 255.0).round() as u8);
+        out.extend(self.left.levels().iter().map(|v| (v * 255.0).round() as u8));
+        out.extend(
+            self.right
+                .levels()
+                .iter()
+                .map(|v| (v * 255.0).round() as u8),
+        );
+        out
+    }
+}
+
+/// The newest mono and L/R samples from the capture thread.
 #[derive(Debug, Default)]
 struct Ring {
     samples: VecDeque<f32>,
+    left: VecDeque<f32>,
+    right: VecDeque<f32>,
     /// Peak amplitude since the analyser last looked (for silence detection).
     peak: f32,
 }
@@ -276,18 +358,24 @@ fn capture_loop(
             let bytes = &bytes[..size.min(bytes.len())];
             let mut ring = data.ring.lock().unwrap_or_else(PoisonError::into_inner);
             for frame in bytes.chunks_exact(4 * channels) {
-                let mono = frame
-                    .as_chunks::<4>()
-                    .0
-                    .iter()
-                    .map(|b| f32::from_le_bytes(*b))
-                    .sum::<f32>()
-                    / channels as f32;
-                ring.peak = ring.peak.max(mono.abs());
+                let chunks = frame.as_chunks::<4>().0;
+                let left = chunks.first().map_or(0.0, |b| f32::from_le_bytes(*b));
+                let right = chunks.get(1).map_or(left, |b| f32::from_le_bytes(*b));
+                let mono =
+                    chunks.iter().map(|b| f32::from_le_bytes(*b)).sum::<f32>() / channels as f32;
+                ring.peak = ring.peak.max(mono.abs()).max(left.abs()).max(right.abs());
                 if ring.samples.len() == RING_CAP {
                     ring.samples.pop_front();
                 }
                 ring.samples.push_back(mono);
+                if ring.left.len() == RING_CAP {
+                    ring.left.pop_front();
+                }
+                ring.left.push_back(left);
+                if ring.right.len() == RING_CAP {
+                    ring.right.pop_front();
+                }
+                ring.right.push_back(right);
             }
         })
         .register()
@@ -380,8 +468,11 @@ pub async fn run(hub: Arc<Hub>) -> Result<(), String> {
         tracing::debug!("visualizer capture started");
 
         let mut analyzer = Analyzer::new(rate.load(Ordering::Relaxed));
+        let mut stereo = StereoAnalyzer::new(rate.load(Ordering::Relaxed));
         let mut current_rate = rate.load(Ordering::Relaxed);
         let mut samples = Vec::with_capacity(FFT_SIZE);
+        let mut left = Vec::with_capacity(FFT_SIZE);
+        let mut right = Vec::with_capacity(FFT_SIZE);
         let mut last_sound = Instant::now();
         let mut tick = tokio::time::interval(FRAME);
         tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
@@ -396,12 +487,17 @@ pub async fn run(hub: Arc<Hub>) -> Result<(), String> {
             let r = rate.load(Ordering::Relaxed);
             if r != current_rate && r > 0 {
                 analyzer.set_rate(r);
+                stereo.set_rate(r);
                 current_rate = r;
             }
             let peak = {
                 let mut ring = ring.lock().unwrap_or_else(PoisonError::into_inner);
                 samples.clear();
                 samples.extend(ring.samples.iter());
+                left.clear();
+                left.extend(ring.left.iter());
+                right.clear();
+                right.extend(ring.right.iter());
                 std::mem::take(&mut ring.peak)
             };
             if peak > SILENCE_LEVEL {
@@ -410,11 +506,22 @@ pub async fn run(hub: Arc<Hub>) -> Result<(), String> {
                 break "silent";
             }
             analyzer.process(&samples);
+            stereo.process(&left, &right);
             seq = seq.wrapping_add(1);
             hub.publish_spectrum(SpectrumFrame {
                 topic: SPECTRUM_ID,
                 seq,
                 levels: analyzer.bytes(),
+            });
+            hub.publish_spectrum(SpectrumFrame {
+                topic: WAVEFORM_ID,
+                seq,
+                levels: waveform_bytes(&samples),
+            });
+            hub.publish_spectrum(SpectrumFrame {
+                topic: STEREO_ID,
+                seq,
+                levels: stereo.bytes(),
             });
         };
         drop(capture);
@@ -495,5 +602,31 @@ mod tests {
         assert_eq!(bins.len(), BANDS);
         assert!(bins.iter().all(|(a, b)| b > a));
         assert!(bins.last().is_some_and(|(_, b)| *b <= FFT_SIZE / 2));
+    }
+
+    #[test]
+    fn waveform_maps_pcm_range_centered_at_128() {
+        assert_eq!(waveform_bytes(&[]), vec![128; WAVEFORM_SAMPLES]);
+        let wave = waveform_bytes(&[-1.0, 0.0, 1.0]);
+        assert_eq!(wave.len(), WAVEFORM_SAMPLES);
+        assert_eq!(wave[0], 0);
+        assert!(wave[WAVEFORM_SAMPLES / 2].abs_diff(128) <= 1);
+        assert_eq!(wave[WAVEFORM_SAMPLES - 1], 255);
+    }
+
+    #[test]
+    fn stereo_analyzer_tracks_left_and_right_separately() {
+        let mut s = StereoAnalyzer::new(48_000);
+        let tone = sine(880.0, 0.6, 48_000);
+        let silence = vec![0.0; FFT_SIZE];
+        for _ in 0..8 {
+            s.process(&tone, &silence);
+        }
+        let b = s.bytes();
+        assert_eq!(b.len(), 2 + BANDS * 2);
+        assert!(b[0] > 120, "left RMS should be active: {}", b[0]);
+        assert_eq!(b[1], 0, "right RMS should be silent");
+        assert!(b[2..2 + BANDS].iter().any(|v| *v > 180));
+        assert!(b[2 + BANDS..].iter().all(|v| *v == 0));
     }
 }

@@ -10,7 +10,10 @@ pub mod frame;
 pub mod paths;
 pub mod proto;
 
-pub use frame::{FrameKind, RawFrame, SpectrumFrame, read_frame, write_message, write_spectrum};
+pub use frame::{
+    FrameKind, RawFrame, SpectrumFrame, encode_audio_frame, read_frame, write_audio_frame,
+    write_message, write_spectrum,
+};
 pub use proto::*;
 
 /// Bumped on every incompatible protocol change. Core and layer ship in one binary, so a

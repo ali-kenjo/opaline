@@ -9,6 +9,9 @@ import type { Command } from "../layer/protocol";
 export const COMMANDS: Readonly<Record<string, { confirm: boolean }>> = {
   media: { confirm: false },
   "media-seek": { confirm: false },
+  "media-shuffle": { confirm: false },
+  "media-loop": { confirm: false },
+  "media-volume": { confirm: false },
   "set-power-profile": { confirm: false },
   container: { confirm: false },
   "start-docker-desktop": { confirm: false },

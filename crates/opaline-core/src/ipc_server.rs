@@ -305,7 +305,13 @@ async fn handle_client(hub: Arc<Hub>, stream: UnixStream) -> Result<(), ClientEr
             frame = spectrum.recv() => match frame {
                 Ok(frame) => {
                     if subs.pushes(&Topic::new(crate::providers::audio::SPECTRUM)) {
-                        opaline_ipc::write_spectrum(&mut writer, &frame, &mut scratch).await?;
+                        let kind = match frame.topic {
+                            crate::providers::audio::WAVEFORM_ID => opaline_ipc::FrameKind::Waveform,
+                            crate::providers::audio::STEREO_ID => opaline_ipc::FrameKind::Stereo,
+                            _ => opaline_ipc::FrameKind::Spectrum,
+                        };
+                        opaline_ipc::write_audio_frame(&mut writer, kind, &frame, &mut scratch)
+                            .await?;
                     }
                 }
                 Err(broadcast::error::RecvError::Lagged(_)) => {}

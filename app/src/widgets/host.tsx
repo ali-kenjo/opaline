@@ -47,6 +47,10 @@ export interface WidgetHost {
   command(cmd: Command): Promise<CommandResult>;
   /** Visualizer frames; returns the unsubscribe function. */
   onSpectrum(listener: (levels: readonly number[]) => void): () => void;
+  /** Optional PCM waveform frames (128 samples, 0–255 centered at 128). */
+  onWaveform?: (listener: (samples: readonly number[]) => void) => () => void;
+  /** Optional stereo RMS + L/R band frames. */
+  onStereo?: (listener: (frame: import("./spectrum").StereoFrame) => void) => () => void;
   /** Installed font families (fontconfig), or none outside Opaline. */
   listFonts(): Promise<string[]>;
   colors: ColorContext;

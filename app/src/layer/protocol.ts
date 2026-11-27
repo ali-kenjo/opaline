@@ -54,6 +54,9 @@ export type Command =
   | { cmd: "set-power-profile"; profile: string }
   | { cmd: "media"; player: string; action: MediaAction }
   | { cmd: "media-seek"; player: string; position_us: number }
+  | { cmd: "media-shuffle"; player: string; shuffle: boolean }
+  | { cmd: "media-loop"; player: string; status: "None" | "Track" | "Playlist" }
+  | { cmd: "media-volume"; player: string; volume: number }
   | { cmd: "end-task"; pid: number; start: number; force: boolean }
   | { cmd: "container"; id: string; action: "start" | "stop" | "restart" }
   | { cmd: "start-docker-desktop" }
@@ -84,6 +87,15 @@ export type LayerEvent =
   | { kind: "rejected"; reason: string }
   | { kind: "update"; seq: number; atMs: number; updates: TopicUpdate[] }
   | { kind: "spectrum"; seq: number; levels: number[] }
+  | { kind: "waveform"; seq: number; samples: number[] }
+  | {
+      kind: "stereo";
+      seq: number;
+      leftRms: number;
+      rightRms: number;
+      left: number[];
+      right: number[];
+    }
   | { kind: "geometry"; x: number; y: number; width: number; height: number }
   | { kind: "peek"; active: boolean }
   | { kind: "edit"; active: boolean }

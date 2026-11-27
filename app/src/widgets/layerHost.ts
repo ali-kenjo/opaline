@@ -11,7 +11,14 @@ import type { ActivityClass, Value } from "../layer/protocol";
 import { useLayer } from "../layer/store";
 import type { StoredSettings, StoredWidget, ThemeStyleLayers } from "./host";
 import { type Json, fromJson, toJson } from "./json";
-import { emitSpectrum, onSpectrum } from "./spectrum";
+import {
+  emitSpectrum,
+  emitStereo,
+  emitWaveform,
+  onSpectrum,
+  onStereo,
+  onWaveform,
+} from "./spectrum";
 
 import type { LayoutItem, LayoutsDoc } from "../layer/grid";
 
@@ -222,6 +229,14 @@ export async function attachLayer(): Promise<void> {
   const apply = useLayer.getState().apply;
   await attach((event) => {
     if (event.kind === "spectrum") emitSpectrum(event.levels);
+    else if (event.kind === "waveform") emitWaveform(event.samples);
+    else if (event.kind === "stereo")
+      emitStereo({
+        leftRms: event.leftRms,
+        rightRms: event.rightRms,
+        left: event.left,
+        right: event.right,
+      });
     else apply(event);
   });
 }
@@ -319,6 +334,8 @@ export function useCoreHost(monitorKey: string | null): import("./host").WidgetH
       listFonts,
       command: (cmd) => command(cmd),
       onSpectrum,
+      onWaveform,
+      onStereo,
       colors,
     }),
     [settings, theme, colors],

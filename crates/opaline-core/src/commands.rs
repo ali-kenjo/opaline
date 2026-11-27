@@ -99,6 +99,9 @@ async fn run(command: Command) -> Result<(), String> {
             player,
             position_us,
         } => media::set_position(&player, position_us).await,
+        Command::MediaShuffle { player, shuffle } => media::set_shuffle(&player, shuffle).await,
+        Command::MediaLoop { player, status } => media::set_loop_status(&player, &status).await,
+        Command::MediaVolume { player, volume } => media::set_volume(&player, volume).await,
         Command::EndTask { pid, start, force } => {
             crate::providers::processes::signal(pid, start, force)
         }

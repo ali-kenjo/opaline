@@ -54,6 +54,8 @@ export function reduce(state: LayerState, event: LayerEvent): Partial<LayerState
       return { values };
     }
     case "spectrum":
+    case "waveform":
+    case "stereo":
       // Routed to the visualizer directly (widgets/spectrum.ts), never through the store.
       return {};
     case "geometry":

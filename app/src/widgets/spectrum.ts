@@ -1,16 +1,49 @@
-// Visualizer frames (levels then peaks, 0–255) arrive about 60 times a second. They bypass the
-// stores: the visualizer draws them straight to its canvas.
-type Listener = (levels: readonly number[]) => void;
-
-const listeners = new Set<Listener>();
-
-export function emitSpectrum(levels: readonly number[]): void {
-  for (const l of listeners) l(levels);
+// Visualizer audio frames arrive about 60 times a second. They bypass the stores so the
+// visualizer draws them straight to its canvas/WebGL surface.
+export interface StereoFrame {
+  leftRms: number;
+  rightRms: number;
+  left: readonly number[];
+  right: readonly number[];
 }
 
-export function onSpectrum(listener: Listener): () => void {
-  listeners.add(listener);
+type SpectrumListener = (levels: readonly number[]) => void;
+type WaveformListener = (samples: readonly number[]) => void;
+type StereoListener = (frame: StereoFrame) => void;
+
+const spectrumListeners = new Set<SpectrumListener>();
+const waveformListeners = new Set<WaveformListener>();
+const stereoListeners = new Set<StereoListener>();
+
+export function emitSpectrum(levels: readonly number[]): void {
+  for (const l of spectrumListeners) l(levels);
+}
+
+export function onSpectrum(listener: SpectrumListener): () => void {
+  spectrumListeners.add(listener);
   return () => {
-    listeners.delete(listener);
+    spectrumListeners.delete(listener);
+  };
+}
+
+export function emitWaveform(samples: readonly number[]): void {
+  for (const l of waveformListeners) l(samples);
+}
+
+export function onWaveform(listener: WaveformListener): () => void {
+  waveformListeners.add(listener);
+  return () => {
+    waveformListeners.delete(listener);
+  };
+}
+
+export function emitStereo(frame: StereoFrame): void {
+  for (const l of stereoListeners) l(frame);
+}
+
+export function onStereo(listener: StereoListener): () => void {
+  stereoListeners.add(listener);
+  return () => {
+    stereoListeners.delete(listener);
   };
 }

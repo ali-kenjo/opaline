@@ -223,6 +223,21 @@ fn index_desktop_files(root: &Root) -> HashMap<String, DesktopEntry> {
     index
 }
 
+/// Parses `/proc/<pid>/io`, returning total physical `read_bytes + write_bytes`.
+pub fn parse_proc_io(text: &str) -> Option<u64> {
+    let mut read = None;
+    let mut write = None;
+    for line in text.lines() {
+        if let Some(v) = line.strip_prefix("read_bytes:") {
+            read = v.trim().parse::<u64>().ok();
+        } else if let Some(v) = line.strip_prefix("write_bytes:") {
+            write = v.trim().parse::<u64>().ok();
+        }
+    }
+    (read.is_some() || write.is_some())
+        .then_some(read.unwrap_or(0).saturating_add(write.unwrap_or(0)))
+}
+
 #[derive(Debug, Clone)]
 struct Proc {
     pid: u32,
@@ -230,6 +245,7 @@ struct Proc {
     app: AppKey,
     own: bool,
     cpu: f64,
+    io_bps: f64,
 }
 
 pub struct Processes {
@@ -239,6 +255,9 @@ pub struct Processes {
     prev_total: Option<u64>,
     /// `(pid, start)` → cpu ticks at the last sample.
     prev: HashMap<(u32, u64), u64>,
+    /// `(pid, start)` → total disk read+write bytes at the last sample.
+    prev_io: HashMap<(u32, u64), u64>,
+    prev_io_at: Option<Instant>,
     /// `(pid, start)` → app, read once per process.
     apps: HashMap<(u32, u64), (AppKey, bool)>,
     desktop: HashMap<String, DesktopEntry>,
@@ -268,6 +287,8 @@ impl Processes {
             page: rustix::param::page_size() as u64,
             prev_total: None,
             prev: HashMap::new(),
+            prev_io: HashMap::new(),
+            prev_io_at: None,
             apps: HashMap::new(),
             desktop: HashMap::new(),
             desktop_at: None,
@@ -300,7 +321,12 @@ impl Processes {
             (Some(p), Some(t)) if t > p => Some((t - p) as f64),
             _ => None,
         };
+        let io_dt = self
+            .prev_io_at
+            .map(|at| now.duration_since(at).as_secs_f64())
+            .filter(|dt| *dt > 0.05);
         let mut seen = HashMap::new();
+        let mut seen_io = HashMap::new();
         let mut procs = Vec::new();
         for pid in self
             .root
@@ -333,6 +359,26 @@ impl Processes {
                 (Some(dt), Some(prev)) => stat.cpu_ticks.saturating_sub(*prev) as f64 / dt * 100.0,
                 _ => 0.0,
             };
+            let io_bps = if own {
+                let total_io = self
+                    .root
+                    .read(format!("/proc/{pid}/io"))
+                    .ok()
+                    .and_then(|t| parse_proc_io(&t));
+                match (total_io, io_dt, self.prev_io.get(&key)) {
+                    (Some(cur), Some(sec), Some(prev)) => {
+                        seen_io.insert(key, cur);
+                        cur.saturating_sub(*prev) as f64 / sec
+                    }
+                    (Some(cur), _, _) => {
+                        seen_io.insert(key, cur);
+                        0.0
+                    }
+                    _ => 0.0,
+                }
+            } else {
+                0.0
+            };
             seen.insert(key, stat.cpu_ticks);
             procs.push(Proc {
                 pid,
@@ -340,11 +386,14 @@ impl Processes {
                 app,
                 own,
                 cpu,
+                io_bps,
             });
         }
         self.apps.retain(|k, _| seen.contains_key(k));
         self.pss.retain(|k, _| seen.contains_key(k));
         self.prev = seen;
+        self.prev_io = seen_io;
+        self.prev_io_at = Some(now);
         self.prev_total = total;
 
         if self
@@ -432,19 +481,22 @@ impl Provider for Processes {
         };
         let mut out = Vec::new();
         if cx.is_due(APPS) {
-            let mut groups: BTreeMap<AppKey, (f64, u64, Vec<&Proc>)> = BTreeMap::new();
+            let mut groups: BTreeMap<AppKey, (f64, u64, f64, Vec<&Proc>)> = BTreeMap::new();
             for p in &procs {
-                let g = groups.entry(p.app.clone()).or_insert((0.0, 0, Vec::new()));
+                let g = groups
+                    .entry(p.app.clone())
+                    .or_insert((0.0, 0, 0.0, Vec::new()));
                 g.0 += p.cpu;
                 g.1 += mem(&self.pss, p);
-                g.2.push(p);
+                g.2 += p.io_bps;
+                g.3.push(p);
             }
             let mut list: Vec<_> = groups.into_iter().collect();
             list.sort_by(|a, b| b.1.0.total_cmp(&a.1.0).then(b.1.1.cmp(&a.1.1)));
             let apps = list
                 .into_iter()
                 .take(TOP_APPS)
-                .map(|(key, (cpu, mem_b, members))| {
+                .map(|(key, (cpu, mem_b, io_bps, members))| {
                     let leader = members
                         .iter()
                         .max_by_key(|p| p.stat.rss_pages)
@@ -459,6 +511,7 @@ impl Provider for Processes {
                         ("system", Value::Bool(key == AppKey::System)),
                         ("cpu", Value::Num(cpu)),
                         ("memB", Value::Num(mem_b as f64)),
+                        ("ioBps", Value::Num(io_bps)),
                         ("processes", Value::Num(members.len() as f64)),
                     ])
                 })
@@ -476,15 +529,18 @@ impl Provider for Processes {
                 .into_iter()
                 .take(TOP_PROCESSES)
                 .map(|p| {
-                    let (app, _, _) = self.app_label(&p.app, &p.stat.comm);
+                    let (app, _, icon) = self.app_label(&p.app, &p.stat.comm);
+                    let icon_url = icon.as_deref().and_then(|name| self.icons.resolve(name));
                     Value::map([
                         ("pid", Value::Num(f64::from(p.pid))),
                         ("start", Value::Num(p.stat.start as f64)),
                         ("name", Value::from(p.stat.comm.as_str())),
                         ("app", Value::from(app)),
+                        ("iconUrl", Value::from(icon_url)),
                         ("own", Value::Bool(p.own)),
                         ("cpu", Value::Num(p.cpu)),
                         ("memB", Value::Num(mem(&self.pss, p) as f64)),
+                        ("ioBps", Value::Num(p.io_bps)),
                     ])
                 })
                 .collect();
@@ -609,5 +665,12 @@ mod tests {
             panic!()
         };
         assert!(!list.is_empty());
+    }
+
+    #[test]
+    fn proc_io_parsing() {
+        let text = "rchar: 9999\nwchar: 8888\nread_bytes: 4096\nwrite_bytes: 8192\n";
+        assert_eq!(parse_proc_io(text), Some(12_288));
+        assert_eq!(parse_proc_io("rchar: 100\n"), None);
     }
 }

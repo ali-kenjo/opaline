@@ -156,12 +156,30 @@ async fn session(
                         Err(error) => break Err(error.into()),
                     }
                 }
-                Some(Ok(Some(frame))) => match frame.decode_spectrum() {
-                    Ok(spectrum) => bridge.broadcast(&LayerEvent::Spectrum {
+                Some(Ok(Some(frame))) => match (frame.kind, frame.decode_spectrum()) {
+                    (FrameKind::Spectrum, Ok(spectrum)) => bridge.broadcast(&LayerEvent::Spectrum {
                         seq: spectrum.seq,
                         levels: spectrum.levels,
                     }),
-                    Err(error) => tracing::debug!(%error, "malformed spectrum frame"),
+                    (FrameKind::Waveform, Ok(wave)) => bridge.broadcast(&LayerEvent::Waveform {
+                        seq: wave.seq,
+                        samples: wave.levels,
+                    }),
+                    (FrameKind::Stereo, Ok(stereo)) if stereo.levels.len() >= 2 => {
+                        let left_rms = stereo.levels[0];
+                        let right_rms = stereo.levels[1];
+                        let bands = &stereo.levels[2..];
+                        let half = bands.len() / 2;
+                        bridge.broadcast(&LayerEvent::Stereo {
+                            seq: stereo.seq,
+                            left_rms,
+                            right_rms,
+                            left: bands[..half].to_vec(),
+                            right: bands[half..].to_vec(),
+                        });
+                    }
+                    (_, Err(error)) => tracing::debug!(%error, "malformed audio frame"),
+                    _ => {}
                 },
             },
             msg = outgoing.recv() => match msg {

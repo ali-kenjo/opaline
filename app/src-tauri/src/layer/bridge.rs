@@ -57,6 +57,19 @@ pub enum LayerEvent {
         seq: u32,
         levels: Vec<u8>,
     },
+    /// PCM waveform samples (128 bytes mapped 0..=255, center 128), about 60 per second while capturing.
+    Waveform {
+        seq: u32,
+        samples: Vec<u8>,
+    },
+    /// Stereo RMS and L/R frequency bands (`left_rms`, `right_rms`, 32 L bands, 32 R bands).
+    Stereo {
+        seq: u32,
+        left_rms: u8,
+        right_rms: u8,
+        left: Vec<u8>,
+        right: Vec<u8>,
+    },
     /// Peek mode across every layer window (kept in sync when any window dismisses it).
     Peek {
         active: bool,

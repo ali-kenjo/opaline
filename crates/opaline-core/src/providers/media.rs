@@ -29,6 +29,82 @@ const ROOT_IFACE: &str = "org.mpris.MediaPlayer2";
 const PLAYER_IFACE: &str = "org.mpris.MediaPlayer2.Player";
 const PERIOD: Duration = Duration::from_secs(30);
 const ART_MAX: usize = 5 << 20;
+const LRC_MAX: usize = 128 << 10;
+
+/// One timestamped lyric line from a sibling `.lrc` file.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LyricLine {
+    pub ms: u64,
+    pub text: String,
+}
+
+/// Parses standard LRC synced lyrics (`[mm:ss.xx] line`, supporting multiple timestamps per line).
+pub fn parse_lrc(text: &str) -> Vec<LyricLine> {
+    let mut lines = Vec::new();
+    for raw in text.lines() {
+        let mut rest = raw.trim();
+        let mut times = Vec::new();
+        while let Some(after_open) = rest.strip_prefix('[') {
+            let Some((tag, tail)) = after_open.split_once(']') else {
+                break;
+            };
+            if let Some(ms) = parse_lrc_timestamp(tag) {
+                times.push(ms);
+                rest = tail.trim_start();
+            } else {
+                // Metadata tag like [ar:Artist] or [ti:Title]; skip line if no timestamps yet.
+                rest = tail.trim_start();
+            }
+        }
+        let body = rest.trim();
+        if times.is_empty() || body.is_empty() {
+            continue;
+        }
+        for ms in times {
+            lines.push(LyricLine {
+                ms,
+                text: body.to_owned(),
+            });
+        }
+    }
+    lines.sort_by_key(|l| l.ms);
+    lines
+}
+
+fn parse_lrc_timestamp(tag: &str) -> Option<u64> {
+    let (mins, secs_part) = tag.split_once(':')?;
+    let mins: u64 = mins.trim().parse().ok()?;
+    let (secs, frac_ms) = match secs_part.split_once('.') {
+        Some((s, f)) => {
+            let secs: u64 = s.parse().ok()?;
+            let frac_digits: String = f.chars().take(3).collect();
+            let raw: u64 = frac_digits.parse().ok()?;
+            let ms = match frac_digits.len() {
+                1 => raw * 100,
+                2 => raw * 10,
+                3 => raw,
+                _ => 0,
+            };
+            (secs, ms)
+        }
+        None => (secs_part.parse::<u64>().ok()?, 0),
+    };
+    Some(mins * 60_000 + secs * 1_000 + frac_ms)
+}
+
+/// Loads sibling `.lrc` lyrics next to a local `file://` audio track (capped at `LRC_MAX`).
+fn load_sibling_lrc(url: &str) -> Option<Vec<LyricLine>> {
+    let path_str = url.strip_prefix("file://")?;
+    let mut path = PathBuf::from(percent_decode(path_str));
+    path.set_extension("lrc");
+    let meta = std::fs::metadata(&path).ok()?;
+    if !meta.is_file() || meta.len() > LRC_MAX as u64 {
+        return None;
+    }
+    let text = std::fs::read_to_string(&path).ok()?;
+    let parsed = parse_lrc(&text);
+    (!parsed.is_empty()).then_some(parsed)
+}
 
 /// One player as read from D-Bus.
 #[derive(Debug, Clone, Default)]
@@ -52,7 +128,7 @@ pub fn select<'a>(
     })
 }
 
-pub fn player_value(p: &Player, art: Option<&str>) -> Value {
+pub fn player_value(p: &Player, art: Option<&str>, lyrics: Option<&[LyricLine]>) -> Value {
     let m = &p.metadata;
     let flag = |k: &str| Value::Bool(p.player.flag(k).unwrap_or(false));
     let mut e = vec![
@@ -109,8 +185,35 @@ pub fn player_value(p: &Player, art: Option<&str>) -> Value {
         ("canSeek", flag("CanSeek")),
         ("canControl", flag("CanControl")),
     ];
+    if let Some(shuffle) = p.player.flag("Shuffle") {
+        e.push(("shuffle", Value::Bool(shuffle)));
+    }
+    if let Some(loop_status) = p.player.str("LoopStatus") {
+        e.push(("loopStatus", Value::from(loop_status)));
+    }
+    if let Some(volume) = p.player.num("Volume") {
+        e.push(("volume", Value::Num(volume.clamp(0.0, 1.5))));
+    }
     if let Some(url) = art {
         e.push(("art", Value::from(url)));
+    }
+    if let Some(lines) = lyrics
+        && !lines.is_empty()
+    {
+        e.push((
+            "lyrics",
+            Value::List(
+                lines
+                    .iter()
+                    .map(|l| {
+                        Value::map([
+                            ("ms", Value::Num(l.ms as f64)),
+                            ("text", Value::from(l.text.as_str())),
+                        ])
+                    })
+                    .collect(),
+            ),
+        ));
     }
     Value::map(e)
 }
@@ -320,13 +423,22 @@ async fn fetch(
         }
         None => None,
     };
-    let list = Value::List(players.iter().map(|p| player_value(p, None)).collect());
+    let lyrics = selected
+        .as_ref()
+        .and_then(|p| p.metadata.str("xesam:url"))
+        .and_then(load_sibling_lrc);
+    let list = Value::List(
+        players
+            .iter()
+            .map(|p| player_value(p, None, None))
+            .collect(),
+    );
     Ok(vec![
         update(
             PLAYER,
             selected.map_or_else(
                 || Value::unavailable("no-player"),
-                |p| player_value(&p, art_path.as_deref()),
+                |p| player_value(&p, art_path.as_deref(), lyrics.as_deref()),
             ),
         ),
         update(PLAYERS, list),
@@ -441,6 +553,48 @@ pub async fn set_position(bus: &str, position_us: i64) -> Result<(), String> {
     .map_err(|e| e.to_string())
 }
 
+async fn set_player_property(
+    bus: &str,
+    property: &str,
+    value: zbus::Variant<'_>,
+) -> Result<(), String> {
+    let conn = Connection::session().await.map_err(|e| e.to_string())?;
+    if !list_players(&conn).await?.iter().any(|p| p == bus) {
+        return Err("unknown-player".into());
+    }
+    conn.call_method(
+        Some(bus),
+        PATH,
+        Some("org.freedesktop.DBus.Properties"),
+        "Set",
+        &(PLAYER_IFACE, property, value),
+    )
+    .await
+    .map(|_| ())
+    .map_err(|e| e.to_string())
+}
+
+/// Sets MPRIS `Shuffle` on a running player.
+pub async fn set_shuffle(bus: &str, shuffle: bool) -> Result<(), String> {
+    set_player_property(bus, "Shuffle", zbus::Variant::Bool(shuffle)).await
+}
+
+/// Sets MPRIS `LoopStatus` (`None`, `Track`, or `Playlist`) on a running player.
+pub async fn set_loop_status(bus: &str, status: &str) -> Result<(), String> {
+    if !matches!(status, "None" | "Track" | "Playlist") {
+        return Err("invalid-loop-status".into());
+    }
+    set_player_property(bus, "LoopStatus", zbus::Variant::Str(status.into())).await
+}
+
+/// Sets MPRIS `Volume` (`0.0..=1.0`) on a running player.
+pub async fn set_volume(bus: &str, volume: f64) -> Result<(), String> {
+    if !volume.is_finite() {
+        return Err("invalid-volume".into());
+    }
+    set_player_property(bus, "Volume", zbus::Variant::F64(volume.clamp(0.0, 1.0))).await
+}
+
 #[cfg(test)]
 mod tests {
     #![allow(clippy::unwrap_used, clippy::panic)]
@@ -497,10 +651,14 @@ mod tests {
 
     #[test]
     fn value_shape() {
-        let Value::Map(m) = player_value(
-            &player("org.mpris.MediaPlayer2.x", "Playing"),
-            Some("opaline-asset://art/a.jpg"),
-        ) else {
+        let mut p = player("org.mpris.MediaPlayer2.x", "Playing");
+        p.player.insert("Shuffle".into(), Prop::Bool(true));
+        p.player
+            .insert("LoopStatus".into(), Prop::Str("Playlist".into()));
+        p.player.insert("Volume".into(), Prop::Num(0.75));
+        let lyrics = parse_lrc("[00:05.50]Hello world\n[00:12.00]Second line\n");
+        let Value::Map(m) = player_value(&p, Some("opaline-asset://art/a.jpg"), Some(&lyrics))
+        else {
             panic!()
         };
         assert_eq!(m["title"], Value::from("Song"));
@@ -511,7 +669,34 @@ mod tests {
         assert_eq!(m["lengthUs"], Value::Num(180_000_000.0));
         assert_eq!(m["canPause"], Value::Bool(true));
         assert_eq!(m["canNext"], Value::Bool(false));
+        assert_eq!(m["shuffle"], Value::Bool(true));
+        assert_eq!(m["loopStatus"], Value::from("Playlist"));
+        assert_eq!(m["volume"], Value::Num(0.75));
         assert_eq!(m["art"], Value::from("opaline-asset://art/a.jpg"));
+        assert!(matches!(m.get("lyrics"), Some(Value::List(v)) if v.len() == 2));
+    }
+
+    #[test]
+    fn parses_lrc_timestamps_and_skips_metadata() {
+        let lrc = "[ti:Track]\n[ar:Artist]\n[01:02.50][00:05.2]Chorus line\n[00:10]Ten sec\n";
+        let lines = parse_lrc(lrc);
+        assert_eq!(
+            lines,
+            vec![
+                LyricLine {
+                    ms: 5_200,
+                    text: "Chorus line".into()
+                },
+                LyricLine {
+                    ms: 10_000,
+                    text: "Ten sec".into()
+                },
+                LyricLine {
+                    ms: 62_500,
+                    text: "Chorus line".into()
+                },
+            ]
+        );
     }
 
     #[test]

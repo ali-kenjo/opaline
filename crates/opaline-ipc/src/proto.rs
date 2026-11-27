@@ -254,6 +254,12 @@ pub enum Command {
     Media { player: String, action: MediaAction },
     /// Seek a player to an absolute position.
     MediaSeek { player: String, position_us: i64 },
+    /// Toggle shuffle on an MPRIS player.
+    MediaShuffle { player: String, shuffle: bool },
+    /// Set loop status (`None`, `Track`, `Playlist`) on an MPRIS player.
+    MediaLoop { player: String, status: String },
+    /// Set player volume (`0.0..=1.0`) on an MPRIS player.
+    MediaVolume { player: String, volume: f64 },
     /// SIGTERM (or SIGKILL with `force`) to one of the user's processes; `start` (from
     /// `processes.list`) guards against PID reuse.
     EndTask { pid: u32, start: u64, force: bool },
