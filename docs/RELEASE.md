@@ -56,7 +56,9 @@ On a fresh Ubuntu 26.04 LTS desktop VM (and on the owner's laptop with a backup 
 
 ## 4. Tagging `v2.0.0`
 
-1. Bump `version` to `"2.0.0"` in `Cargo.toml`, `app/package.json`, `app/src-tauri/tauri.conf.json`, and `packaging/metainfo/io.github.ali_kenjo.Opaline.metainfo.xml`.
+1. Bump `version` in the workspace `Cargo.toml` (every crate and Tauri read it from there; `app/package.json` and
+   `tauri.conf.json` carry no version), run `cargo update -w --offline`, and add a `<release>` entry to
+   `packaging/metainfo/io.github.ali_kenjo.Opaline.metainfo.xml`.
 2. Commit `release: v2.0.0`, push `main`, verify CI is green, then tag and push:
    ```bash
    git tag -a v2.0.0 -m "Opaline 2.0.0"

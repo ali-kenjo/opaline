@@ -3194,7 +3194,7 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 
 [[package]]
 name = "opaline"
-version = "1.1.0"
+version = "2.0.0"
 dependencies = [
  "clap",
  "gtk",
@@ -3212,7 +3212,7 @@ dependencies = [
 
 [[package]]
 name = "opaline-compose"
-version = "1.1.0"
+version = "2.0.0"
 dependencies = [
  "opaline-expr",
  "schemars 1.2.3",
@@ -3222,7 +3222,7 @@ dependencies = [
 
 [[package]]
 name = "opaline-core"
-version = "1.1.0"
+version = "2.0.0"
 dependencies = [
  "base64 0.22.1",
  "bollard",
@@ -3268,7 +3268,7 @@ dependencies = [
 
 [[package]]
 name = "opaline-expr"
-version = "1.1.0"
+version = "2.0.0"
 dependencies = [
  "proptest",
  "serde_json",
@@ -3276,7 +3276,7 @@ dependencies = [
 
 [[package]]
 name = "opaline-ipc"
-version = "1.1.0"
+version = "2.0.0"
 dependencies = [
  "proptest",
  "rmp-serde",
@@ -3287,7 +3287,7 @@ dependencies = [
 
 [[package]]
 name = "opaline-privileged"
-version = "1.1.0"
+version = "2.0.0"
 dependencies = [
  "tokio",
  "zbus",

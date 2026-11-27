@@ -67,8 +67,7 @@ All checks pass cleanly with zero warnings/errors:
      - Test Quick Controls (Wi-Fi/Bluetooth/volume/brightness), Notes/Photos folders, local Docker Desktop / n8n (`localhost:5678`), `opaline ctl status --json`, and record fresh RAM/CPU via `scripts/measure-budget.sh 60` (budget: ≤ 450 MB PSS, ≤ 0.5% idle CPU).
      - To test Shell1 API v2 (`ActiveWorkspaceChanged`, `FocusedAppChanged`, `FullscreenChanged`), copy `desktop-integration/` into `~/.local/share/gnome-shell/extensions/opaline-desktop@ali-kenjo.github.io/` and have the owner re-login once.
    - **Version bump, `.deb` build, VM test, and `v2.0.0` tag:**
-     - Bump `1.1.0` → `2.0.0` in `Cargo.toml`, `app/package.json`, `app/src-tauri/tauri.conf.json`, and `packaging/metainfo/io.github.ali_kenjo.Opaline.metainfo.xml`.
-     - Run `./scripts/stage-deb-assets.sh && cd app && pnpm tauri build --bundles deb` and verify `dpkg-deb -c` includes all schemas, themes, helper v2, and bash/zsh/fish completions.
+     - ~~Version bump and `.deb` build~~ — done 2026-11-27 (commit `release: v2.0.0`): `Opaline_2.0.0_amd64.deb` (16.4 MiB) holds all 37 listed files byte-identical to source (10 themes, 8 schemas, helper `version-name` 2.0, completions); all checks green (263 Rust, 318 Vitest, 90/90 e2e).
      - Run the clean Ubuntu 26.04 VM & 1.1 → 2.0 upgrade checklist (`docs/RELEASE.md`), tag `v2.0.0`, and push tag so `.github/workflows/release.yml` publishes the signed GitHub Release.
 
 ---
