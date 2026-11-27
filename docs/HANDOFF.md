@@ -74,9 +74,19 @@ All checks pass cleanly with zero warnings/errors:
 
 ---
 
+## 4b. After v2.0.0 (on `main`, not released yet — candidate 2.0.1)
+
+- `fix(widgets)`: GPU without usage figures says "This GPU doesn't report usage"; drive health `unknown` shows no badge.
+- `fix(compose)`: M cards no longer cut their first line (line-height 1.25 in weather/calendar/processes/docker lists, 4×2 weather = hero + hourly, `align-items: safe center` in canvas blocks); S weather stacks condition under the temperature.
+- `feat(style)`: a hero role's `fontSize` is its M size, scaled per size class; Opaline and Crystal use 60 px (DESIGN-2 asks 96–124 px at M, which needs the §3.3 auto-fit first).
+- `fix(compose)`: visuals' big numbers (`data-hero`: weather temp, battery/memory %, clock faces) take the theme hero typography, so Bloom/Air/Paper/Mono get theirs; e2e checks every hero in every look.
+- Known leftovers: Terminal's docker list loses the 2nd container's subtitle at M; Neon/Instrument hide the iGPU name in the GPU card; numeric auto-fit (DESIGN-2 §3.3) not built.
+
+---
+
 ## 5. Open / Deferred Items (Known & Documented)
 
-1. **Minisign keys:** minted 2026-11-27 and built in (`docs/RELEASE.md` §2). GitHub secrets `MINISIGN_SECRET_KEY` / `MINISIGN_PASSWORD` set 2026-11-27. Still to do: `ali-kenjo/opaline-gallery` doesn't exist yet. A decoder bug (raw bytes compared with `RW` instead of `Ed`) had made every real key fail; fixed, with a test on real minisign output.
+1. **Minisign keys:** minted 2026-11-27 and built in (`docs/RELEASE.md` §2). GitHub secrets `MINISIGN_SECRET_KEY` / `MINISIGN_PASSWORD` set 2026-11-27. `ali-kenjo/opaline-gallery` created 2026-11-27 (public: empty `index.json`, README with the gallery key, CONTRIBUTING with the signing flow, `scripts/validate-gallery-pr.sh` needing an installed Opaline). A decoder bug (raw bytes compared with `RW` instead of `Ed`) had made every real key fail; fixed, with a test on real minisign output.
 2. **Memory levers documented but deferred (ADR 0009):** Recycle WebKit web process while hidden, size GTK windows to widget bounding box outside Edit/Peek, glibc tunables for core. Current budget is **450 MB PSS** (owner-approved in P0).
 3. **GNOME 51 readiness:** `desktop-integration/metadata.json` currently declares `shell-version: ["50"]`.
 4. **ADR 0015 focus hand-back:** Works in Native mode via `ReleaseFocus`; Instant mode (Xwayland) cannot refocus another app's window.
