@@ -562,5 +562,39 @@ existing baselines/checks + new `themes.spec.ts`), `eslint`, `prettier`, `tsc`, 
 
 **Sign-off:** ✅ 2026-11-27. Next: Round 2 (4.5 Storage, 4.6 Network, 4.7 Battery & Power, 4.8 Fans).
 
+## 2.0 · Phase 4 · Round 2: Storage, Network, Battery & Power, Fans (2026-11-27)
+
+**Done**
+- **Core provider upgrades (4.6–4.7):**
+  - Added `JitterTracker` (`jitterMs`) to `crates/opaline-core/src/providers/latency.rs` (RFC 3550-style EWMA of
+    consecutive RTT deltas, reset on unreachable) with unit tests.
+  - Exposed UPower battery charge-limit properties (`chargeThresholdEnabled`, `chargeStartThreshold`,
+    `chargeEndThreshold`) in `crates/opaline-core/src/providers/upower.rs`.
+- **4.5 Storage (`storage.ts`, `storage.composition.ts`, `spec/compositions/storage.json`):**
+  - Multi-drive bars or rings (`displayMode: "bars" | "rings"`), health badges, drive temperatures, sorting
+    (`default` / `percent` / `free` / `name`), include/exclude mount filters, live read/write rates, and
+    confirmed Eject / Power off buttons for removable drives (`drive-eject`, `drive-power-off`).
+- **4.6 Network (`network.ts`, `network.composition.ts`, `spec/compositions/network.json`):**
+  - Dual-wave hero (`net-wave`) whose speed and amplitude follow download/upload throughput (0 frames when still /
+    reduced motion), optional monthly data cap ring (`monthlyCapGb`), Wi-Fi signal shape (`wifi-shape`), VPN badge,
+    latency with `± jitter`, per-interface selection, and privacy toggles for SSID and public IP (`showSsid`,
+    `showIp`).
+- **4.7 Battery & Power (`battery.ts`, `battery.composition.ts`, `spec/compositions/battery.json`):**
+  - Liquid-filled battery pill (`battery-pill`) with animated charging bubbles (0 frames when still/reduced motion),
+    time to full or empty, power draw, health %, charge-limit badge when supported, live power-profile buttons
+    (`set-power-profile`), and wireless peripherals with device icons (`peripheral-list`).
+- **4.8 Fans (`fans.ts`, `fans.composition.ts`, `spec/compositions/fans.json`):**
+  - Spinning fan blade glyph (`fan-spinner`) rotating proportionally to RPM (static under reduced motion / still /
+    0 RPM), per-fan semicircular RPM gauges (`fan-gauges`), and related CPU/GPU thermal badges.
+- **Classic 1.1 preservation & Lab:** All four widgets keep `StatLayout` under `classic` (1.1 Lab baselines
+  unchanged); added `lab.html?only=round2&still` (`Round2Demo.tsx`) and `app/e2e/round2.spec.ts`.
+
+**Checks:** 203 Rust workspace tests (all 8 `spec/compositions/*.json` validated by `opaline-compose`),
+`clippy -D warnings`, `rustfmt`; 285 Vitest, 59 Playwright WebKit e2e (all existing baselines/checks +
+`round2.spec.ts` verifying 0 idle frames), `eslint`, `prettier`, `tsc`.
+
+**Sign-off:** Pending (Phase 4 · Round 2). Next: Round 3 (4.9 Processes, 4.10 Now Playing, 4.11 Visualizer).
+
+
 
 
