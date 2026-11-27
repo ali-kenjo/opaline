@@ -593,7 +593,7 @@ existing baselines/checks + new `themes.spec.ts`), `eslint`, `prettier`, `tsc`, 
 `clippy -D warnings`, `rustfmt`; 285 Vitest, 59 Playwright WebKit e2e (all existing baselines/checks +
 `round2.spec.ts` verifying 0 idle frames), `eslint`, `prettier`, `tsc`.
 
-**Sign-off:** Pending (Phase 4 · Round 2). Next: Round 3 (4.9 Processes, 4.10 Now Playing, 4.11 Visualizer).
+**Sign-off:** ✅ 2026-11-27. Next: Round 3 (4.9 Processes, 4.10 Now Playing, 4.11 Visualizer).
 
 
 
