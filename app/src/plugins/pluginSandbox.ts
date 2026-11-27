@@ -127,6 +127,10 @@ export interface WatchdogOptions {
   timeoutMs?: number;
   /** Maximum consecutive restarts before stopping permanently until user reloads. */
   maxRestarts?: number;
+  /** How often the host calls `check()`. With it, a gap between checks longer than the
+   * deadline means the host itself was paused (WebKit stops timers in a covered layer window;
+   * the machine slept), not that the plugin hung: the deadline starts again instead. */
+  checkEveryMs?: number;
   onTerminate: (reason: string, backoffMs: number, exhausted: boolean) => void;
 }
 
@@ -140,6 +144,8 @@ export class PluginWatchdog {
   readonly maxRestarts: number;
   private readonly onTerminate: WatchdogOptions["onTerminate"];
   private lastPongAt: number;
+  private lastCheckAt: number | null = null;
+  private readonly checkEveryMs: number | undefined;
   private restarts = 0;
   private state: PluginHealthState = "starting";
 
@@ -147,6 +153,7 @@ export class PluginWatchdog {
     this.timeoutMs = opts.timeoutMs ?? 2000;
     this.maxRestarts = opts.maxRestarts ?? 4;
     this.onTerminate = opts.onTerminate;
+    this.checkEveryMs = opts.checkEveryMs;
     this.lastPongAt = nowMs;
   }
 
@@ -167,6 +174,17 @@ export class PluginWatchdog {
   /** Call periodically (e.g. every 500 ms). Returns true if the worker timed out and was terminated. */
   check(nowMs = Date.now()): boolean {
     if (this.state === "crashed") return false;
+    const previous = this.lastCheckAt;
+    this.lastCheckAt = nowMs;
+    if (
+      this.checkEveryMs !== undefined &&
+      previous !== null &&
+      nowMs - previous > Math.max(this.timeoutMs, 4 * this.checkEveryMs)
+    ) {
+      // The host didn't run: give the plugin a full deadline to answer the ping sent now.
+      this.lastPongAt = Math.max(this.lastPongAt, nowMs);
+      return false;
+    }
     if (nowMs - this.lastPongAt <= this.timeoutMs) return false;
     this.restarts += 1;
     const exhausted = this.restarts >= this.maxRestarts;

@@ -19,6 +19,9 @@ import {
   sanitizePluginOutput,
 } from "./pluginSandbox";
 
+/** How often the host pings the plugin worker and checks its watchdog. */
+const HEARTBEAT_MS = 500;
+
 export interface PluginHostProps {
   pluginId: string;
   name: string;
@@ -62,6 +65,7 @@ export function PluginWidget({
     const watchdog = new PluginWatchdog({
       timeoutMs: 2000,
       maxRestarts: 4,
+      checkEveryMs: HEARTBEAT_MS,
       onTerminate: (reason, backoffMs, exhausted) => {
         postToHost({ kind: "terminate" });
         setHealth(exhausted ? "crashed" : "unavailable");
@@ -112,7 +116,7 @@ export function PluginWidget({
     const heartbeat = setInterval(() => {
       postToHost({ kind: "to-worker", payload: { type: "ping", at: Date.now() } });
       watchdog.check();
-    }, 500);
+    }, HEARTBEAT_MS);
 
     return () => {
       window.removeEventListener("message", onMessage);

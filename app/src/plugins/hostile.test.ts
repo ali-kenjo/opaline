@@ -143,4 +143,42 @@ describe("Hostile-plugin sandbox invariants (ADR 0014 / PLAN-2 9.2)", () => {
     expect(healthy.check(21_000)).toBe(false);
     expect(healthy.health).toBe("ready");
   });
+
+  it("watchdog does not restart a plugin because the host itself was paused", () => {
+    const term = vi.fn();
+    const w = new PluginWatchdog(
+      { timeoutMs: 2000, maxRestarts: 4, checkEveryMs: 500, onTerminate: term },
+      0,
+    );
+    const every500 = (from: number, to: number, pong: boolean) => {
+      for (let t = from; t <= to; t += 500) {
+        if (pong) w.recordPong(t);
+        w.check(t);
+      }
+    };
+    every500(0, 5000, true);
+    // A covered layer window (or a suspend): no timers run for a minute. The first check after
+    // it must not count the pause against the plugin...
+    expect(w.check(65_000)).toBe(false);
+    w.recordPong(65_050);
+    every500(65_500, 70_000, true);
+    expect(term).not.toHaveBeenCalled();
+    expect(w.health).toBe("ready");
+    // ...but a plugin that really stops answering is still caught within the deadline.
+    every500(70_500, 72_500, false);
+    expect(term).toHaveBeenCalledTimes(1);
+    expect(term).toHaveBeenLastCalledWith("heartbeat-timeout", 1000, false);
+  });
+
+  it("watchdog still catches a plugin that never answers after a host pause", () => {
+    const term = vi.fn();
+    const w = new PluginWatchdog(
+      { timeoutMs: 2000, maxRestarts: 4, checkEveryMs: 500, onTerminate: term },
+      0,
+    );
+    expect(w.check(500)).toBe(false);
+    expect(w.check(60_000)).toBe(false);
+    for (let t = 60_500; t <= 62_000; t += 500) expect(w.check(t)).toBe(false);
+    expect(w.check(62_500)).toBe(true);
+  });
 });
