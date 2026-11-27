@@ -40,6 +40,7 @@ How a theme is built (maps to `theme.json`, §5.2 of the brief):
   uses `wght` 560, `wdth` 118, `opsz` 36 (extended, calm).
 - 3.3 **Auto-fit** (P2 Number block): first narrow the `wdth` axis down to the role's minimum (hero 25), then reduce
   the size down to the role's minimum (hero 0.6 × its designed size). Never below; then the layout degrades (§5).
+  Built for hero Number blocks in `app/src/design-system/components/fitNumber.ts` (e2e `hero-fit.spec.ts`).
 - 3.4 **Fonts**: the width axis works only on bundled variable fonts (ADR 0013); system fonts get weight and named
   widths. Fonts load only while a theme uses them. Arabic falls back to Noto Sans Arabic in every role.
   `text-scaling-factor` multiplies every size.

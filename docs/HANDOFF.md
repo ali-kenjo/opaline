@@ -111,7 +111,18 @@ Done by Claude Code from `FIX_PROMPT.md`; the full evidence log is `FIX_HANDOFF.
   dropped at M, S/L break only before the slash. e2e `memory-tile.spec.ts` (de-DE).
 - Docs: automation `time.*` / `isNight` (06–21) / `Locale::En` in `docs/EXPRESSIONS.md` §5. Test for the 2.0.1 drive
   badge fix (`round2Visuals.test.tsx`).
-- Still open: hero numbers in small cards (needs DESIGN-2 §3.3 auto-fit), `apt purge` VM test.
+- **Hero auto-fit** (DESIGN-2 §3.3, `fitNumber.ts`): a hero Number block wider than its box narrows `wdth` to 25,
+  then shrinks to 0.6×, measured in layout effects (no re-render), re-checked on resize and font load. At today's
+  60 px it already fixes the dual-GPU L card (iGPU "— %" ran 20 px past its box). Round 1 in the Lab now uses the
+  real Opaline type. e2e `hero-fit.spec.ts` (fails without the fit).
+- **Hero size stays 60 px** for Opaline/Crystal: tried 96 px (DESIGN-2's M minimum) with auto-fit: the CPU L card
+  pushes its temperature badge off the card and the dual-GPU L card overlaps even at 0.6×. Reaching 96–124 px needs
+  the M/L layouts redrawn for it (a design task), not a size change.
+- **`apt purge`**: not run (the owner declined downloading an Ubuntu image for a test VM on 2026-11-27). Static check:
+  `dpkg -L opaline` lists every installed file, including the helper's `gschemas.compiled`, so dpkg removes them all;
+  `postrm` only refreshes desktop/icon caches and reloads D-Bus. Per Debian policy, per-user files stay
+  (`~/.config/opaline`, `~/.local/share/opaline`, the autostart entry, the helper in `enabled-extensions`).
+- Still open: hero layouts for 96–124 px (design), a real `apt purge` run.
 
 ---
 
