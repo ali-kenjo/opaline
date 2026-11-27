@@ -27,8 +27,14 @@ afterEach(() => {
   host = null;
 });
 
-function render(c: Composition, topics: Record<string, Wire>, size: SizeClass, options = {}) {
-  const env: Env = { topics, options, locale: "en", now: () => 0 };
+function render(
+  c: Composition,
+  topics: Record<string, Wire>,
+  size: SizeClass,
+  options = {},
+  locale: Env["locale"] = "en",
+) {
+  const env: Env = { topics, options, locale, now: () => 0 };
   const rt = new Runtime(c, env);
   host = document.createElement("div");
   document.body.append(host);
@@ -129,5 +135,37 @@ describe("composition renderer", () => {
     });
     expect(text(el, "value")).toBe("90%");
     expect(el.querySelector('[data-block="hot"]')).not.toBeNull();
+  });
+
+  it("formats raw numbers in the widget's locale, like its templates", () => {
+    const c: Composition = {
+      version: 1,
+      layouts: [
+        {
+          root: {
+            id: "col",
+            type: "column",
+            children: [
+              { id: "raw", type: "number", value: "cpu.freq" },
+              { id: "tpl", type: "text", text: "{cpu.freq}" },
+              {
+                id: "field",
+                type: "input",
+                value: "cpu.freq",
+                maxLength: 20,
+                command: { cmd: "note-save" },
+              },
+            ],
+          },
+        },
+      ],
+    };
+    const freq = { "cpu.freq": { kind: "num", v: 4260.5 } } as Record<string, Wire>;
+    const { el } = render(c, freq, "M", {}, "de");
+    expect(el.querySelector('[data-block="raw"] [aria-label]')?.getAttribute("aria-label")).toBe(
+      "4.260,5",
+    );
+    expect(text(el, "tpl")).toBe("4.260,5");
+    expect(el.querySelector<HTMLInputElement>('[data-block="field"] input')?.value).toBe("4.260,5");
   });
 });

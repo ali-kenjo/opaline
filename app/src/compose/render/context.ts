@@ -3,7 +3,7 @@
 import { type CSSProperties, createContext, useContext } from "react";
 import type { Ramp, RampName } from "../../design-system/color/ramps";
 import { space } from "../../design-system/tokens/tokens";
-import type { Value } from "../../expr";
+import type { Locale, Value } from "../../expr";
 import { text } from "../../expr/format";
 import type { Command, CommandResult } from "../../layer/protocol";
 import type { Runtime, Scope } from "../runtime";
@@ -61,7 +61,15 @@ export const vars = (o: CSSVars): CSSProperties => o;
 export const px = (step: number | undefined) =>
   step === undefined ? undefined : `${String(space[Math.min(8, Math.max(0, step))] ?? 0)}px`;
 
-export const asString = (v: Value) => (typeof v === "string" ? v : v === null ? "" : text(v, "en"));
+/** A field's value as text; numbers (also in lists) in the widget's locale, like templates. */
+export const asString = (v: Value, locale: Locale) =>
+  typeof v === "string" ? v : v === null ? "" : text(v, locale);
+
+/** `asString` in the locale of the composition being drawn. */
+export function useAsString(): (v: Value) => string {
+  const locale = useView().rt.locale();
+  return (v) => asString(v, locale);
+}
 
 export const ratio = (v: Value) => (typeof v === "number" ? Math.min(1, Math.max(0, v)) : null);
 

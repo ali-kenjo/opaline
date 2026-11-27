@@ -240,6 +240,11 @@ export class Runtime {
     return this.env.now();
   }
 
+  /** The locale templates format numbers in (the renderer formats raw values in it too). */
+  locale(): Locale {
+    return this.env.locale;
+  }
+
   /** Forgets remembered list items from `count` on for every field under `prefix` (the list's
    * item, `/layouts/0/root/item`): the list got shorter. */
   trimItems(prefix: string, count: number): void {

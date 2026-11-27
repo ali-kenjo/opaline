@@ -18,7 +18,16 @@ import type { Value } from "../../expr";
 import { durationSecs } from "../../expr/funcs";
 import { buildCommand } from "../commands";
 import type { Node } from "../model.gen";
-import { type Attrs, asString, cssColor, numbers, ratio, useField, useView, vars } from "./context";
+import {
+  type Attrs,
+  cssColor,
+  numbers,
+  ratio,
+  useAsString,
+  useField,
+  useView,
+  vars,
+} from "./context";
 import styles from "./View.module.css";
 
 interface BlockProps<T extends Node["type"]> {
@@ -410,6 +419,7 @@ const isShape = (s: string): s is MaterialShapeName =>
 export function ShapeBlock({ node, at, attrs }: BlockProps<"shape">) {
   const { animate } = useView();
   const field = useField(at);
+  const asString = useAsString();
   const name = asString(field("shape").value);
   const color = node.color !== undefined ? cssColor(field("color").value) : undefined;
   const [ref, box] = useBoxSize<HTMLDivElement>();
@@ -502,6 +512,7 @@ function useSend(at: string, command: { cmd: string; args?: Record<string, strin
 export function ButtonBlock({ node, at, attrs }: BlockProps<"button">) {
   const { services } = useView();
   const field = useField(at);
+  const asString = useAsString();
   const send = useSend(at, node.command);
   const [asking, setAsking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -549,6 +560,7 @@ export function ButtonBlock({ node, at, attrs }: BlockProps<"button">) {
 export function ToggleBlock({ node, at, attrs }: BlockProps<"toggle">) {
   const { services } = useView();
   const field = useField(at);
+  const asString = useAsString();
   const send = useSend(at, node.command);
   const on = field("value").value === true;
   const text =
@@ -609,6 +621,7 @@ export function SliderBlock({ node, at, attrs }: BlockProps<"slider">) {
 
 export function InputBlock({ node, at, attrs }: BlockProps<"input">) {
   const field = useField(at);
+  const asString = useAsString();
   const send = useSend(at, node.command);
   const current = asString(field("value").value);
   const placeholder = node.placeholder !== undefined ? asString(field("placeholder").value) : "";

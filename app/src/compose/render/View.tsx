@@ -27,10 +27,10 @@ import {
   type CSSVars,
   Ctx,
   type Services,
-  asString,
   cssColor,
   px,
   ratio,
+  useAsString,
   useField,
   useView,
   vars,
@@ -116,6 +116,7 @@ const JUSTIFY = {
 
 function NodeView({ node, at }: { node: Node; at: string }) {
   const field = useField(at);
+  const asString = useAsString();
   const visible = field("visible");
   if (visible.present && visible.value !== true) return null;
   const label = field("label");
@@ -226,8 +227,9 @@ function ListView({
 }
 
 function BlockView({ node, at, attrs }: { node: Node; at: string; attrs: Attrs }) {
-  const { animate } = useView();
+  const { animate, rt } = useView();
   const field = useField(at);
+  const asString = useAsString();
   let failed = false as boolean;
   const read = (key: string) => {
     const f = field(key);
@@ -250,7 +252,7 @@ function BlockView({ node, at, attrs }: { node: Node; at: string; attrs: Attrs }
         node.text !== undefined
           ? asString(read("text"))
           : typeof value === "number"
-            ? plain(value, "en")
+            ? plain(value, rt.locale())
             : typeof value === "string"
               ? value
               : "—";
