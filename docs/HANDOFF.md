@@ -84,6 +84,36 @@ All checks pass cleanly with zero warnings/errors:
 
 ---
 
+## 4c. Fixes after v2.0.1 (on `main`, not released yet)
+
+Done by Claude Code from `FIX_PROMPT.md`; the full evidence log is `FIX_HANDOFF.md` (both are temporary files, removed at the end but kept in git history).
+
+- **Clock froze** (`fix(compose)` 31864fc): `CompositionView` asked `runtime.nextWake()` in its render body, before
+  its children had read the clock, so no timer was armed (or it ran one pass behind and stopped). Now a `useEffect`
+  after every commit asks the new `Runtime.settle()` (only results read in that pass, so a hidden face or another
+  size's layout can't keep it awake), waits on `runtime.now()`, re-arms when a timer fires early, and sleeps at most
+  5 s so a suspend can't leave a minute clock behind. Tests: `View.clock.test.tsx` (7), `runtime.test.ts`, e2e
+  `clock-ticks.spec.ts` (all 12 faces, Lab flag `?frozen`: moving mocks hid the bug). Real layer: two Clocks matched
+  the top bar for ~10 min, incl. after ~28 s and 65 s covered. Lock/unlock not checked by hand (same pause path).
+- **Timers lost time** (`fix(core)` eea5089): running entries persist `endsAtMs`/`startedAtMs` in `timers.json`
+  (optional fields; `timers.state` unchanged) and every tick derives the values from the wall clock. Expired while
+  asleep/down: finishes once, one notification "… (finished at HH:MM)"; Pomodoro moves one phase; daily count rolls
+  over in the tick loop and counts only work that ended today; a clock set back pauses instead of running backwards.
+  11 unit tests + old-file test (`fixtures/v2.0/timers.json`); checked with `--dump timers.` across restarts.
+- **Plugins restarted after a covered window** (`fix(plugins)` ec5ec68): the watchdog now knows its check cadence and
+  treats a long gap between checks as a host pause.
+- **Stale after suspend** (`fix(core)` cb4231d): weather, custom sources and the daily update check decide on the
+  wall clock (`hub::wall_due`, `hub::WALL_CHECK`).
+- **Numbers in English** (`fix(compose)` b531b54): raw numbers in number/input/button fields used `"en"`; now the
+  widget locale, like templates. Dates already followed `navigator.language`.
+- **Memory pill** (`fix(widgets)` 00de4bc): the M pill repeated "used / total" and wrapped after the slash ("6,3 GB /");
+  dropped at M, S/L break only before the slash. e2e `memory-tile.spec.ts` (de-DE).
+- Docs: automation `time.*` / `isNight` (06–21) / `Locale::En` in `docs/EXPRESSIONS.md` §5. Test for the 2.0.1 drive
+  badge fix (`round2Visuals.test.tsx`).
+- Still open: hero numbers in small cards (needs DESIGN-2 §3.3 auto-fit), `apt purge` VM test, lock/unlock by hand.
+
+---
+
 ## 5. Open / Deferred Items (Known & Documented)
 
 1. **Minisign keys:** minted 2026-11-27 and built in (`docs/RELEASE.md` §2). GitHub secrets `MINISIGN_SECRET_KEY` / `MINISIGN_PASSWORD` set 2026-11-27. `ali-kenjo/opaline-gallery` created 2026-11-27 (public: empty `index.json`, README with the gallery key, CONTRIBUTING with the signing flow, `scripts/validate-gallery-pr.sh` needing an installed Opaline). A decoder bug (raw bytes compared with `RW` instead of `Ed`) had made every real key fail; fixed, with a test on real minisign output.

@@ -977,9 +977,11 @@ on real 1.1 fixtures, 8 schema tests, 206 core tests, 9 binary tests), `clippy -
 
 **Sign-off:** ✅ 2026-11-27. Phase 10 complete; all 2.0 phases signed off. Next: owner-gated release steps (`docs/RELEASE.md`): minisign keys, version bump to 2.0.0, `.deb`, VM test, tag `v2.0.0`.
 
+## Fixes after v2.0.1 (2026-11-27)
 
-
-
-
-
-
+The Clock froze after a tick or two (its view computed the next wake before its children had read the clock), and
+timers, stopwatch and Pomodoro lost time over suspend and core restarts (fixed 1 s steps on the monotonic clock).
+Both now follow the system clock; an audit of every timer found and fixed the same class of bug in the plugin
+watchdog (restarted plugins after a covered window), weather, custom sources and the update check (stale after
+suspend), plus the renderer's English number formatting and the memory pill's dangling "/". Details, evidence and
+the not-a-bug list: `docs/HANDOFF.md` §4c. Gate: 279 Rust tests, 331 Vitest, 101/101 Playwright, clippy/fmt/lint.

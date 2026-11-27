@@ -5,8 +5,8 @@ Task description: `FIX_PROMPT.md`. Update this file after every completed step. 
 
 ## Resume here
 - **Active tool:** Claude Code (started 2026-11-27)
-- **Current step:** 1.1–1.3 and the section 2 audit done (lock/unlock left for the owner). Next: full gate.
-- **Next action:** full gate (section 2): `cargo test --workspace && cargo clippy --workspace --all-targets -- -D warnings && cargo fmt --all --check`, `cd app && pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e`, `pnpm lint:helper`; then docs/HANDOFF.md + docs/PROGRESS.md (4.5), then clean-up (4.6).
+- **Current step:** everything in 1–4.5 done and pushed, except the manual lock/unlock Clock check (needs the owner to unlock). Waiting for the owner: do that check, or accept the covered-window evidence; then 4.6 clean-up.
+- **Next action:** if the owner wants the lock/unlock check: stop `opaline-201`, run the debug build against the config copy (see the 1.1 real-app row), owner locks + unlocks, capture with `--peek`, restart `opaline-201` (`systemd-run --user --unit opaline-201 --collect /usr/bin/opaline`). Then 4.6: `git rm FIX_PROMPT.md FIX_HANDOFF.md`, commit `chore: remove temporary fix prompt files`, push, verify.
 - **Files touched so far:** `app/src/compose/render/View.tsx`, `app/src/compose/runtime.ts`, `app/src/compose/runtime.test.ts`, `app/src/compose/render/View.clock.test.tsx` (new)
 - **Commands still to run:** see section 2 of the prompt (full gate) and the real-app checks in 1.1 and 1.2.
 
@@ -23,8 +23,8 @@ Task description: `FIX_PROMPT.md`. Update this file after every completed step. 
 | 1.3c Memory tile clipping | fixed | Reproduced live on the owner's desktop (ScreenCast capture, memory 4×2 = M, Air theme): the 75 px liquid pill showed "39%" / "6,3 GB /" / "16,0 GB": the "stray glyph" is the "/" of "used / total" wrapping at the space after it, and the text nearly touched the pill's edge. The same line already stands right next to the pill. Fix: the M layout drops the pill caption (`liquid(id, false)`, `spec/compositions/memory.json` regenerated with `OPALINE_UPDATE_FIXTURES=1`, Rust `opaline-compose` tests OK); in S/L the caption can only break before the slash ("6,3 GB" over "/ 16,0 GB", `LiquidSub` in `monitorVisuals.tsx`) and has 4 px side padding. New e2e `app/e2e/memory-tile.spec.ts` (WebKit, `locale: de-DE`): captions inside the pill and no line ending in "/" for every pill; failed before ("6,6 GB / 16,0 GB" dangling), passes now. `truncation`, `round1`, `lab` (baselines unchanged) 19/19. The existing truncation check only compares against the card edge, not inner boxes like the pill, which is why it missed this. |
 | 2 Audit of timers/intervals | done | Fixed: plugin watchdog after a paused window (ec5ec68), weather / custom sources / update check stale after suspend (see findings). Everything else reviewed is listed as not a bug in the findings log. |
 | 2 Known open items from docs/HANDOFF.md ("Open:") | checked | **Weather 4×2 top line:** fixed already in d717316 (2.0.1); re-checked in WebKit on the looks page in all 10 looks (7 show the weather card; screenshots in the scratchpad): every top line fully visible; `truncation`/`looks` e2e pass. **GPU empty state:** fixed in 4766dda ("This GPU doesn't report usage", test in `widgets.test.ts`). **Storage `UNKNOWN` in red:** fixed in 4766dda but untested; added `app/src/compose/render/round2Visuals.test.tsx` (fails on the visual before 4766dda, passes now). **Bloom/Air/Paper/Mono hero typography:** fixed in 561bc66 (e2e `looks.spec.ts` checks every hero). **Hero numbers in small cards (as large as the P1 mockups):** left open: needs the numeric auto-fit of DESIGN-2 §3.3 (a design feature, not a quick fix); b4aa2a3 already sizes heroes per theme. **`apt purge` in the VM:** left open: needs a VM and sudo; the test VM was deleted. |
-| 2 Full gate (cargo test/clippy/fmt, pnpm lint/typecheck/test/test:e2e, lint:helper) | todo | |
-| 4.5 docs/HANDOFF.md + docs/PROGRESS.md updated | todo | |
+| 2 Full gate (cargo test/clippy/fmt, pnpm lint/typecheck/test/test:e2e, lint:helper) | passed (at 8789d0d) | `cargo test --workspace --offline`: 279 passed, 0 failed, 2 ignored (NVML live tests); `cargo clippy --workspace --all-targets --offline -- -D warnings`: clean; `cargo fmt --all --check`: OK. `pnpm lint` OK, `pnpm typecheck` OK, `pnpm test` 331 passed / 1 skipped, `pnpm test:e2e` **101/101** (Lab baselines unchanged), `pnpm lint:helper` OK. |
+| 4.5 docs/HANDOFF.md + docs/PROGRESS.md updated | done | `docs/HANDOFF.md` §4c "Fixes after v2.0.1", `docs/PROGRESS.md` "Fixes after v2.0.1". |
 | 4.6 Prompt files removed locally and on GitHub | todo | |
 
 ## Findings log (newest first)
@@ -43,4 +43,4 @@ Task description: `FIX_PROMPT.md`. Update this file after every completed step. 
 ## Session log
 (One line per session: tool, date/time, what you did, what is left.)
 
-- Claude Code, 2026-11-27 evening: started; 1.1 fix + tests.
+- Claude Code, 2026-11-27 evening: 1.1–1.3, audit, gate, docs; all pushed (last 8789d0d + docs). Another Claude Code session worked in the same folder at the same time on `updates.rs` (commit c4026b7, pushed along with eea5089); no overlap with these files. Left: lock/unlock check (owner), 4.6 clean-up.
