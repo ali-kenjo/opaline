@@ -128,9 +128,9 @@ export function LiquidFillVisual({ params, label, animate = false }: VisualProps
           ref={wave2}
           d={liquidWavePath(level, amp * 0.7, 1.4)}
           fill={color}
-          fillOpacity={0.22}
+          fillOpacity={0.08}
         />
-        <path ref={wave1} d={liquidWavePath(level, amp, 0)} fill={color} fillOpacity={0.42} />
+        <path ref={wave1} d={liquidWavePath(level, amp, 0)} fill={color} fillOpacity={0.14} />
       </svg>
       <div className={styles.liquidOverlay}>
         <span className={styles.liquidPct}>{text}</span>

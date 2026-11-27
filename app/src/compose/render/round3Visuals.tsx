@@ -283,7 +283,9 @@ export function ProcessTableVisual({ params, label }: VisualProps) {
                 <AppIcon name={r.name} iconUrl={r.iconUrl} />
                 <div className={styles.procNameCell}>
                   <div className={styles.procNameLine}>
-                    <span className={styles.procName}>{r.name}</span>
+                    <span className={styles.procName} data-user-text="">
+                      {r.name}
+                    </span>
                     {showCount && r.count !== null ? (
                       <span className={styles.procCount}>×{Math.round(r.count)}</span>
                     ) : null}
@@ -918,15 +920,31 @@ export function NowPlayingVisual({ params, animate, label }: VisualProps) {
           ) : null}
 
           <div className={styles.npBody}>
-            {showTitle ? <div className={styles.npTitle}>{activePlayer.title}</div> : null}
+            {showTitle ? (
+              <div className={styles.npTitle} data-user-text="">
+                {activePlayer.title}
+              </div>
+            ) : null}
             {showArtist && activePlayer.artists ? (
-              <div className={styles.npSub}>{activePlayer.artists}</div>
+              <div className={styles.npSub} data-user-text="">
+                {activePlayer.artists}
+              </div>
             ) : null}
             {showAlbum && activePlayer.album ? (
-              <div className={styles.npSub}>{activePlayer.album}</div>
+              <div className={styles.npSub} data-user-text="">
+                {activePlayer.album}
+              </div>
             ) : null}
-            {showApp ? <div className={styles.npSub}>{activePlayer.identity}</div> : null}
-            {lyric ? <div className={styles.npLyric}>{lyric}</div> : null}
+            {showApp ? (
+              <div className={styles.npSub} data-user-text="">
+                {activePlayer.identity}
+              </div>
+            ) : null}
+            {lyric ? (
+              <div className={styles.npLyric} data-user-text="">
+                {lyric}
+              </div>
+            ) : null}
             {renderProgress()}
             {renderControls()}
           </div>

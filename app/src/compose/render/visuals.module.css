@@ -517,7 +517,7 @@
 
 .liquidSub {
   font-size: calc(11px * var(--w-scale));
-  color: rgb(var(--md-on-surface-variant));
+  color: rgb(var(--md-on-surface));
 }
 
 .stackedBarWrap {
@@ -836,7 +836,7 @@
   font-family: var(--w-num-font);
   font-variant-numeric: tabular-nums;
   font-size: calc(12px * var(--w-scale));
-  color: rgb(var(--md-on-surface-variant));
+  color: rgb(var(--md-on-surface));
 }
 
 .netArrowDown {
@@ -949,7 +949,7 @@
 
 .batPillSub {
   font-size: calc(11px * var(--w-scale));
-  color: rgb(var(--md-on-surface-variant));
+  color: rgb(var(--md-on-surface));
 }
 
 .fanSpinWrap {

@@ -172,9 +172,9 @@ function SkyAtmosphere({
     : isRain
       ? "rgb(48 82 128 / 0.34)"
       : isDay
-        ? "rgb(72 152 240 / 0.28)"
+        ? "rgb(48 108 184 / 0.22)"
         : "rgb(26 36 82 / 0.42)";
-  const botColor = isDay ? "rgb(255 196 112 / 0.08)" : "rgb(66 84 148 / 0.06)";
+  const botColor = isDay ? "rgb(255 196 112 / 0.05)" : "rgb(66 84 148 / 0.06)";
 
   return (
     <div className={styles.wxSky} aria-hidden="true">
@@ -188,24 +188,24 @@ function SkyAtmosphere({
         <rect width="320" height="200" fill="url(#wxSkyGrad)" />
         {isDay && !isRain && !isStorm ? (
           <g>
-            <circle cx="272" cy="38" r="42" fill="rgb(255 214 102 / 0.16)" />
-            <circle cx="272" cy="38" r="22" fill="rgb(255 224 128 / 0.34)" />
+            <circle cx="196" cy="34" r="34" fill="rgb(255 214 102 / 0.08)" />
+            <circle cx="196" cy="34" r="15" fill="rgb(255 224 128 / 0.16)" />
           </g>
         ) : null}
         {!isDay ? (
           <g fill="rgb(232 240 255 / 0.48)">
-            <circle cx="268" cy="34" r="14" opacity="0.55" />
-            <circle cx="274" cy="30" r="12" fill="rgb(26 36 82 / 0.9)" />
+            <circle cx="196" cy="32" r="14" opacity="0.55" />
+            <circle cx="202" cy="28" r="12" fill="rgb(26 36 82 / 0.9)" />
             <circle cx="48" cy="24" r="1.5" />
             <circle cx="118" cy="36" r="1.2" />
-            <circle cx="204" cy="22" r="1.6" />
+            <circle cx="244" cy="22" r="1.6" />
           </g>
         ) : null}
         <g ref={driftRef}>
           {isCloudy || isFog ? (
-            <g fill="rgb(255 255 255 / 0.14)">
-              <ellipse cx="236" cy="54" rx="54" ry="18" />
-              <ellipse cx="268" cy="48" rx="34" ry="15" />
+            <g fill="rgb(255 255 255 / 0.07)">
+              <ellipse cx="182" cy="54" rx="48" ry="15" />
+              <ellipse cx="212" cy="48" rx="30" ry="12" />
               <ellipse cx="88" cy="42" rx="44" ry="14" opacity="0.7" />
             </g>
           ) : null}
@@ -331,7 +331,7 @@ export function WeatherSceneVisual({ params, animate, label }: VisualProps) {
             </div>
           ) : null}
         </div>
-        {!isTiny && hiToday !== null && loToday !== null ? (
+        {!isCompact && hiToday !== null && loToday !== null ? (
           <div className={styles.wxHiLo}>
             <span>H {fmtTemp(hiToday, tempUnit, 0)}</span>
             <span>L {fmtTemp(loToday, tempUnit, 0)}</span>
@@ -341,7 +341,12 @@ export function WeatherSceneVisual({ params, animate, label }: VisualProps) {
 
       {!isTiny ? (
         <div className={styles.wxPills}>
-          {windKmh !== null ? (
+          {isCompact && hiToday !== null && loToday !== null ? (
+            <span className={styles.wxPill}>
+              H {fmtTemp(hiToday, tempUnit, 0)} · L {fmtTemp(loToday, tempUnit, 0)}
+            </span>
+          ) : null}
+          {!isCompact && windKmh !== null ? (
             <span className={styles.wxPill} title="Wind">
               <svg
                 width="12"
@@ -362,12 +367,12 @@ export function WeatherSceneVisual({ params, animate, label }: VisualProps) {
               {Math.round(humidity)}%
             </span>
           ) : null}
-          {uv !== null ? (
+          {!isCompact && uv !== null ? (
             <span className={styles.wxPill}>
               UV {Math.round(uv)} · {uvLabel(uv)}
             </span>
           ) : null}
-          {euAqi !== null ? (
+          {!isCompact && euAqi !== null ? (
             <span className={styles.wxPill}>
               AQI {Math.round(euAqi)} · {aqiLabel(euAqi)}
             </span>
@@ -442,7 +447,7 @@ export function WeatherSceneVisual({ params, animate, label }: VisualProps) {
         </div>
       ) : null}
 
-      {!isCompact && (sunFrac !== null || isLarge) ? (
+      {isLarge && (sunFrac !== null || showSunArc) ? (
         <div className={styles.wxFooterRow}>
           {showSunArc && sunFrac !== null ? (
             <span className={styles.wxSunArc}>
@@ -567,7 +572,8 @@ export function CalendarViewVisual({ params, label }: VisualProps) {
     const list = selectedDay
       ? parsedEvents.filter((e) => dayKeyFromMs(e.startMs) === selectedDay)
       : parsedEvents.filter((e) => e.endMs > nowMs && e.startMs < nowMs + daysAhead * 86_400_000);
-    return list.slice(0, isLarge ? maxEvents : Math.min(maxEvents, size === "M" ? 4 : 2));
+    const cap = isLarge ? Math.min(maxEvents, 3) : size === "M" ? Math.min(maxEvents, 2) : 2;
+    return list.slice(0, cap);
   }, [parsedEvents, selectedDay, nowMs, daysAhead, isLarge, maxEvents, size]);
 
   const nextTimed =
@@ -693,7 +699,9 @@ export function CalendarViewVisual({ params, label }: VisualProps) {
                       ) : (
                         <span />
                       )}
-                      <span className={styles.calEventTitle}>{ev.title}</span>
+                      <span className={styles.calEventTitle} data-user-text="">
+                        {ev.title}
+                      </span>
                       {showTime ? (
                         ev.allDay ? (
                           <span className={styles.calAllDayChip}>All day</span>
@@ -764,7 +772,7 @@ export function DockerPanelVisual({ params, label }: VisualProps) {
   const showMemory = params.showMemory !== false;
   const showStatus = params.showStatus === true;
   const size = str(params.size) || "M";
-  const maxRows = size === "L" ? 9 : size === "M" ? 4 : 3;
+  const maxRows = size === "L" ? 5 : size === "M" ? 2 : 2;
 
   const send = (cmd: Command) => {
     const p = services
@@ -938,16 +946,25 @@ export function DockerPanelVisual({ params, label }: VisualProps) {
                       />
                       <div className={styles.dkInfo}>
                         <div className={styles.dkNameLine}>
-                          <span className={styles.dkName}>{c.name}</span>
+                          <span className={styles.dkName} data-user-text="">
+                            {c.name}
+                          </span>
                           {c.ports[0] ? (
                             <span className={styles.dkPortChip}>{c.ports[0]}</span>
                           ) : null}
                         </div>
-                        <div className={styles.dkSubLine}>
+                        <div className={styles.dkSubLine} data-user-text="">
                           {showImage && c.image ? <span>{c.image}</span> : null}
                           {showStatus && c.status ? <span>· {c.status}</span> : null}
+                          {size !== "L" && running && showCpu && c.cpu !== null ? (
+                            <span>· {c.cpu.toFixed(decimals)}%</span>
+                          ) : null}
+                          {size !== "L" && running && showMemory && c.memB !== null ? (
+                            <span>· {fmtBytes(c.memB, binary)}</span>
+                          ) : null}
                         </div>
-                        {running &&
+                        {size === "L" &&
+                        running &&
                         (showCpu || showMemory) &&
                         (c.cpu !== null || c.memB !== null) ? (
                           <div className={styles.dkMiniBars}>

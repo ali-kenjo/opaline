@@ -26,6 +26,7 @@ export const mediaComposition: Composition = {
   version: 1,
   layouts: [
     {
+      sizes: ["L", "XL"],
       minW: 4,
       minH: 4,
       root: {
@@ -43,6 +44,7 @@ export const mediaComposition: Composition = {
       },
     },
     {
+      sizes: ["M"],
       minW: 4,
       minH: 2,
       root: {
@@ -60,6 +62,7 @@ export const mediaComposition: Composition = {
       },
     },
     {
+      sizes: ["S"],
       minW: 2,
       minH: 2,
       root: {
@@ -77,6 +80,7 @@ export const mediaComposition: Composition = {
       },
     },
     {
+      sizes: ["4x1", "2x1", "1x1"],
       root: {
         id: "root",
         type: "column",

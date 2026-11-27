@@ -2,6 +2,10 @@
   "version": 1,
   "layouts": [
     {
+      "sizes": [
+        "L",
+        "XL"
+      ],
       "minW": 4,
       "minH": 4,
       "root": {
@@ -23,7 +27,7 @@
               "endTask": "opt.endTask",
               "binary": "opt.byteUnit == 'binary'",
               "decimals": "procMeta.decimals",
-              "maxRows": "min(opt.count, 10)",
+              "maxRows": "min(opt.count, 8)",
               "compact": "false",
               "showSearch": "opt.showSearch",
               "showIo": "procMeta.showIo",
@@ -36,6 +40,9 @@
       }
     },
     {
+      "sizes": [
+        "M"
+      ],
       "minW": 4,
       "minH": 2,
       "root": {
@@ -57,7 +64,7 @@
               "endTask": "opt.endTask",
               "binary": "opt.byteUnit == 'binary'",
               "decimals": "procMeta.decimals",
-              "maxRows": "min(opt.count, 4)",
+              "maxRows": "min(opt.count, 2)",
               "compact": "false",
               "showSearch": "opt.showSearch",
               "showIo": "procMeta.showIo",
@@ -70,6 +77,9 @@
       }
     },
     {
+      "sizes": [
+        "S"
+      ],
       "minW": 2,
       "minH": 2,
       "root": {
@@ -104,6 +114,11 @@
       }
     },
     {
+      "sizes": [
+        "4x1",
+        "2x1",
+        "1x1"
+      ],
       "root": {
         "id": "root",
         "type": "column",

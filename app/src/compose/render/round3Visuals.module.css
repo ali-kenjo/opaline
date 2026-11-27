@@ -273,9 +273,16 @@
   inset: -14px;
   background-size: cover;
   background-position: center;
-  filter: blur(28px) saturate(1.45);
-  opacity: 0.32;
+  filter: blur(28px) saturate(1.25);
+  opacity: 0.12;
   transform: scale(1.12);
+  mask-image: linear-gradient(125deg, rgb(0 0 0 / 0.9) 0%, rgb(0 0 0 / 0.25) 60%, transparent 100%);
+  -webkit-mask-image: linear-gradient(
+    125deg,
+    rgb(0 0 0 / 0.9) 0%,
+    rgb(0 0 0 / 0.25) 60%,
+    transparent 100%
+  );
   pointer-events: none;
   z-index: -1;
 }
@@ -380,7 +387,7 @@
 
 .npSub {
   font-size: calc(12.5px * var(--w-scale));
-  color: rgb(var(--md-on-surface-variant));
+  color: rgb(var(--md-on-surface));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -401,10 +408,13 @@
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 8px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgb(var(--md-surface-container-lowest) / 0.34);
   font-size: calc(10.5px * var(--w-scale));
   font-family: var(--w-num-font);
   font-variant-numeric: var(--w-nums);
-  color: rgb(var(--md-on-surface-variant));
+  color: rgb(var(--md-on-surface));
 }
 
 .npSeekBtn {

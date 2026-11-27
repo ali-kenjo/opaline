@@ -245,13 +245,13 @@ export function NetWaveVisual({ params, label, animate = false }: VisualProps) {
           ref={txPathRef}
           d={netWavePath(txAmp, 1.2, 62 - txRatio * 10)}
           fill="rgb(var(--md-tertiary))"
-          fillOpacity={0.28}
+          fillOpacity={0.08}
         />
         <path
           ref={rxPathRef}
           d={netWavePath(rxAmp, 0, 52 - rxRatio * 14)}
           fill="rgb(var(--md-primary))"
-          fillOpacity={0.38}
+          fillOpacity={0.13}
         />
       </svg>
       <div className={styles.netWaveOverlay}>
@@ -375,7 +375,7 @@ export function BatteryPillVisual({ params, label, animate = false }: VisualProp
           className={styles.liquidSvg}
           aria-hidden
         >
-          <rect x="0" y="0" width={pct * 1.8} height="64" fill={color} fillOpacity={0.38} />
+          <rect x="0" y="0" width={pct * 1.8} height="64" fill={color} fillOpacity={0.22} />
           {charging ? (
             <>
               <circle ref={b1} cx={pct * 0.5} cy="22" r="3" fill={color} opacity="0.45" />

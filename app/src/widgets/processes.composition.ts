@@ -26,6 +26,7 @@ export const processesComposition: Composition = {
   version: 1,
   layouts: [
     {
+      sizes: ["L", "XL"],
       minW: 4,
       minH: 4,
       root: {
@@ -38,12 +39,13 @@ export const processesComposition: Composition = {
             type: "canvas",
             visual: "process-table",
             label: "Processes",
-            params: baseParams("min(opt.count, 10)", "false", "opt.showSearch"),
+            params: baseParams("min(opt.count, 8)", "false", "opt.showSearch"),
           },
         ],
       },
     },
     {
+      sizes: ["M"],
       minW: 4,
       minH: 2,
       root: {
@@ -56,12 +58,13 @@ export const processesComposition: Composition = {
             type: "canvas",
             visual: "process-table",
             label: "Processes",
-            params: baseParams("min(opt.count, 4)", "false", "opt.showSearch"),
+            params: baseParams("min(opt.count, 2)", "false", "opt.showSearch"),
           },
         ],
       },
     },
     {
+      sizes: ["S"],
       minW: 2,
       minH: 2,
       root: {
@@ -80,6 +83,7 @@ export const processesComposition: Composition = {
       },
     },
     {
+      sizes: ["4x1", "2x1", "1x1"],
       root: {
         id: "root",
         type: "column",

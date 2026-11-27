@@ -71,7 +71,7 @@
 
 .wxLoc {
   font-size: calc(11.5px * var(--w-scale));
-  color: rgb(var(--md-on-surface-variant));
+  color: rgb(var(--md-on-surface));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -85,14 +85,14 @@
   font-family: var(--w-num-font);
   font-variant-numeric: var(--w-nums);
   font-size: calc(11.5px * var(--w-scale));
-  color: rgb(var(--md-on-surface-variant));
+  color: rgb(var(--md-on-surface));
   white-space: nowrap;
 }
 
 .wxPills {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 5px;
   align-items: center;
 }
 
@@ -100,9 +100,9 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 8px;
+  padding: 2px 7px;
   border-radius: 999px;
-  background: rgb(var(--md-on-surface) / 0.08);
+  background: rgb(var(--md-surface-container-lowest) / 0.28);
   font-size: calc(11px * var(--w-scale));
   font-family: var(--w-num-font);
   font-variant-numeric: var(--w-nums);
@@ -114,23 +114,23 @@
   grid-auto-flow: column;
   grid-auto-columns: minmax(0, 1fr);
   gap: 4px;
-  padding: 6px 4px;
+  padding: 5px 4px;
   border-radius: 12px;
-  background: rgb(var(--md-on-surface) / 0.06);
+  background: rgb(var(--md-surface-container-lowest) / 0.26);
 }
 
 .wxHourCol {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   font-size: calc(10.5px * var(--w-scale));
   font-family: var(--w-num-font);
   font-variant-numeric: var(--w-nums);
 }
 
 .wxHourTime {
-  color: rgb(var(--md-on-surface-variant));
+  color: rgb(var(--md-on-surface));
 }
 
 .wxHourTemp {
@@ -413,7 +413,7 @@
   font-size: calc(11px * var(--w-scale));
   font-family: var(--w-num-font);
   font-variant-numeric: var(--w-nums);
-  color: rgb(var(--md-on-surface-variant));
+  color: rgb(var(--md-on-surface));
   white-space: nowrap;
 }
 
