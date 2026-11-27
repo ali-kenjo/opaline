@@ -16,6 +16,10 @@ import { LAB_FONTS, LAB_NOW, mockSpectrum, mockValues, useLabValues } from "./la
 import { labTint } from "./labTint";
 import styles from "./Lab.module.css";
 import { makeWallpaper } from "./wallpapers";
+import opalineTheme from "../../../spec/themes/opaline/theme.json";
+
+/** The real Opaline type (hero roles, number font), so the showcase shows the desktop's sizes. */
+const OPALINE_TYPE = sanitizeStyle(opalineTheme.style);
 
 const OPALINE_THEME: NonNullable<WidgetHost["theme"]> = {
   id: "opaline",
@@ -29,6 +33,8 @@ const OPALINE_THEME: NonNullable<WidgetHost["theme"]> = {
     shadow: 40,
     legibility: true,
     headerStyle: "none",
+    ...(OPALINE_TYPE.numberFontFamily ? { numberFontFamily: OPALINE_TYPE.numberFontFamily } : {}),
+    ...(OPALINE_TYPE.roles ? { roles: OPALINE_TYPE.roles } : {}),
   },
   kinds: {
     clock: { accentColor: "#8f7cf0" },

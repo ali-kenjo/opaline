@@ -4,6 +4,7 @@
 // data-state.
 import { type ReactNode, useEffect, useState } from "react";
 import { Fit, WavyProgress, useFitRows } from "../../design-system/components";
+import { useNumberFit } from "../../design-system/components/fitNumber";
 import { ICONS, Icon, type IconName } from "../../design-system/icons";
 import { Odometer } from "../../design-system/motion";
 import type { Value } from "../../expr";
@@ -230,6 +231,10 @@ function BlockView({ node, at, attrs }: { node: Node; at: string; attrs: Attrs }
   const { animate, rt } = useView();
   const field = useField(at);
   const asString = useAsString();
+  // Hero numbers narrow, then shrink, to fit their card (DESIGN-2 §3.3).
+  const [blockRef, numberRef] = useNumberFit<HTMLDivElement, HTMLSpanElement>(
+    node.type === "number" && node.role === "hero",
+  );
   let failed = false as boolean;
   const read = (key: string) => {
     const f = field(key);
@@ -259,7 +264,11 @@ function BlockView({ node, at, attrs }: { node: Node; at: string; attrs: Attrs }
       const unit = node.unit !== undefined ? asString(read("unit")) : "";
       const motion = node.motion ?? "odometer";
       content = (
-        <span className={styles.number} aria-label={unit ? `${text}${NNBSP}${unit}` : text}>
+        <span
+          ref={numberRef}
+          className={styles.number}
+          aria-label={unit ? `${text}${NNBSP}${unit}` : text}
+        >
           {animate && motion === "odometer" ? <Odometer text={text} /> : <span>{text}</span>}
           {unit ? (
             <span data-role="unit" aria-hidden>
@@ -342,6 +351,7 @@ function BlockView({ node, at, attrs }: { node: Node; at: string; attrs: Attrs }
   }
   return (
     <div
+      ref={blockRef}
       className={`${styles.block ?? ""} ${node.type === "canvas" ? (styles.fill ?? "") : ""}`}
       data-state={failed ? "unavailable" : undefined}
       {...attrs}
