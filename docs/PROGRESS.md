@@ -903,7 +903,7 @@ local n8n/GitHub/HA can be exercised whenever the owner wants.
 `glib-compile-schemas --strict`, `lint:helper`; 311 Vitest, 87 Playwright WebKit e2e (incl. `p8-automation.spec.ts` +
 all 15 Settings sections), `eslint`, `prettier`, `tsc`, production `vite build`.
 
-**Sign-off:** ⏳ Awaiting owner sign-off. Next: Phase 9 (Plugins & gallery: ADR 0014 sandbox, hostile-plugin suite, gallery verifier, author tools `opaline pack` / `opaline validate`, `docs/SDK.md`).
+**Sign-off:** ✅ 2026-11-27. Phase 8 complete. Next: Phase 9 (Plugins & gallery: ADR 0014 sandbox, hostile-plugin suite, gallery verifier, author tools `opaline pack` / `opaline validate`, `docs/SDK.md`).
 
 
 

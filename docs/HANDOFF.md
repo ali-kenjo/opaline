@@ -11,13 +11,12 @@ transparent WebKitGTK window per monitor, React 19 frontend) + a small GNOME She
 each ending with acceptance checks, a PROGRESS entry and the owner's sign-off.
 
 ## Status
-- **P0, P1, P2, P3, P4 (Rounds 1–5), P5 (Editing experience & placement), P6 (Custom sources & Widget Builder), and P7 (New widgets)**
-  are signed off and pushed (`origin/main` `e4fe1e2`).
-- **Phase 8: Profiles, automation, CLI `opaline ctl`, D-Bus v2, helper v2 (Tasks 8.1–8.6)** is complete and verified
-  locally (249 Rust tests, 311 Vitest, 87 Playwright WebKit E2E), awaiting owner sign-off before pushing to `origin/main`.
+- **P0–P8** (Stabilize, Design language & Glass 2.0, Composition engine, 14 Widgets + 9 Looks, Styling/themes/files,
+  Editing experience, Custom sources & Builder, 16 New widgets, and Profiles/automation/CLI/D-Bus v2/Helper v2)
+  are signed off and pushed (`origin/main`).
 - **Next steps, in order:**
-  1. Sign off and push **Phase 8** (re-login activates Shell1 API v2 workspace/focused-app signals; v1 helper stays compatible via N−1).
-  2. Proceed to **Phase 9: Plugins & gallery** and **Phase 10: Quality & release**.
+  1. Begin **Phase 9: Plugins & gallery** (ADR 0014 sandbox, hostile-plugin suite, gallery client & signature verifier, `opaline pack` / `opaline validate`, `docs/SDK.md`).
+  2. Complete **Phase 10: Quality & release**.
   3. Optional, if the owner allows: a real-layer budget run (`scripts/measure-budget.sh 60` with a 2.0 build on a
      settings copy) to confirm animation CPU and RAM on the desktop.
 - **Settings are version 2.** Run dev builds on a settings copy (`XDG_CONFIG_HOME=<copy>`), never on the owner's
