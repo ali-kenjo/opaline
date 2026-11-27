@@ -32,6 +32,9 @@ const params = new URLSearchParams(location.search);
 (window as unknown as { __labEvaluations?: typeof evaluationCount }).__labEvaluations =
   evaluationCount;
 const still = params.has("still");
+/** `?frozen`: mock values hold still but the clock runs (what a Clock sees between data updates
+ * on the desktop; the moving mocks would re-render it every 1.5 s anyway). */
+const frozen = params.has("frozen");
 /** `?only=glass|widgets|components|specimen` shows one section (for memory and perf bisecting). */
 const only = params.get("only");
 const shows = (section: string) => (only === null && !params.has("spike")) || only === section;
@@ -68,7 +71,7 @@ export function LabApp() {
   );
 
   useEffect(() => {
-    if (still) return;
+    if (still || frozen) return;
     const id = setInterval(() => {
       setValue((v) =>
         Math.max(1, Math.min(99, Math.round((v + (Math.random() - 0.45) * 12) * 10) / 10)),
