@@ -698,7 +698,7 @@ validated), `clippy -D warnings`, `rustfmt`; 296 Vitest, 71 Playwright WebKit e2
 pixel-identical + all 10 looks verified in `looks.spec.ts` for rendering, zero truncation, WCAG contrast, and 0 idle
 frames), `eslint`, `prettier`, `tsc`.
 
-**Sign-off:** _awaiting owner sign-off to complete Phase 4 and begin Phase 5 (Editing experience & placement)._
+**Sign-off:** ✅ 2026-11-27. Phase 4 complete. Next: Phase 5 (Editing experience & placement).
 
 
 

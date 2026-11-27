@@ -11,16 +11,12 @@ transparent WebKitGTK window per monitor, React 19 frontend) + a small GNOME She
 each ending with acceptance checks, a PROGRESS entry and the owner's sign-off.
 
 ## Status
-- **P0, P1, P2, P3, and P4 Rounds 1–4** (Clock, CPU, Memory, GPU, Storage, Network, Battery & Power, Fans,
-  Processes, Now Playing, Visualizer, Weather, Calendar, Docker / Podman) are signed off and pushed.
-- **P4 Round 5** (4.15 The ten built-in looks + curated starter layouts + lazy fonts; 4.16 Per-theme Lab showcase
-  with WCAG contrast, zero-truncation, and zero-idle-frame E2E verification across all 10 looks) is implemented and
-  verified, awaiting owner sign-off to close Phase 4.
+- **P0, P1, P2, P3, and all of P4 (Rounds 1–5)** (all 13 redesigned 2.0 widgets + all 10 built-in looks + starter
+  layouts + lazy fonts + per-theme Lab contrast/truncation verification) are signed off and pushed.
 - **Next steps, in order:**
-  1. Owner sign-off on **P4 Round 5** (completing Phase 4), then push Round 5 commits.
-  2. Begin **Phase 5: Editing experience & placement** (Inspector, Edit mode upgrades, Free mode, Widget Gallery,
+  1. Complete **Phase 5: Editing experience & placement** (Inspector, Edit mode upgrades, Free mode, Widget Gallery,
      Settings consolidation, Onboarding look step).
-  3. Optional, if the owner allows: a real-layer budget run (`scripts/measure-budget.sh 60` with a 2.0 build on a
+  2. Optional, if the owner allows: a real-layer budget run (`scripts/measure-budget.sh 60` with a 2.0 build on a
      settings copy) to confirm animation CPU and RAM on the desktop.
 - **Settings are version 2.** Run dev builds on a settings copy (`XDG_CONFIG_HOME=<copy>`), never on the owner's
   `~/.config/opaline` (the installed 1.1.0 then treats it as read-only).
