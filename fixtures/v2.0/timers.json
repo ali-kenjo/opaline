@@ -1,0 +1,47 @@
+{
+  "items": [
+    {
+      "id": "pomodoro",
+      "label": "Focus",
+      "kind": "pomodoro",
+      "durationMs": 1500000,
+      "remainingMs": 600000,
+      "elapsedMs": 0,
+      "running": true,
+      "lapsMs": [],
+      "pomoPhase": "work",
+      "pomoWorkMs": 1500000,
+      "pomoBreakMs": 300000,
+      "pomoCompletedToday": 3
+    },
+    {
+      "id": "timer-1",
+      "label": "Tea",
+      "kind": "timer",
+      "durationMs": 300000,
+      "remainingMs": 300000,
+      "elapsedMs": 0,
+      "running": false,
+      "lapsMs": [],
+      "pomoPhase": "work",
+      "pomoWorkMs": 1500000,
+      "pomoBreakMs": 300000,
+      "pomoCompletedToday": 0
+    },
+    {
+      "id": "stopwatch",
+      "label": "Stopwatch",
+      "kind": "stopwatch",
+      "durationMs": 0,
+      "remainingMs": 0,
+      "elapsedMs": 42000,
+      "running": true,
+      "lapsMs": [12000, 30000],
+      "pomoPhase": "work",
+      "pomoWorkMs": 1500000,
+      "pomoBreakMs": 300000,
+      "pomoCompletedToday": 0
+    }
+  ],
+  "dayKey": "2026-11-27"
+}

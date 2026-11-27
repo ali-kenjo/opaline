@@ -90,3 +90,30 @@ fn v1_1_layouts_migrates_without_loss() {
     assert_eq!(layouts.monitors["REDACTED-EXT-0002:HDMI-2"].items.len(), 1);
     assert_eq!(layouts.validate(), Ok(()));
 }
+
+/// A `timers.json` written by 2.0.0/2.0.1 (no wall-clock anchors) still loads: every field is
+/// kept, and running entries resume from their saved values (the downtime before the upgrade
+/// can't be known) and from then on follow the wall clock.
+#[test]
+fn v2_0_timers_file_loads_and_resumes_from_its_saved_values() {
+    use opaline_core::providers::timers::{TimerKind, load_store, tick_store};
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/v2.0/timers.json");
+    let now = 1_795_800_000_000;
+    let mut st = load_store(&path, now);
+    assert_eq!(st.day_key, "2026-11-27");
+    assert_eq!(st.items.len(), 3);
+    let pomo = &st.items[0];
+    assert_eq!(pomo.kind, TimerKind::Pomodoro);
+    assert_eq!(pomo.pomo_completed_today, 3);
+    assert!(pomo.running);
+    assert_eq!(pomo.ends_at_ms, Some(now + 600_000));
+    let sw = &st.items[2];
+    assert_eq!(sw.laps_ms, vec![12_000, 30_000]);
+    assert_eq!(sw.started_at_ms, Some(now - 42_000));
+    assert_eq!(st.items[1].ends_at_ms, None);
+
+    let tick = tick_store(&mut st, now + 2_000, 0);
+    assert!(tick.finished.is_empty());
+    assert_eq!(st.items[0].remaining_ms, 598_000);
+    assert_eq!(st.items[2].elapsed_ms, 44_000);
+}
