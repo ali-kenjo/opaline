@@ -195,7 +195,6 @@
               "percent": "memory.usage.percent",
               "pressure": "memory.pressure.some10",
               "text": "bind.pctText",
-              "sub": "bind.usedOfTotal",
               "color": "ramp(bind.ratio, 'load')"
             },
             "visible": "bind.heroVisual == 'liquid'"

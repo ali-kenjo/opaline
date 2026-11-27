@@ -528,8 +528,15 @@
 }
 
 .liquidSub {
+  max-width: 100%;
+  padding-inline: 4px;
   font-size: calc(11px * var(--w-scale));
   color: rgb(var(--md-on-surface));
+  text-align: center;
+}
+
+.liquidSubPart {
+  white-space: nowrap;
 }
 
 .stackedBarWrap {

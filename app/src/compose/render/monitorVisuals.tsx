@@ -77,6 +77,19 @@ export function liquidWavePath(level: number, amplitude: number, phase: number):
   return d;
 }
 
+/** "used / total" that may only break before the slash, so a narrow pill shows "6,3 GB" over
+ * "/ 16,0 GB" and never a line ending in "/". */
+function LiquidSub({ text }: { text: string }) {
+  const at = text.indexOf(" / ");
+  if (at < 0) return <span className={styles.liquidSub}>{text}</span>;
+  return (
+    <span className={styles.liquidSub}>
+      <span className={styles.liquidSubPart}>{text.slice(0, at)}</span>{" "}
+      <span className={styles.liquidSubPart}>{text.slice(at + 1)}</span>
+    </span>
+  );
+}
+
 export function LiquidFillVisual({ params, label, animate = false }: VisualProps) {
   const pct = num(params.percent) ?? 0;
   const pressure = num(params.pressure) ?? 0;
@@ -136,7 +149,7 @@ export function LiquidFillVisual({ params, label, animate = false }: VisualProps
         <span data-hero="" className={styles.liquidPct}>
           {text}
         </span>
-        {sub ? <span className={styles.liquidSub}>{sub}</span> : null}
+        {sub ? <LiquidSub text={sub} /> : null}
       </div>
     </div>
   );

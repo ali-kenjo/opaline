@@ -8,7 +8,9 @@
 // - GB / GiB formatting
 import type { Composition, Node } from "../compose/model.gen";
 
-const liquid = (id: string): Node => ({
+/** The liquid pill; `sub` adds "used / total" under the percentage (left out where the same line
+ * stands right next to the pill). */
+const liquid = (id: string, sub = true): Node => ({
   id,
   type: "canvas",
   visual: "liquid-fill",
@@ -17,7 +19,7 @@ const liquid = (id: string): Node => ({
     percent: "memory.usage.percent",
     pressure: "memory.pressure.some10",
     text: "bind.pctText",
-    sub: "bind.usedOfTotal",
+    ...(sub ? { sub: "bind.usedOfTotal" } : {}),
     color: "ramp(bind.ratio, 'load')",
   },
 });
@@ -181,7 +183,7 @@ export const memoryComposition: Composition = {
         align: "stretch",
         gap: 3,
         children: [
-          { ...liquid("hero-liquid"), visible: "bind.heroVisual == 'liquid'" },
+          { ...liquid("hero-liquid", false), visible: "bind.heroVisual == 'liquid'" },
           {
             id: "hero-ring",
             type: "ring",
