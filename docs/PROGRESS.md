@@ -754,6 +754,65 @@ WebKit e2e (all Classic 1.1 Lab baselines + all 10 looks + all Phase 5 specs pas
 
 **Sign-off:** ✅ 2026-11-27. Phase 5 complete. Next: Phase 6 (Custom sources & Widget Builder).
 
+## 2.0 · Phase 6: Custom sources and the builder (2026-11-27)
+
+**Done**
+- **6.1 Source format, runtime & diagnostics (`crates/opaline-core/src/sources/`, `spec/source.schema.json`, `spec/custom-widget.schema.json`):**
+  - Versioned schemas for custom sources (`~/.config/opaline/sources/<id>.json`) and custom widgets
+    (`~/.config/opaline/widgets/<id>.json`), live-watched via `watcher.rs` with self-write suppression.
+  - Per-source runtime status (`ok`, `error`, `waiting`, `needs-approval`, `disabled`), last run time & duration,
+    run count, rolling 20-entry log, **Run now**, `--safe-mode` suppression, and redacted per-source cost &
+    health entries in `opaline --diagnose` and `Settings → Diagnostics`.
+- **6.2 Command, File, D-Bus & Variables (`sources/runners.rs`, `sources/parsers.rs`):**
+  - **Command**: direct `argv` execution (no shell unless `shell: true` opted in), cleared environment + explicit
+    `envAllowlist`, strict timeout & byte caps, parsers for `text`, `lines`, `json`, `csv`, and linear-time
+    `regex` captures.
+  - **File**: Linux `inotify` watched via `rustix` (`text`, `json`, `csv`, `markdown` frontmatter/headings/tasks,
+    and `todotxt`).
+  - **D-Bus**: session bus properties, plus read-only system bus strictly behind `SYSTEM_BUS_ALLOWLIST`.
+  - **Variables**: persisted (`~/.config/opaline/variables.json`) or in-memory `var.<name>` values settable via
+    IPC/shell commands.
+- **6.3 SSRF-hardened HTTP/JSON & RFC 9535 JSONPath (`http.rs`, `jsonpath.rs`):**
+  - Extended `http.rs` (`fetch_custom`): HTTPS by default; plain `http://` only for loopback and private LAN
+    after per-source `allowLocalHttp` opt-in; link-local, cloud-metadata (`169.254.169.254`, `100.100.100.200`,
+    `fd00:ec2::254`, `fe80::/10`, IPv4-mapped IPv6), multicast & unspecified always blocked **after DNS
+    resolution**; validated `SocketAddr` pinned for the connection with manual redirect re-validation (no
+    DNS-rebinding bypass); `ETag`/`If-Modified-Since` caching; custom headers with `{{secret:name}}` resolution;
+    built-in RFC 9535 JSONPath evaluator.
+- **6.4 MQTT (`sources/mqtt.rs`):**
+  - Lightweight async MQTT 3.1.1 subscriber over `tokio` + TLS 1.3 (`tokio-rustls` + `rustls-native-certs`),
+    SSRF-validated broker host, keyring credentials, keepalive, reconnect backoff, and loopback broker test.
+- **6.5 Secrets — Spike S11 (`secrets.rs`, [ADR 0019](adr/0019-secrets-and-custom-sources.md)):**
+  - Direct GNOME Keyring (`org.freedesktop.secrets`) integration over workspace `zbus 6` (zero extra D-Bus
+    versions). Secrets never appear in JSON, backups, logs, UI state, or `--diagnose`; verified with planted-secret
+    tests in both Rust and Playwright.
+- **6.6 Trust for imported sources (`sources/model.rs`, `sources/manager.rs`):**
+  - Imported sources start in `needs-approval` and stay off until approved; approval dialog shows exact command
+    line, file path, host/URL, D-Bus target, or MQTT broker; approval is keyed by `(id, packageVersion,
+    SHA-256 trustFingerprint)` so any change re-prompts.
+- **6.7 Code-split Visual Widget Builder (`app/src/builder/WidgetBuilder.tsx`, `builderModel.ts`, `customWidgets.ts`):**
+  - Lazy-loaded studio (`WidgetBuilder-*.js` 22.2 kB + `.css` 5.4 kB; 0 KB outside Edit mode): per-size layout
+    tabs, expandable block tree, 16-block palette, live `CompositionView` canvas, shared bindings & property
+    editors with live evaluated previews and inline syntax/runtime errors, auto-generated accessible names,
+    **Save & place** into Widget Gallery `"Your widgets"`, and **"Customize layout…"** in Inspector to fork any
+    first-party widget.
+- **6.8 Settings → Data sources & Accounts & integrations (`DataSourcesSection.tsx`, `AccountsSection.tsx`):**
+  - Full CRUD for all 6 source types, Trust approval review card, **Run now** preview & logs, GNOME Keyring
+    secret manager (masked input, values never echoed), and integration overview — all indexed in Settings search.
+
+**Checks:** 233 Rust workspace tests (all 8 schema tests incl. `source.schema.json` & `custom-widget.schema.json`,
+SSRF/DNS-pinning, JSONPath, Command/File/CSV/Markdown/todo.txt/Regex, MQTT loopback broker, Trust fingerprint
+invalidation, planted-secret audit), `clippy -D warnings`, `rustfmt`; 308 Vitest (1 skipped), 83 Playwright WebKit
+e2e (incl. `builder.spec.ts` + all 14 Settings sections + Gallery/Inspector), `eslint`, `prettier`, `tsc`,
+`lint:helper`, production `vite build` confirming `WidgetBuilder` (22 KB) & `Inspector` (33 KB) code-split chunks.
+
+**Note (6.9):** Real-machine live check against local Docker Desktop / n8n / Mosquitto is optional and awaits
+owner availability; all core HTTP local-loopback, ETag, JSONPath, keyring, and MQTT broker paths are covered by
+automated integration tests.
+
+**Sign-off:** ⏳ Awaiting owner sign-off. Next: Phase 7 (New widgets: Quick controls, Notes, To-do, Timers,
+Countdowns, World clock, Photo frame, Sun & moon, Quote, Aura, Decorations, GitHub, HA, MQTT, Feeds, n8n).
+
 
 
 
