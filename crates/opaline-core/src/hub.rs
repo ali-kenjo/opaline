@@ -623,11 +623,33 @@ pub fn now_ms() -> u64 {
         .unwrap_or(0)
 }
 
+/// Whether something done at `last_ms` (wall clock) is due again `every_ms` later. Uses the wall
+/// clock because tokio's timers and `Instant` stop while the machine sleeps: "every 15 min"
+/// measured on them can leave data a night old for 15 more minutes after resume. A clock set
+/// back to before `last_ms` counts as due, so it can't postpone the next run indefinitely.
+pub fn wall_due(last_ms: u64, now_ms: u64, every_ms: u64) -> bool {
+    now_ms < last_ms || now_ms - last_ms >= every_ms
+}
+
+/// How long a loop that refreshes on the wall clock sleeps at most before it looks again.
+pub const WALL_CHECK: std::time::Duration = std::time::Duration::from_secs(60);
+
 #[cfg(test)]
 mod tests {
     #![allow(clippy::unwrap_used)]
 
     use super::*;
+
+    #[test]
+    fn wall_due_counts_sleep_and_survives_a_clock_set_back() {
+        let min15 = 15 * 60_000;
+        assert!(!wall_due(1_000_000, 1_000_000 + min15 - 1, min15));
+        assert!(wall_due(1_000_000, 1_000_000 + min15, min15));
+        // A night asleep counts.
+        assert!(wall_due(1_000_000, 1_000_000 + 8 * 3_600_000, min15));
+        // The clock moved back before the last run: due, not postponed until it catches up.
+        assert!(wall_due(1_000_000, 999_000, min15));
+    }
 
     #[test]
     fn subscriptions_are_reference_counted_per_class() {

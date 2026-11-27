@@ -398,27 +398,39 @@ pub async fn download_and_install(info: &UpdateInfo) -> Result<PathBuf, String> 
     Ok(dest)
 }
 
-/// Background daily update checker: checks once shortly after startup and every 24 h while
-/// `settings.privacy.update_checks` is enabled.
+/// Background daily update checker: checks once shortly after startup and every 24 h (wall
+/// clock, so nights asleep count) while `settings.privacy.update_checks` is enabled.
 pub async fn run_daily_check(hub: Arc<Hub>) {
     // Give startup a quiet window before making any background request.
     tokio::time::sleep(Duration::from_secs(60)).await;
+    let mut last_check_ms: Option<u64> = None;
     loop {
-        if hub.settings().privacy.update_checks {
-            match check_latest().await {
-                Ok(info) => {
-                    tracing::info!(
-                        current = %info.current_version,
-                        latest = %info.latest_version,
-                        available = info.update_available,
-                        "update check completed"
-                    );
-                    hub.set_latest_update(Some(info));
+        let now = crate::hub::now_ms();
+        let due = last_check_ms.is_none_or(|last| {
+            crate::hub::wall_due(
+                last,
+                now,
+                u64::try_from(CHECK_INTERVAL.as_millis()).unwrap_or(u64::MAX),
+            )
+        });
+        if due {
+            last_check_ms = Some(now);
+            if hub.settings().privacy.update_checks {
+                match check_latest().await {
+                    Ok(info) => {
+                        tracing::info!(
+                            current = %info.current_version,
+                            latest = %info.latest_version,
+                            available = info.update_available,
+                            "update check completed"
+                        );
+                        hub.set_latest_update(Some(info));
+                    }
+                    Err(error) => tracing::debug!(%error, "daily update check skipped or failed"),
                 }
-                Err(error) => tracing::debug!(%error, "daily update check skipped or failed"),
             }
         }
-        tokio::time::sleep(CHECK_INTERVAL).await;
+        tokio::time::sleep(Duration::from_secs(3600)).await;
     }
 }
 

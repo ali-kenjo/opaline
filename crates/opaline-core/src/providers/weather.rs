@@ -296,7 +296,9 @@ pub async fn run(hub: Arc<Hub>) -> Result<(), String> {
             HIDDEN_EVERY
         };
         tokio::select! {
-            () = tokio::time::sleep(wait), if interest.is_some() => {}
+            // Freshness is judged on the wall clock above; waking at least once a minute lets a
+            // forecast that went stale while the laptop slept be fetched right after resume.
+            () = tokio::time::sleep(wait.min(crate::hub::WALL_CHECK)), if interest.is_some() => {}
             c = subs.changed() => c.map_err(|_| "hub closed".to_owned())?,
             c = settings.changed() => c.map_err(|_| "hub closed".to_owned())?,
         }

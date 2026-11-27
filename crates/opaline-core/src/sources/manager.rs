@@ -42,7 +42,8 @@ struct SourceStateInner {
     http_cache: HashMap<String, HttpCacheEntry>,
     variables: BTreeMap<String, serde_json::Value>,
     custom_widgets: BTreeMap<String, CustomWidgetPackage>,
-    last_polled: HashMap<String, Instant>,
+    /// When each polled source last ran (wall clock, ms; see `hub::wall_due`).
+    last_polled: HashMap<String, u64>,
     /// Incremented whenever sources reload so long-lived MQTT/File tasks restart cleanly.
     generation: u64,
 }
@@ -526,7 +527,7 @@ impl SourceManager {
     ) {
         {
             let mut inner = self.inner.lock().unwrap_or_else(PoisonError::into_inner);
-            inner.last_polled.insert(id.to_owned(), Instant::now());
+            inner.last_polled.insert(id.to_owned(), now_ms());
             if let Some(st) = inner.statuses.get_mut(id) {
                 st.last_run_ms = Some(now_ms());
                 st.last_duration_us = Some(dur_us);
@@ -602,7 +603,10 @@ impl SourceManager {
     }
 
     fn collect_due_polled(&self) -> Vec<SourceSpec> {
-        let now = Instant::now();
+        self.collect_due_polled_at(now_ms())
+    }
+
+    fn collect_due_polled_at(&self, now: u64) -> Vec<SourceSpec> {
         let mut inner = self.inner.lock().unwrap_or_else(PoisonError::into_inner);
         let mut due = Vec::new();
         let specs: Vec<SourceSpec> = inner.specs.values().cloned().collect();
@@ -622,10 +626,11 @@ impl SourceManager {
                 _ => None,
             };
             let Some(iv) = interval else { continue };
+            let every_ms = u64::try_from(iv.as_millis()).unwrap_or(u64::MAX);
             let should_run = inner
                 .last_polled
                 .get(&spec.id)
-                .is_none_or(|t| now.duration_since(*t) >= iv);
+                .is_none_or(|&last| crate::hub::wall_due(last, now, every_ms));
             if should_run {
                 inner.last_polled.insert(spec.id.clone(), now);
                 due.push(spec);
@@ -926,6 +931,48 @@ mod tests {
         assert!(diag.contains("command"));
         assert!(!diag.contains("hello-opaline"));
         assert!(!diag.contains("printf"));
+    }
+
+    #[test]
+    fn polled_sources_fall_due_on_the_wall_clock() {
+        let dir = tempfile::tempdir().unwrap();
+        let mgr = SourceManager::new(dir.path().to_path_buf());
+        let hub = Hub::new(BackendKind::Instant, Vec::new());
+        let spec = SourceSpec {
+            schema: None,
+            version: 1,
+            id: "every-ten-min".into(),
+            name: "Every ten minutes".into(),
+            description: None,
+            enabled: true,
+            origin: SourceOrigin::Imported {
+                package_id: "demo-pack".into(),
+                package_version: "1.0.0".into(),
+            },
+            kind: SourceKind::Command {
+                argv: vec!["true".into()],
+                shell: false,
+                interval_s: 600,
+                timeout_ms: 3000,
+                max_bytes: 4096,
+                env_allowlist: Vec::new(),
+                format: OutputFormat::Text,
+                regex: None,
+            },
+        };
+        mgr.save_source(spec, &hub).unwrap();
+        mgr.approve_source("every-ten-min", &hub).unwrap();
+        let t0 = 1_795_800_000_000;
+        assert_eq!(mgr.collect_due_polled_at(t0).len(), 1);
+        assert!(mgr.collect_due_polled_at(t0 + 60_000).is_empty());
+        // Eight hours asleep: tokio's clock barely moved, the wall clock did. Due at once.
+        assert_eq!(mgr.collect_due_polled_at(t0 + 8 * 3_600_000).len(), 1);
+        assert!(
+            mgr.collect_due_polled_at(t0 + 8 * 3_600_000 + 1000)
+                .is_empty()
+        );
+        // The clock set back an hour doesn't postpone the source by an hour.
+        assert_eq!(mgr.collect_due_polled_at(t0 + 7 * 3_600_000).len(), 1);
     }
 
     #[test]
