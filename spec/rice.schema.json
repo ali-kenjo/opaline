@@ -1796,7 +1796,7 @@
           ]
         },
         "fontSize": {
-          "description": "Font size in CSS px, 8 … 180.",
+          "description": "Font size in CSS px, 8 … 180. For the `hero` role this is the size on an M card; other card\nsizes scale it like the built-in scale (1×1 20/44, S 30/44, L and XL 72/44).",
           "format": "double",
           "type": [
             "number",

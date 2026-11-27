@@ -35,6 +35,7 @@
         "fontFamily": "Roboto Flex",
         "fontWeight": 820,
         "fontWidth": 28,
+        "fontSize": 60,
         "letterSpacing": -0.02,
         "lineHeight": 0.85,
         "tabularNumbers": true

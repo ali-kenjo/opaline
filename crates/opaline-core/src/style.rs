@@ -225,7 +225,8 @@ pub struct RoleTypography {
     /// Variable font `wdth` axis, 25 … 151.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub font_width: Option<f64>,
-    /// Font size in CSS px, 8 … 180.
+    /// Font size in CSS px, 8 … 180. For the `hero` role this is the size on an M card; other card
+    /// sizes scale it like the built-in scale (1×1 20/44, S 30/44, L and XL 72/44).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub font_size: Option<f64>,
     /// Letter spacing in em, −0.1 … 0.5.

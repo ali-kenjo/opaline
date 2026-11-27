@@ -167,7 +167,11 @@ function writeRoleVars(vars: Record<string, string | number>, role: string, r: R
   if (r.fontFamily) vars[`${p}-font`] = fontStack(r.fontFamily);
   if (r.fontWeight !== undefined) vars[`${p}-weight`] = r.fontWeight;
   if (r.fontWidth !== undefined) vars[`${p}-wdth`] = r.fontWidth;
-  if (r.fontSize !== undefined) vars[`${p}-size`] = `${String(r.fontSize)}px`;
+  if (r.fontSize !== undefined) {
+    vars[`${p}-size`] = `${String(r.fontSize)}px`;
+    // Unitless too: the hero treats its size as the M size and scales it per card size in CSS.
+    vars[`${p}-size-n`] = r.fontSize;
+  }
   if (r.letterSpacing !== undefined) vars[`${p}-letter`] = `${String(r.letterSpacing)}em`;
   if (r.textCase !== undefined) vars[`${p}-case`] = r.textCase;
   if (r.lineHeight !== undefined) vars[`${p}-lh`] = r.lineHeight;

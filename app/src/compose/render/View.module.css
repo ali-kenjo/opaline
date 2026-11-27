@@ -173,7 +173,8 @@
   flex-direction: row;
 }
 
-/* Roles. Sizes follow the size class; --w-scale is the widget's text size. A theme or widget style
+/* Roles. Sizes follow the size class; --w-scale is the widget's text size. A role's fontSize is used
+   as is, except the hero's: that is its M size, and the size classes scale it (44 px by default). A theme or widget style
    can retune each role (style.roles → --w-role-<role>-*, see design-system/style/apply.ts); every
    property falls back to the widget-wide setting, so a style without roles looks as before. The
    width axis is set twice on purpose: WebKit maps font-stretch to wdth for variable fonts. */
@@ -205,24 +206,24 @@
   --w-role-features: var(--w-role-hero-features, var(--w-font-features));
   --w-role-opacity: var(--w-role-hero-opacity, 1);
   color: var(--w-role-hero-color, currentColor);
-  font-size: var(--w-role-hero-size, calc(44px * var(--w-scale)));
+  font-size: calc(var(--w-role-hero-size-n, 44) * var(--w-scale) * 1px);
   line-height: var(--w-role-hero-lh, 1);
   white-space: nowrap;
 }
 
 [data-size="1x1"] [data-role="hero"] {
-  font-size: var(--w-role-hero-size, calc(20px * var(--w-scale)));
+  font-size: calc(var(--w-role-hero-size-n, 44) * 20 / 44 * var(--w-scale) * 1px);
 }
 
 [data-size="2x1"] [data-role="hero"],
 [data-size="4x1"] [data-role="hero"],
 [data-size="S"] [data-role="hero"] {
-  font-size: var(--w-role-hero-size, calc(30px * var(--w-scale)));
+  font-size: calc(var(--w-role-hero-size-n, 44) * 30 / 44 * var(--w-scale) * 1px);
 }
 
 [data-size="L"] [data-role="hero"],
 [data-size="XL"] [data-role="hero"] {
-  font-size: var(--w-role-hero-size, calc(72px * var(--w-scale)));
+  font-size: calc(var(--w-role-hero-size-n, 44) * 72 / 44 * var(--w-scale) * 1px);
 }
 
 [data-role="title"] {

@@ -285,7 +285,10 @@ export type MotionSpeed = "slow" | "default" | "fast";
 export interface RoleTypography {
   color?: string;
   fontFamily?: string;
-  /** Font size in CSS px, 8 … 180. */
+  /**
+   * Font size in CSS px, 8 … 180. For the `hero` role this is the size on an M card; other card
+   * sizes scale it like the built-in scale (1×1 20/44, S 30/44, L and XL 72/44).
+   */
   fontSize?: number;
   /** 100 … 1000. */
   fontWeight?: number;
