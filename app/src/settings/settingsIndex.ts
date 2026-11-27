@@ -5,6 +5,8 @@ export type SettingsSectionId =
   | "appearance"
   | "layout"
   | "widget-defaults"
+  | "data-sources"
+  | "accounts"
   | "alerts"
   | "performance"
   | "privacy"
@@ -74,6 +76,21 @@ export const SETTINGS_SEARCH_INDEX: readonly SettingSearchEntry[] = [
     sectionLabel: "Widget defaults",
     title: "Per-widget Inspector, Weather location, Network billing day & Calendar feeds",
     keywords: "widget defaults weather city open-meteo billing latency calendar ics eds inspector",
+  },
+  {
+    id: "data-sources-list",
+    section: "data-sources",
+    sectionLabel: "Data sources",
+    title: "Custom data sources (Command, File, HTTP/JSON, D-Bus, MQTT, Variables) & Trust",
+    keywords:
+      "data source custom command shell file inotify http json jsonpath dbus mqtt variable trust approve",
+  },
+  {
+    id: "accounts-keyring",
+    section: "accounts",
+    sectionLabel: "Accounts & integrations",
+    title: "GNOME Keyring secrets & integrations (n8n, MQTT, GitHub, Home Assistant)",
+    keywords: "accounts integrations keyring secret token api key n8n github home assistant mqtt",
   },
   {
     id: "alerts-rules",

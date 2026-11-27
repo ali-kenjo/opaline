@@ -3,6 +3,7 @@ import { battery } from "./battery";
 import { calendar } from "./calendar";
 import { clock } from "./clock";
 import { cpu } from "./cpu";
+import { customWidgetByKind } from "./customWidgets";
 import { docker } from "./docker";
 import { fansWidget } from "./fans";
 import { gpu } from "./gpu";
@@ -33,5 +34,5 @@ export const WIDGETS: readonly WidgetDef[] = [
 ];
 
 export function widgetByKind(kind: string): WidgetDef | undefined {
-  return WIDGETS.find((w) => w.kind === kind);
+  return WIDGETS.find((w) => w.kind === kind) ?? customWidgetByKind(kind);
 }

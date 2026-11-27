@@ -260,3 +260,143 @@ export async function fetchWallpaperBlobUrl(assetUrl: string): Promise<string | 
 export async function closeWindow(): Promise<void> {
   await invoke("shell_close");
 }
+
+export type OutputFormat = "text" | "lines" | "json" | "csv" | "regex" | "markdown" | "todotxt";
+export type SourceState = "ok" | "error" | "waiting" | "needs-approval" | "disabled";
+export type SourceOrigin =
+  { type: "user" } | { type: "imported"; packageId: string; packageVersion: string };
+
+export type SourceSpec = {
+  version: number;
+  id: string;
+  name: string;
+  description?: string;
+  enabled: boolean;
+  origin: SourceOrigin;
+} & (
+  | {
+      kind: "command";
+      argv: string[];
+      shell: boolean;
+      intervalS: number;
+      timeoutMs: number;
+      maxBytes: number;
+      envAllowlist: string[];
+      format: OutputFormat;
+      regex?: string;
+    }
+  | {
+      kind: "file";
+      path: string;
+      maxBytes: number;
+      format: OutputFormat;
+      jsonPath?: string;
+    }
+  | {
+      kind: "http";
+      url: string;
+      allowLocalHttp: boolean;
+      intervalS: number;
+      timeoutMs: number;
+      maxBytes: number;
+      headers: Record<string, string>;
+      format: OutputFormat;
+      jsonPath?: string;
+    }
+  | {
+      kind: "dbus";
+      bus: "session" | "system";
+      destination: string;
+      path: string;
+      interface: string;
+      member: string;
+      mode: "property" | "signal";
+      intervalS: number;
+    }
+  | {
+      kind: "mqtt";
+      host: string;
+      port: number;
+      tls: boolean;
+      topic: string;
+      clientId?: string;
+      usernameSecret?: string;
+      passwordSecret?: string;
+      format: OutputFormat;
+      jsonPath?: string;
+    }
+  | {
+      kind: "variable";
+      persist: boolean;
+      defaultValue?: unknown;
+    }
+);
+
+export interface SourceLogEntry {
+  atMs: number;
+  level: string;
+  message: string;
+}
+
+export interface SourceRuntimeStatus {
+  id: string;
+  name: string;
+  kind: string;
+  topic: string;
+  state: SourceState;
+  enabled: boolean;
+  origin: SourceOrigin;
+  trustSummary: string;
+  trustFingerprint: string;
+  lastRunMs: number | null;
+  lastDurationUs: number | null;
+  runCount: number;
+  error: string | null;
+  logs: SourceLogEntry[];
+}
+
+export interface SourcesCatalog {
+  safeMode: boolean;
+  specs: SourceSpec[];
+  statuses: SourceRuntimeStatus[];
+}
+
+export async function listSources(): Promise<SourcesCatalog> {
+  return await invoke<SourcesCatalog>("shell_list_sources");
+}
+
+export async function saveSource(spec: SourceSpec): Promise<void> {
+  await invoke("shell_save_source", { spec });
+}
+
+export async function deleteSource(id: string): Promise<void> {
+  await invoke("shell_delete_source", { id });
+}
+
+export async function approveSource(id: string): Promise<void> {
+  await invoke("shell_approve_source", { id });
+}
+
+export async function revokeSource(id: string): Promise<void> {
+  await invoke("shell_revoke_source", { id });
+}
+
+export async function runSourceNow(id: string): Promise<unknown> {
+  return await invoke<unknown>("shell_run_source_now", { id });
+}
+
+export async function setVariable(name: string, value: unknown): Promise<void> {
+  await invoke("shell_set_variable", { name, value });
+}
+
+export async function listSecrets(): Promise<string[]> {
+  return await invoke<string[]>("shell_list_secrets");
+}
+
+export async function setSecret(name: string, value: string): Promise<void> {
+  await invoke("shell_set_secret", { name, value });
+}
+
+export async function deleteSecret(name: string): Promise<boolean> {
+  return await invoke<boolean>("shell_delete_secret", { name });
+}

@@ -59,6 +59,7 @@ export interface InspectorProps {
   item?: LayoutItem | null;
   mode?: LayoutMode;
   onUpdateItem?: (next: LayoutItem) => void;
+  onCustomizeLayout?: () => void;
   initialTab?: InspectorTab;
 }
 
@@ -110,6 +111,7 @@ export function Inspector({
   item = null,
   mode = "grid",
   onUpdateItem,
+  onCustomizeLayout,
   initialTab = "look",
 }: InspectorProps) {
   const host = useHost();
@@ -362,6 +364,11 @@ export function Inspector({
           </div>
         </div>
         <div className={styles.headerBtns}>
+          {onCustomizeLayout ? (
+            <Button variant="text" icon="widgets" onClick={onCustomizeLayout}>
+              Customize layout…
+            </Button>
+          ) : null}
           <button
             type="button"
             className={styles.iconBtn}

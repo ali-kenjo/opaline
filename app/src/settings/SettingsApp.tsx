@@ -24,6 +24,8 @@ import {
   triggerAction,
 } from "../shell/api";
 import { useShellTheme } from "../shell/useShellTheme";
+import { AccountsSection } from "./AccountsSection";
+import { DataSourcesSection } from "./DataSourcesSection";
 import { LooksSection } from "./LooksSection";
 import styles from "./Settings.module.css";
 import { AboutSection, AlertsSection, BackupSection, DiagnosticsSection } from "./SettingsSections";
@@ -39,6 +41,8 @@ const NAV: readonly {
   { id: "appearance", labelKey: "settings.nav.appearance", icon: "tune" },
   { id: "layout", labelKey: "settings.nav.layout", icon: "grid_view" },
   { id: "widget-defaults", label: "Widget defaults", icon: "widgets" },
+  { id: "data-sources", label: "Data sources", icon: "terminal" },
+  { id: "accounts", label: "Accounts & integrations", icon: "lock" },
   { id: "alerts", labelKey: "settings.nav.alerts", icon: "notifications" },
   { id: "performance", labelKey: "settings.nav.performance", icon: "speed" },
   { id: "privacy", labelKey: "settings.nav.privacy", icon: "lock" },
@@ -1367,6 +1371,10 @@ export function SettingsApp() {
               ) : null}
             </div>
           ) : null}
+
+          {section === "data-sources" ? <DataSourcesSection notify={notify} /> : null}
+
+          {section === "accounts" ? <AccountsSection notify={notify} /> : null}
 
           {section === "backup" ? (
             <BackupSection state={state} refresh={refresh} notify={notify} />

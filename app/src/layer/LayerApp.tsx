@@ -30,6 +30,13 @@ import {
 } from "../design-system/style";
 import { type SizeClass, grid as gridTokens, sizes, spanPx } from "../design-system/tokens/tokens";
 import { applyDocumentLocale, isRtl, resolveLocale, t } from "../i18n";
+import {
+  CUSTOM_WIDGETS_TOPIC,
+  type CustomWidgetPackage,
+  forkWidgetToPackage,
+  syncCustomWidgetsFromTopic,
+  useCustomWidgets,
+} from "../widgets/customWidgets";
 import { HostContext, type StoredWidget, type WidgetHost } from "../widgets/host";
 import { type Json, toJson } from "../widgets/json";
 import {
@@ -101,8 +108,9 @@ import { useLayerPrefs } from "./useLayerPrefs";
 import { WidgetGallery } from "./WidgetGallery";
 import styles from "./LayerApp.module.css";
 
-// Loaded only when the user inspects a widget in Edit mode (PLAN-2 5.1, §12 budget).
+// Loaded only when the user inspects or builds a widget in Edit mode (PLAN-2 5.1, 6.7, §12 budget).
 const LazyInspector = lazy(() => import("../inspector/Inspector"));
+const LazyWidgetBuilder = lazy(() => import("../builder/WidgetBuilder"));
 
 /** Written to settings on first run, so editing one doesn't make the others disappear. */
 const DEFAULT_WIDGETS = {
@@ -159,7 +167,14 @@ export function LayerApp() {
   const layoutsValue = useLayer((s) => s.values[LAYOUTS_TOPIC]);
   const themesValue = useLayer((s) => s.values[THEMES_TOPIC]);
   const problemsValue = useLayer((s) => s.values[PROBLEMS_TOPIC]);
+  const customWidgetsValue = useLayer((s) => s.values[CUSTOM_WIDGETS_TOPIC]);
   const baseHost = useCoreHost(monitor?.key ?? null);
+  useEffect(() => {
+    syncCustomWidgetsFromTopic(customWidgetsValue);
+  }, [customWidgetsValue]);
+  useEffect(() => {
+    baseHost.subscribe([CUSTOM_WIDGETS_TOPIC], "ambient");
+  }, [baseHost]);
   useLiveCss(baseHost.theme?.id);
   const configProblems = useMemo(() => storedProblems(problemsValue), [problemsValue]);
   const [dismissedProblemsKey, setDismissedProblemsKey] = useState("");
@@ -175,6 +190,7 @@ export function LayerApp() {
   const [primarySelectedId, setPrimarySelectedId] = useState<string | null>(null);
   const [marquee, setMarquee] = useState<MarqueeState | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [builderPkg, setBuilderPkg] = useState<CustomWidgetPackage | null | undefined>(undefined);
   const [presetsOpen, setPresetsOpen] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
   const [lookOpen, setLookOpen] = useState(false);
@@ -1587,7 +1603,29 @@ export function LayerApp() {
         }}
         onAdd={handleAddWidget}
         onDragStart={handlePickerDragStart}
+        onOpenBuilder={(pkg) => {
+          setBuilderPkg(pkg);
+        }}
       />
+
+      {builderPkg !== undefined ? (
+        <Suspense fallback={null}>
+          <LazyWidgetBuilder
+            key={builderPkg?.id ?? "new-widget"}
+            open
+            initial={builderPkg}
+            onClose={() => {
+              setBuilderPkg(undefined);
+            }}
+            onSaved={(savedPkg, addToDesktop) => {
+              if (addToDesktop) {
+                handleAddWidget(`custom.${savedPkg.id}`, savedPkg.defaultSize);
+                setBuilderPkg(undefined);
+              }
+            }}
+          />
+        </Suspense>
+      ) : null}
 
       {editingStack ? (
         <LayerStackEditor
@@ -1631,6 +1669,12 @@ export function LayerApp() {
                   commitMonitorItems(
                     monitorItems.map((it) => (it.id === nextItem.id ? nextItem : it)),
                   );
+                }}
+                onCustomizeLayout={() => {
+                  const existing = useCustomWidgets.getState().packages.map((p) => p.id);
+                  const forked = forkWidgetToPackage(openDef, existing);
+                  setOpenSettings(null);
+                  setBuilderPkg(forked);
                 }}
                 onClose={() => {
                   setOpenSettings(null);

@@ -28,6 +28,31 @@ export function installFakeShell(initial: Record<string, Json>): void {
   };
   const state: Record<string, Json> = structuredClone(initial);
   const calls: { cmd: string; args: Json }[] = [];
+  const secrets = new Map<string, string>();
+  const sources: {
+    specs: Record<string, Json>[];
+    statuses: Record<string, Json>[];
+  } = {
+    specs: [],
+    statuses: [
+      {
+        id: "imported-pack-cmd",
+        name: "Imported Pack Status",
+        kind: "command",
+        topic: "source.imported-pack-cmd",
+        state: "needs-approval",
+        enabled: true,
+        origin: { type: "imported", packageId: "demo-rice", packageVersion: "1.0.0" },
+        trustSummary: "Runs command: uname -r",
+        trustFingerprint: "abc123",
+        lastRunMs: null,
+        lastDurationUs: null,
+        runCount: 0,
+        error: null,
+        logs: [],
+      },
+    ],
+  };
   let nextCallback = 1;
 
   const handle = (cmd: string, args: Record<string, Json>): Json => {
@@ -77,6 +102,84 @@ export function installFakeShell(initial: Record<string, Json>): void {
         };
       case "shell_geocode":
         return [{ name: "Berlin", latitude: 52.52, longitude: 13.4, country: "Germany" }];
+      case "shell_list_sources":
+        return { safeMode: false, specs: sources.specs, statuses: sources.statuses };
+      case "shell_save_source": {
+        const str = (v: Json | undefined, fallback = "") => (typeof v === "string" ? v : fallback);
+        const spec = (args.spec ?? {}) as Record<string, Json>;
+        const sid = str(spec.id, "src");
+        const sname = str(spec.name, sid);
+        const skind = str(spec.kind, "command");
+        sources.specs = [...sources.specs.filter((s) => s.id !== sid), spec];
+        const status: Record<string, Json> = {
+          id: sid,
+          name: sname,
+          kind: skind,
+          topic: skind === "variable" ? `var.${sid}` : `source.${sid}`,
+          state: skind === "variable" ? "ok" : "waiting",
+          enabled: true,
+          origin: { type: "user" },
+          trustSummary: `Custom ${skind} source`,
+          trustFingerprint: "user-fp",
+          lastRunMs: null,
+          lastDurationUs: null,
+          runCount: 0,
+          error: null,
+          logs: [],
+        };
+        sources.statuses = [...sources.statuses.filter((s) => s.id !== sid), status];
+        return null;
+      }
+      case "shell_delete_source": {
+        const sid = typeof args.id === "string" ? args.id : "";
+        sources.specs = sources.specs.filter((s) => s.id !== sid);
+        sources.statuses = sources.statuses.filter((s) => s.id !== sid);
+        return null;
+      }
+      case "shell_approve_source": {
+        const sid = typeof args.id === "string" ? args.id : "";
+        sources.statuses = sources.statuses.map((s) =>
+          s.id === sid ? { ...s, state: "waiting" } : s,
+        );
+        return null;
+      }
+      case "shell_revoke_source": {
+        const sid = typeof args.id === "string" ? args.id : "";
+        sources.statuses = sources.statuses.map((s) =>
+          s.id === sid ? { ...s, state: "needs-approval" } : s,
+        );
+        return null;
+      }
+      case "shell_run_source_now": {
+        const sid = typeof args.id === "string" ? args.id : "";
+        sources.statuses = sources.statuses.map((s) =>
+          s.id === sid
+            ? {
+                ...s,
+                state: "ok",
+                lastRunMs: Date.now(),
+                lastDurationUs: 1200,
+                runCount: Number(s.runCount ?? 0) + 1,
+                logs: [{ atMs: Date.now(), level: "info", message: "Updated in 1.2 ms" }],
+              }
+            : s,
+        );
+        return { ok: true, source: sid };
+      }
+      case "shell_set_variable":
+        return null;
+      case "shell_list_secrets":
+        return [...secrets.keys()].sort();
+      case "shell_set_secret": {
+        const sname = typeof args.name === "string" ? args.name : "";
+        const sval = typeof args.value === "string" ? args.value : "";
+        secrets.set(sname, sval);
+        return null;
+      }
+      case "shell_delete_secret": {
+        const sname = typeof args.name === "string" ? args.name : "";
+        return secrets.delete(sname);
+      }
       case "shell_wallpaper_asset":
         throw new Error("no assets in tests");
       default:

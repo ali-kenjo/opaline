@@ -66,7 +66,11 @@ export type Command =
   | { cmd: "history"; series: string; seconds: number }
   | { cmd: "list-fonts" }
   | { cmd: "open-settings" }
-  | { cmd: "release-focus" };
+  | { cmd: "release-focus" }
+  | { cmd: "run-source-now"; id: string }
+  | { cmd: "set-variable"; name: string; value: Value }
+  | { cmd: "save-custom-widget"; widget: Value }
+  | { cmd: "delete-custom-widget"; id: string };
 
 export type MediaAction = "play" | "pause" | "play-pause" | "next" | "previous";
 

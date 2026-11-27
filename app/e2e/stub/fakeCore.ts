@@ -152,6 +152,32 @@ export function installFakeCore(init: FakeCoreInit): void {
         if (name === "list-fonts") {
           return { result: "data", value: { kind: "list", v: [{ kind: "text", v: "Inter" }] } };
         }
+        if (name === "save-custom-widget") {
+          const pkg = toJson(c.widget ?? null);
+          const existingVal = init.values["widgets.custom"];
+          const decoded = existingVal !== undefined ? toJson(existingVal) : null;
+          const list: Json[] = Array.isArray(decoded) ? decoded : [];
+          const id = typeof pkg === "object" && pkg !== null && !Array.isArray(pkg) ? pkg.id : null;
+          const next = [
+            ...list.filter(
+              (x) => !(typeof x === "object" && x !== null && !Array.isArray(x) && x.id === id),
+            ),
+            pkg,
+          ];
+          setTimeout(() => {
+            update("widgets.custom", fromJson(next));
+          }, 0);
+          return { result: "ok" };
+        }
+        if (name === "set-variable") {
+          const vname = typeof c.name === "string" ? c.name : "";
+          if (vname) {
+            setTimeout(() => {
+              update(`var.${vname}`, c.value ?? { kind: "text", v: "" });
+            }, 0);
+          }
+          return { result: "ok" };
+        }
         return { result: "ok" };
       }
       case "layer_set_edit":

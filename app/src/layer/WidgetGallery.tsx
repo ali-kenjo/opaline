@@ -7,6 +7,11 @@ import { Button, Sheet } from "../design-system/components";
 import { Icon } from "../design-system/icons";
 import { type SizeClass, sizes, spanPx } from "../design-system/tokens/tokens";
 import { resolveContent } from "../widgets/content";
+import {
+  type CustomWidgetPackage,
+  customPackageByKind,
+  useCustomWidgets,
+} from "../widgets/customWidgets";
 import { useHost } from "../widgets/host";
 import { WIDGETS } from "../widgets/registry";
 import type { WidgetDef } from "../widgets/types";
@@ -51,29 +56,41 @@ export interface WidgetGalleryProps {
   onClose: () => void;
   onAdd: (kind: string, size: SizeClass) => void;
   onDragStart: (kind: string, size: SizeClass, clientX: number, clientY: number) => void;
+  onOpenBuilder?: (pkg: CustomWidgetPackage | null) => void;
 }
 
-export function WidgetGallery({ open, onClose, onAdd, onDragStart }: WidgetGalleryProps) {
+export function WidgetGallery({
+  open,
+  onClose,
+  onAdd,
+  onDragStart,
+  onOpenBuilder,
+}: WidgetGalleryProps) {
   const [query, setQuery] = useState("");
   const [source, setSource] = useState<GallerySource>("all");
   const [cat, setCat] = useState<GalleryCategory>("all");
   const [pickedSizes, setPickedSizes] = useState<Record<string, SizeClass>>({});
   const values = useLayer((s) => s.values);
+  const customDefs = useCustomWidgets((s) => s.defs);
   const host = useHost();
 
   const filtered = useMemo(() => {
-    if (source !== "all") return [];
     const q = query.trim().toLowerCase();
-    return WIDGETS.filter((def) => {
-      if (cat !== "all" && categoryOf(def) !== cat) return false;
+    const customList = Object.values(customDefs);
+    if (source === "themes-plugins") return [];
+    const pool: readonly WidgetDef[] =
+      source === "yours" ? customList : cat === "custom" ? customList : [...WIDGETS, ...customList];
+    return pool.filter((def) => {
+      const defCat: GalleryCategory = def.kind.startsWith("custom.") ? "custom" : categoryOf(def);
+      if (source !== "yours" && cat !== "all" && defCat !== cat) return false;
       if (!q) return true;
       return (
         def.name.toLowerCase().includes(q) ||
         def.kind.toLowerCase().includes(q) ||
-        categoryOf(def).includes(q)
+        defCat.includes(q)
       );
     });
-  }, [query, cat, source]);
+  }, [query, cat, source, customDefs]);
 
   const sizeFor = (def: WidgetDef): SizeClass => pickedSizes[def.kind] ?? def.defaultSize;
 
@@ -121,6 +138,18 @@ export function WidgetGallery({ open, onClose, onAdd, onDragStart }: WidgetGalle
               </button>
             ))}
           </div>
+          {onOpenBuilder ? (
+            <Button
+              variant="tonal"
+              icon="add"
+              onClick={() => {
+                onClose();
+                onOpenBuilder(null);
+              }}
+            >
+              Widget Builder
+            </Button>
+          ) : null}
           <Button variant="text" onClick={onClose}>
             Close
           </Button>
@@ -170,15 +199,33 @@ export function WidgetGallery({ open, onClose, onAdd, onDragStart }: WidgetGalle
                         <Icon name={def.icon} size={18} />
                         <span>{def.name}</span>
                       </div>
-                      <Button
-                        variant="tonal"
-                        icon="add"
-                        onClick={() => {
-                          onAdd(def.kind, size);
-                        }}
-                      >
-                        Add
-                      </Button>
+                      <div style={{ display: "flex", gap: 4 }}>
+                        {onOpenBuilder && def.kind.startsWith("custom.") ? (
+                          <Button
+                            variant="text"
+                            icon="edit"
+                            aria-label={`Edit ${def.name}`}
+                            onClick={() => {
+                              const pkg = customPackageByKind(def.kind);
+                              if (pkg) {
+                                onClose();
+                                onOpenBuilder(pkg);
+                              }
+                            }}
+                          >
+                            Edit
+                          </Button>
+                        ) : null}
+                        <Button
+                          variant="tonal"
+                          icon="add"
+                          onClick={() => {
+                            onAdd(def.kind, size);
+                          }}
+                        >
+                          Add
+                        </Button>
+                      </div>
                     </div>
 
                     <div className={styles.stageRow}>
@@ -287,11 +334,27 @@ export function WidgetGallery({ open, onClose, onAdd, onDragStart }: WidgetGalle
             </div>
           ) : (
             <div className={styles.empty}>
-              {source === "yours"
-                ? "Custom widgets you create in the Widget Builder (Phase 6) appear here."
-                : source === "themes-plugins"
-                  ? "Widgets shipped by installed theme packages and plugins appear here."
-                  : "No widgets match this filter yet."}
+              {source === "yours" ? (
+                <>
+                  <p>No custom widgets yet. Create one in the Widget Builder.</p>
+                  {onOpenBuilder ? (
+                    <Button
+                      variant="filled"
+                      icon="add"
+                      onClick={() => {
+                        onClose();
+                        onOpenBuilder(null);
+                      }}
+                    >
+                      Open Widget Builder
+                    </Button>
+                  ) : null}
+                </>
+              ) : source === "themes-plugins" ? (
+                "Widgets shipped by installed theme packages and plugins appear here."
+              ) : (
+                "No widgets match this filter yet."
+              )}
             </div>
           )
         ) : null}
