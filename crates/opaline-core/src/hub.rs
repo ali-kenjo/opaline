@@ -82,6 +82,8 @@ pub struct Hub {
     latest_update: Mutex<Option<UpdateInfo>>,
     /// Channel back to core's main AppRequest loop (for `Command::OpenSettings`, etc.).
     requests: Mutex<Option<tokio::sync::mpsc::UnboundedSender<AppRequest>>>,
+    /// Runtime manager for custom data sources and custom widget packages (Phase 6).
+    sources: Mutex<Option<Arc<crate::sources::SourceManager>>>,
 }
 
 impl Hub {
@@ -112,6 +114,7 @@ impl Hub {
             on_battery: std::sync::atomic::AtomicBool::new(false),
             latest_update: Mutex::new(None),
             requests: Mutex::new(None),
+            sources: Mutex::new(None),
         })
     }
 
@@ -531,6 +534,14 @@ impl Hub {
         if let Some(tx) = lock(&self.requests).as_ref() {
             let _ = tx.send(req);
         }
+    }
+
+    pub fn set_sources(&self, mgr: Arc<crate::sources::SourceManager>) {
+        *lock(&self.sources) = Some(mgr);
+    }
+
+    pub fn sources(&self) -> Option<Arc<crate::sources::SourceManager>> {
+        lock(&self.sources).clone()
     }
 
     fn bump(&self) {

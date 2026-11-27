@@ -25,6 +25,9 @@ pub struct Report {
     pub displays: Result<Vec<Display>, String>,
     pub desktop_integration: DesktopIntegration,
     pub providers: BTreeMap<String, ProviderReport>,
+    /// Redacted custom-source inventory (kind, state, cost — never commands, URLs, or secrets).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub custom_sources: BTreeMap<String, crate::sources::SourceDiagnoseEntry>,
     /// Topic → `ok`, `no-data`, `unavailable: <reason>`, `asleep` or `needs-permission: <fix>`.
     pub topics: BTreeMap<String, String>,
 }
@@ -174,6 +177,10 @@ pub async fn collect() -> Report {
         })
         .collect();
 
+    let custom_sources = crate::paths::config_dir()
+        .map(|d| crate::sources::SourceManager::new(d).diagnose_entries())
+        .unwrap_or_default();
+
     Report {
         opaline_version: env!("CARGO_PKG_VERSION"),
         os: Os {
@@ -197,6 +204,7 @@ pub async fn collect() -> Report {
             helper_api_version,
         },
         providers,
+        custom_sources,
         topics,
     }
 }
@@ -239,6 +247,8 @@ pub struct LiveDiagnostics {
     pub total_cpu_jiffies: u64,
     pub process_count: usize,
     pub providers: BTreeMap<String, ProviderReport>,
+    #[serde(default)]
+    pub custom_sources: BTreeMap<String, crate::sources::SourceDiagnoseEntry>,
     pub topics: BTreeMap<String, String>,
     pub recent_logs: Vec<String>,
     pub debug_report_json: String,
@@ -428,6 +438,11 @@ pub async fn live_snapshot(hub: &crate::hub::Hub) -> LiveDiagnostics {
         })
         .collect();
 
+    let custom_sources = hub
+        .sources()
+        .map(|m| m.diagnose_entries())
+        .unwrap_or_default();
+
     let report = Report {
         opaline_version: env!("CARGO_PKG_VERSION"),
         os: Os {
@@ -464,6 +479,7 @@ pub async fn live_snapshot(hub: &crate::hub::Hub) -> LiveDiagnostics {
                 )
             })
             .collect(),
+        custom_sources: custom_sources.clone(),
         topics: topics.clone(),
     };
     let debug_report_json = serde_json::to_string_pretty(&report).unwrap_or_default();
@@ -480,6 +496,7 @@ pub async fn live_snapshot(hub: &crate::hub::Hub) -> LiveDiagnostics {
         total_cpu_jiffies: total_jiffies,
         process_count,
         providers,
+        custom_sources,
         topics,
         recent_logs,
         debug_report_json,

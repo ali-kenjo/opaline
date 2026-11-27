@@ -228,3 +228,116 @@ pub fn shell_wallpaper_asset(url: String) -> Result<tauri::ipc::Response, String
 pub fn shell_close(window: WebviewWindow) {
     let _ = window.close();
 }
+
+#[tauri::command]
+pub fn shell_list_sources(
+    hub: State<'_, Arc<Hub>>,
+) -> Result<opaline_core::sources::manager::SourcesCatalog, String> {
+    let mgr = hub
+        .sources()
+        .ok_or_else(|| "sources-unavailable".to_owned())?;
+    Ok(mgr.catalog(hub.safe_mode()))
+}
+
+#[tauri::command]
+pub fn shell_save_source(
+    spec: opaline_core::sources::SourceSpec,
+    hub: State<'_, Arc<Hub>>,
+) -> Result<(), String> {
+    let mgr = hub
+        .sources()
+        .ok_or_else(|| "sources-unavailable".to_owned())?;
+    mgr.save_source(spec, &hub)
+}
+
+#[tauri::command]
+pub fn shell_delete_source(id: String, hub: State<'_, Arc<Hub>>) -> Result<(), String> {
+    let mgr = hub
+        .sources()
+        .ok_or_else(|| "sources-unavailable".to_owned())?;
+    mgr.delete_source(&id, &hub)
+}
+
+#[tauri::command]
+pub fn shell_approve_source(id: String, hub: State<'_, Arc<Hub>>) -> Result<(), String> {
+    let mgr = hub
+        .sources()
+        .ok_or_else(|| "sources-unavailable".to_owned())?;
+    mgr.approve_source(&id, &hub)
+}
+
+#[tauri::command]
+pub fn shell_revoke_source(id: String, hub: State<'_, Arc<Hub>>) -> Result<(), String> {
+    let mgr = hub
+        .sources()
+        .ok_or_else(|| "sources-unavailable".to_owned())?;
+    mgr.revoke_source(&id, &hub)
+}
+
+#[tauri::command]
+pub async fn shell_run_source_now(
+    id: String,
+    hub: State<'_, Arc<Hub>>,
+) -> Result<serde_json::Value, String> {
+    let mgr = hub
+        .sources()
+        .ok_or_else(|| "sources-unavailable".to_owned())?;
+    let val = mgr.run_now(&id, &hub).await?;
+    Ok(opaline_core::json::to_json(&val))
+}
+
+#[tauri::command]
+pub fn shell_set_variable(
+    name: String,
+    value: serde_json::Value,
+    hub: State<'_, Arc<Hub>>,
+) -> Result<(), String> {
+    let mgr = hub
+        .sources()
+        .ok_or_else(|| "sources-unavailable".to_owned())?;
+    mgr.set_variable(&name, value, &hub)
+}
+
+#[tauri::command]
+pub async fn shell_list_secrets() -> Result<Vec<String>, String> {
+    opaline_core::secrets::list_secret_names().await
+}
+
+#[tauri::command]
+pub async fn shell_set_secret(name: String, value: String) -> Result<(), String> {
+    opaline_core::secrets::set_secret(&name, &value).await
+}
+
+#[tauri::command]
+pub async fn shell_delete_secret(name: String) -> Result<bool, String> {
+    opaline_core::secrets::delete_secret(&name).await
+}
+
+#[tauri::command]
+pub fn shell_list_custom_widgets(
+    hub: State<'_, Arc<Hub>>,
+) -> Result<Vec<opaline_core::sources::CustomWidgetPackage>, String> {
+    let mgr = hub
+        .sources()
+        .ok_or_else(|| "sources-unavailable".to_owned())?;
+    Ok(mgr.custom_widgets())
+}
+
+#[tauri::command]
+pub fn shell_save_custom_widget(
+    widget: opaline_core::sources::CustomWidgetPackage,
+    hub: State<'_, Arc<Hub>>,
+) -> Result<(), String> {
+    let mgr = hub
+        .sources()
+        .ok_or_else(|| "sources-unavailable".to_owned())?;
+    mgr.save_custom_widget(widget, &hub)
+}
+
+#[tauri::command]
+pub fn shell_delete_custom_widget(id: String, hub: State<'_, Arc<Hub>>) -> Result<(), String> {
+    let mgr = hub
+        .sources()
+        .ok_or_else(|| "sources-unavailable".to_owned())?;
+    mgr.delete_custom_widget(&id, &hub)
+}

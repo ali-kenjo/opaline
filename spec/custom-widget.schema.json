@@ -1,0 +1,1393 @@
+{
+  "$defs": {
+    "Align": {
+      "enum": [
+        "start",
+        "center",
+        "end",
+        "stretch",
+        "baseline"
+      ],
+      "type": "string"
+    },
+    "Axis": {
+      "enum": [
+        "horizontal",
+        "vertical"
+      ],
+      "type": "string"
+    },
+    "Caps": {
+      "enum": [
+        "round",
+        "butt"
+      ],
+      "type": "string"
+    },
+    "CommandRef": {
+      "description": "A command for core, which validates it before acting (ARCHITECTURE §3.7). `cmd` is a command\nname of the IPC protocol; the arguments are expressions, and `$value` is the control's new\nvalue (slider, toggle, text input).",
+      "properties": {
+        "args": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Expr"
+          },
+          "type": "object"
+        },
+        "cmd": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "cmd"
+      ],
+      "type": "object"
+    },
+    "Composition": {
+      "description": "A widget as a tree of containers and blocks, with one layout per size.",
+      "properties": {
+        "bindings": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Expr"
+          },
+          "description": "Named values shared by every layout, read in expressions as `bind.<name>`. A widget's\nfields become bindings. Bindings may read other bindings, but not in a circle.",
+          "type": "object"
+        },
+        "layouts": {
+          "description": "Layouts, tried in order; the first that matches the widget's size is used.",
+          "items": {
+            "$ref": "#/$defs/Layout"
+          },
+          "type": "array"
+        },
+        "version": {
+          "description": "Format version (1).",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "version",
+        "layouts"
+      ],
+      "type": "object"
+    },
+    "Expr": {
+      "description": "An expression (docs/EXPRESSIONS.md): `cpu.load >= 90`, `clamp(battery.percent / 100, 0, 1)`.",
+      "type": "string"
+    },
+    "Fit": {
+      "enum": [
+        "cover",
+        "contain"
+      ],
+      "type": "string"
+    },
+    "HistoryRef": {
+      "description": "Core's history of a path over a window (`'5m'`), for charts.",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "window": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "window"
+      ],
+      "type": "object"
+    },
+    "Justify": {
+      "enum": [
+        "start",
+        "center",
+        "end",
+        "between",
+        "around",
+        "evenly"
+      ],
+      "type": "string"
+    },
+    "Layout": {
+      "description": "One layout: the sizes it's for and its tree.",
+      "properties": {
+        "minH": {
+          "description": "For free sizes: the smallest height in grid cells this layout fits.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "minW": {
+          "description": "For free sizes: the smallest width in grid cells this layout fits.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "root": {
+          "$ref": "#/$defs/Node"
+        },
+        "sizes": {
+          "description": "Size classes this layout is for; empty means any.",
+          "items": {
+            "$ref": "#/$defs/SizeClass"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "root"
+      ],
+      "type": "object"
+    },
+    "Node": {
+      "description": "A container or a block.",
+      "oneOf": [
+        {
+          "description": "Children side by side when the box is wider than tall, else one under the other.",
+          "properties": {
+            "align": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Align"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cross-axis alignment of the children."
+            },
+            "children": {
+              "items": {
+                "$ref": "#/$defs/Node"
+              },
+              "type": "array"
+            },
+            "gap": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "grow": {
+              "description": "Share of the free space this container takes in its parent (like flex-grow).",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "justify": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Justify"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Main-axis distribution of the children."
+            },
+            "padding": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "stack",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "children"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Children side by side.",
+          "properties": {
+            "align": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Align"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cross-axis alignment of the children."
+            },
+            "children": {
+              "items": {
+                "$ref": "#/$defs/Node"
+              },
+              "type": "array"
+            },
+            "gap": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "grow": {
+              "description": "Share of the free space this container takes in its parent (like flex-grow).",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "justify": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Justify"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Main-axis distribution of the children."
+            },
+            "padding": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "row",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "children"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Children one under the other.",
+          "properties": {
+            "align": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Align"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cross-axis alignment of the children."
+            },
+            "children": {
+              "items": {
+                "$ref": "#/$defs/Node"
+              },
+              "type": "array"
+            },
+            "gap": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "grow": {
+              "description": "Share of the free space this container takes in its parent (like flex-grow).",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "justify": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Justify"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Main-axis distribution of the children."
+            },
+            "padding": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "column",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "children"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Children in a grid of equal columns.",
+          "properties": {
+            "align": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Align"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cross-axis alignment of the children."
+            },
+            "children": {
+              "items": {
+                "$ref": "#/$defs/Node"
+              },
+              "type": "array"
+            },
+            "columns": {
+              "description": "1 … 12.",
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "gap": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "grow": {
+              "description": "Share of the free space this container takes in its parent (like flex-grow).",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "justify": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Justify"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Main-axis distribution of the children."
+            },
+            "padding": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "grid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "columns",
+            "children"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Children on top of each other (a value over a ring).",
+          "properties": {
+            "align": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Align"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cross-axis alignment of the children."
+            },
+            "children": {
+              "items": {
+                "$ref": "#/$defs/Node"
+              },
+              "type": "array"
+            },
+            "gap": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "grow": {
+              "description": "Share of the free space this container takes in its parent (like flex-grow).",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "justify": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Justify"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Main-axis distribution of the children."
+            },
+            "padding": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "overlay",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "children"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Empty space that takes a share of what's left.",
+          "properties": {
+            "grow": {
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "spacer",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Text from a template.",
+          "properties": {
+            "maxLines": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "shorter": {
+              "description": "Shorter forms, used in order when the text doesn't fit (it's never cut).",
+              "items": {
+                "$ref": "#/$defs/Template"
+              },
+              "type": "array"
+            },
+            "text": {
+              "$ref": "#/$defs/Template"
+            },
+            "type": {
+              "const": "text",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "text"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "motion": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/NumberMotion"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "text": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Template"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The text shown; default: the value with at most 3 decimals."
+            },
+            "type": {
+              "const": "number",
+              "type": "string"
+            },
+            "unit": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Template"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "value": {
+              "$ref": "#/$defs/Expr"
+            }
+          },
+          "required": [
+            "type",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "filled": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Expr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "icon": {
+              "$ref": "#/$defs/Template",
+              "description": "A Material Symbols name."
+            },
+            "type": {
+              "const": "icon",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "icon"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "fit": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Fit"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "src": {
+              "$ref": "#/$defs/Expr"
+            },
+            "type": {
+              "const": "image",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "src"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "One of the library's shapes; it morphs when the name changes.",
+          "properties": {
+            "color": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Expr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "shape": {
+              "$ref": "#/$defs/Template"
+            },
+            "type": {
+              "const": "shape",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "shape"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "caps": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Caps"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "color": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Expr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "needle": {
+              "type": "boolean"
+            },
+            "segments": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "sweep": {
+              "description": "Arc length in degrees (1 … 360, default 360).",
+              "format": "uint16",
+              "maximum": 65535,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "thickness": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "ticks": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "ring",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/Expr",
+              "description": "0 … 1."
+            },
+            "wavy": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "type",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "axis": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Axis"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "color": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Expr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "segments": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "bar",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/Expr",
+              "description": "0 … 1, or a list of parts for a stacked bar."
+            }
+          },
+          "required": [
+            "type",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "history": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/HistoryRef"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "max": {
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "min": {
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "plot": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Plot"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "smooth": {
+              "type": "boolean"
+            },
+            "type": {
+              "const": "chart",
+              "type": "string"
+            },
+            "values": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Expr"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "A list of numbers; or use `history`."
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "columns": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "max": {
+              "description": "The value that is full heat (default 1).",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "heatmap",
+              "type": "string"
+            },
+            "values": {
+              "$ref": "#/$defs/Expr",
+              "description": "Values 0 … `max`."
+            }
+          },
+          "required": [
+            "type",
+            "values",
+            "columns"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "Repeats `item` for each element of `items`; inside, `$item` and `$index`.",
+          "properties": {
+            "axis": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Axis"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "gap": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "item": {
+              "$ref": "#/$defs/Node"
+            },
+            "items": {
+              "$ref": "#/$defs/Expr"
+            },
+            "max": {
+              "format": "uint16",
+              "maximum": 65535,
+              "minimum": 0,
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "type": {
+              "const": "list",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "items",
+            "item"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "type": {
+              "const": "progress",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/Expr"
+            },
+            "wavy": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "type",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "axis": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Axis"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "const": "divider",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "A built-in visual (analog clock, visualizer, weather sky, photo frame).",
+          "properties": {
+            "params": {
+              "additionalProperties": {
+                "$ref": "#/$defs/Expr"
+              },
+              "type": "object"
+            },
+            "type": {
+              "const": "canvas",
+              "type": "string"
+            },
+            "visual": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "visual"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "command": {
+              "$ref": "#/$defs/CommandRef"
+            },
+            "confirm": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Template"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Ask first (\"Power off the drive?\")."
+            },
+            "enabled": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Expr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "icon": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Template"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "text": {
+              "$ref": "#/$defs/Template"
+            },
+            "type": {
+              "const": "button",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "text",
+            "command"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "command": {
+              "$ref": "#/$defs/CommandRef"
+            },
+            "text": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Template"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "const": "toggle",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/Expr"
+            }
+          },
+          "required": [
+            "type",
+            "value",
+            "command"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "command": {
+              "$ref": "#/$defs/CommandRef"
+            },
+            "max": {
+              "format": "double",
+              "type": "number"
+            },
+            "min": {
+              "format": "double",
+              "type": "number"
+            },
+            "step": {
+              "format": "double",
+              "type": "number"
+            },
+            "type": {
+              "const": "slider",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/Expr"
+            }
+          },
+          "required": [
+            "type",
+            "value",
+            "min",
+            "max",
+            "step",
+            "command"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "command": {
+              "$ref": "#/$defs/CommandRef"
+            },
+            "maxLength": {
+              "format": "uint16",
+              "maximum": 65535,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "placeholder": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Template"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "const": "input",
+              "type": "string"
+            },
+            "value": {
+              "$ref": "#/$defs/Expr"
+            }
+          },
+          "required": [
+            "type",
+            "value",
+            "command",
+            "maxLength"
+          ],
+          "type": "object"
+        },
+        {
+          "description": "A plugin's block (P9).",
+          "properties": {
+            "plugin": {
+              "type": "string"
+            },
+            "props": {
+              "additionalProperties": {
+                "$ref": "#/$defs/Expr"
+              },
+              "type": "object"
+            },
+            "type": {
+              "const": "plugin",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "plugin"
+          ],
+          "type": "object"
+        }
+      ],
+      "properties": {
+        "id": {
+          "description": "Stable id (`[a-z][a-z0-9-]*`, unique in its layout). The same id in two layouts is the\nsame block, so resizing morphs it.",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Template"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The accessible name; generated from the content when absent."
+        },
+        "priority": {
+          "description": "When space runs out, lower priorities go first (0 … 100, default 50).",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "role": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Role"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "What the block is for; themes style roles, not elements."
+        },
+        "style": {
+          "additionalProperties": true,
+          "description": "Style keys for this node (the style model, ADR 0011), applied over its role's style.",
+          "type": "object"
+        },
+        "visible": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Expr"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Shown only while this is true."
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "NumberMotion": {
+      "oneOf": [
+        {
+          "enum": [
+            "fade",
+            "none"
+          ],
+          "type": "string"
+        },
+        {
+          "const": "odometer",
+          "description": "Digits roll (the default).",
+          "type": "string"
+        }
+      ]
+    },
+    "Plot": {
+      "enum": [
+        "line",
+        "area",
+        "bars",
+        "step",
+        "dots"
+      ],
+      "type": "string"
+    },
+    "Role": {
+      "description": "Roles themes target (brief §4.1).",
+      "enum": [
+        "hero",
+        "title",
+        "label",
+        "value",
+        "unit",
+        "caption",
+        "accent",
+        "badge",
+        "meter",
+        "decoration"
+      ],
+      "type": "string"
+    },
+    "SizeClass": {
+      "description": "Grid spans: `1x1`, `2x1`, `1x2`, `4x1`, `S` (2×2), `2x3`, `M` (4×2), `L` (4×4), `6x4`, `XL` (8×4).",
+      "enum": [
+        "1x1",
+        "2x1",
+        "1x2",
+        "4x1",
+        "S",
+        "2x3",
+        "M",
+        "L",
+        "6x4",
+        "XL"
+      ],
+      "type": "string"
+    },
+    "Template": {
+      "description": "A template: text with expressions in braces, `\"{cpu.load | round}%\"`.",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Custom widget definition saved by the Widget Builder (`~/.config/opaline/widgets/<id>.json`).",
+  "properties": {
+    "$schema": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "accessibleName": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "author": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "category": {
+      "default": "custom",
+      "type": "string"
+    },
+    "composition": {
+      "$ref": "#/$defs/Composition"
+    },
+    "defaultSize": {
+      "$ref": "#/$defs/SizeClass"
+    },
+    "description": {
+      "default": "",
+      "type": "string"
+    },
+    "forkedFrom": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "icon": {
+      "default": "widgets",
+      "type": "string"
+    },
+    "id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "sizes": {
+      "items": {
+        "$ref": "#/$defs/SizeClass"
+      },
+      "type": "array"
+    },
+    "topics": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "version": {
+      "default": 1,
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "id",
+    "name",
+    "sizes",
+    "defaultSize",
+    "composition"
+  ],
+  "title": "CustomWidgetPackage",
+  "type": "object"
+}

@@ -66,6 +66,31 @@ pub async fn execute(hub: &Arc<Hub>, command: Command) -> CommandResult {
             hub.request(crate::app_service::AppRequest::OpenSettings);
             Ok(None)
         }
+        Command::RunSourceNow { id } => match hub.sources() {
+            Some(mgr) => mgr.run_now(&id, hub).await.map(Some),
+            None => Err("sources-unavailable".into()),
+        },
+        Command::SetVariable { name, value } => match hub.sources() {
+            Some(mgr) => {
+                let json = crate::json::to_json(&value);
+                mgr.set_variable(&name, json, hub).map(|()| None)
+            }
+            None => Err("sources-unavailable".into()),
+        },
+        Command::SaveCustomWidget { widget } => match hub.sources() {
+            Some(mgr) => {
+                let json = crate::json::to_json(&widget);
+                match serde_json::from_value::<crate::sources::CustomWidgetPackage>(json) {
+                    Ok(pkg) => mgr.save_custom_widget(pkg, hub).map(|()| None),
+                    Err(e) => Err(format!("invalid-custom-widget: {e}")),
+                }
+            }
+            None => Err("sources-unavailable".into()),
+        },
+        Command::DeleteCustomWidget { id } => match hub.sources() {
+            Some(mgr) => mgr.delete_custom_widget(&id, hub).map(|()| None),
+            None => Err("sources-unavailable".into()),
+        },
         other => run(other).await.map(|()| None),
     };
     match result {
@@ -122,6 +147,10 @@ async fn run(command: Command) -> Result<(), String> {
         | Command::ListFonts
         | Command::SetRaised { .. }
         | Command::ReleaseFocus
-        | Command::OpenSettings => Err("handled-above".into()),
+        | Command::OpenSettings
+        | Command::RunSourceNow { .. }
+        | Command::SetVariable { .. }
+        | Command::SaveCustomWidget { .. }
+        | Command::DeleteCustomWidget { .. } => Err("handled-above".into()),
     }
 }

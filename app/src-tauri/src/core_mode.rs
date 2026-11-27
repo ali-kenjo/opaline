@@ -91,6 +91,11 @@ pub fn run(request: Option<AppRequest>, safe_mode_flag: bool) -> ExitCode {
     let (layouts, layouts_writable) = opaline_core::layouts::load();
     hub.init_layouts(layouts, layouts_writable);
     hub.set_request_sender(requests_tx.clone());
+    if let Ok(cfg_dir) = opaline_core::paths::config_dir() {
+        let source_mgr = opaline_core::sources::SourceManager::new(cfg_dir);
+        hub.set_sources(source_mgr.clone());
+        rt.spawn(source_mgr.run(hub.clone()));
+    }
     rt.spawn(opaline_core::watcher::run(hub.clone()));
 
     let listener = match rt.block_on(ipc_server::bind_default()) {
@@ -178,6 +183,19 @@ pub fn run(request: Option<AppRequest>, safe_mode_flag: bool) -> ExitCode {
             crate::shell::shell_list_fonts,
             crate::shell::shell_wallpaper_asset,
             crate::shell::shell_close,
+            crate::shell::shell_list_sources,
+            crate::shell::shell_save_source,
+            crate::shell::shell_delete_source,
+            crate::shell::shell_approve_source,
+            crate::shell::shell_revoke_source,
+            crate::shell::shell_run_source_now,
+            crate::shell::shell_set_variable,
+            crate::shell::shell_list_secrets,
+            crate::shell::shell_set_secret,
+            crate::shell::shell_delete_secret,
+            crate::shell::shell_list_custom_widgets,
+            crate::shell::shell_save_custom_widget,
+            crate::shell::shell_delete_custom_widget,
         ])
         .setup({
             let hub = hub.clone();

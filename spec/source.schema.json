@@ -1,0 +1,377 @@
+{
+  "$defs": {
+    "DbusBus": {
+      "enum": [
+        "session",
+        "system"
+      ],
+      "type": "string"
+    },
+    "DbusMode": {
+      "enum": [
+        "property",
+        "signal"
+      ],
+      "type": "string"
+    },
+    "OutputFormat": {
+      "description": "How raw output bytes from a command, file, HTTP endpoint, or MQTT message are parsed.",
+      "enum": [
+        "text",
+        "lines",
+        "json",
+        "csv",
+        "regex",
+        "markdown",
+        "todotxt"
+      ],
+      "type": "string"
+    },
+    "SourceOrigin": {
+      "description": "Where a source came from. User-created sources run immediately; imported sources stay off\nuntil the user approves their exact command/paths/hosts/D-Bus names (brief §4.5, PLAN-2 6.6).",
+      "oneOf": [
+        {
+          "properties": {
+            "type": {
+              "const": "user",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        {
+          "properties": {
+            "packageId": {
+              "type": "string"
+            },
+            "packageVersion": {
+              "type": "string"
+            },
+            "type": {
+              "const": "imported",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "packageId",
+            "packageVersion"
+          ],
+          "type": "object"
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "On-disk definition of a custom source (`~/.config/opaline/sources/<id>.json`).",
+  "oneOf": [
+    {
+      "properties": {
+        "argv": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "envAllowlist": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "format": {
+          "$ref": "#/$defs/OutputFormat",
+          "default": "text"
+        },
+        "intervalS": {
+          "default": 30,
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "kind": {
+          "const": "command",
+          "type": "string"
+        },
+        "maxBytes": {
+          "default": 262144,
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "regex": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "shell": {
+          "default": false,
+          "type": "boolean"
+        },
+        "timeoutMs": {
+          "default": 5000,
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "argv"
+      ],
+      "type": "object"
+    },
+    {
+      "properties": {
+        "format": {
+          "$ref": "#/$defs/OutputFormat",
+          "default": "text"
+        },
+        "jsonPath": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "const": "file",
+          "type": "string"
+        },
+        "maxBytes": {
+          "default": 262144,
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "path"
+      ],
+      "type": "object"
+    },
+    {
+      "properties": {
+        "allowLocalHttp": {
+          "default": false,
+          "type": "boolean"
+        },
+        "format": {
+          "$ref": "#/$defs/OutputFormat",
+          "default": "json"
+        },
+        "headers": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "type": "object"
+        },
+        "intervalS": {
+          "default": 30,
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "jsonPath": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "const": "http",
+          "type": "string"
+        },
+        "maxBytes": {
+          "default": 262144,
+          "format": "uint",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "timeoutMs": {
+          "default": 5000,
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "url"
+      ],
+      "type": "object"
+    },
+    {
+      "properties": {
+        "bus": {
+          "$ref": "#/$defs/DbusBus",
+          "default": "session"
+        },
+        "destination": {
+          "type": "string"
+        },
+        "interface": {
+          "type": "string"
+        },
+        "intervalS": {
+          "default": 30,
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "kind": {
+          "const": "dbus",
+          "type": "string"
+        },
+        "member": {
+          "type": "string"
+        },
+        "mode": {
+          "$ref": "#/$defs/DbusMode",
+          "default": "property"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "destination",
+        "path",
+        "interface",
+        "member"
+      ],
+      "type": "object"
+    },
+    {
+      "properties": {
+        "clientId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "format": {
+          "$ref": "#/$defs/OutputFormat",
+          "default": "text"
+        },
+        "host": {
+          "type": "string"
+        },
+        "jsonPath": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "kind": {
+          "const": "mqtt",
+          "type": "string"
+        },
+        "passwordSecret": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "port": {
+          "default": 8883,
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "tls": {
+          "default": true,
+          "type": "boolean"
+        },
+        "topic": {
+          "type": "string"
+        },
+        "usernameSecret": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "host",
+        "topic"
+      ],
+      "type": "object"
+    },
+    {
+      "properties": {
+        "defaultValue": true,
+        "kind": {
+          "const": "variable",
+          "type": "string"
+        },
+        "persist": {
+          "default": true,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "type": "object"
+    }
+  ],
+  "properties": {
+    "$schema": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "description": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "enabled": {
+      "default": true,
+      "type": "boolean"
+    },
+    "id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "origin": {
+      "$ref": "#/$defs/SourceOrigin",
+      "default": {
+        "type": "user"
+      }
+    },
+    "version": {
+      "default": 1,
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "id",
+    "name"
+  ],
+  "title": "SourceSpec",
+  "type": "object"
+}

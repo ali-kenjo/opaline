@@ -99,11 +99,12 @@ pub struct ReloadMask {
     pub layouts: bool,
     pub themes: bool,
     pub user_css: bool,
+    pub sources: bool,
 }
 
 impl ReloadMask {
     pub fn any(self) -> bool {
-        self.settings || self.layouts || self.themes || self.user_css
+        self.settings || self.layouts || self.themes || self.user_css || self.sources
     }
 }
 
@@ -238,10 +239,11 @@ pub fn refresh_themes_and_css(hub: &Hub, extra_problems: Vec<ConfigProblem>) {
 enum WatchKind {
     ConfigRoot,
     ThemesDir,
+    SourcesOrWidgetsDir,
 }
 
 /// Runs the Linux `inotify` watcher loop on a dedicated blocking task, reloading `settings.json`,
-/// `layouts.json`, themes, and `user.css` live when edited outside Opaline.
+/// `layouts.json`, themes, `sources/`, `widgets/`, and `user.css` live when edited outside Opaline.
 pub async fn run(hub: Arc<Hub>) {
     // Initial publish of themes + user.css right at startup.
     refresh_themes_and_css(&hub, Vec::new());
@@ -252,9 +254,14 @@ pub async fn run(hub: Arc<Hub>) {
     };
     let _ = std::fs::create_dir_all(&config_dir);
     let _ = std::fs::create_dir_all(config_dir.join("themes"));
+    let _ = std::fs::create_dir_all(config_dir.join("sources"));
+    let _ = std::fs::create_dir_all(config_dir.join("widgets"));
 
-    let mut watch_dirs: Vec<(PathBuf, WatchKind)> =
-        vec![(config_dir.clone(), WatchKind::ConfigRoot)];
+    let mut watch_dirs: Vec<(PathBuf, WatchKind)> = vec![
+        (config_dir.clone(), WatchKind::ConfigRoot),
+        (config_dir.join("sources"), WatchKind::SourcesOrWidgetsDir),
+        (config_dir.join("widgets"), WatchKind::SourcesOrWidgetsDir),
+    ];
     for (root, _) in crate::themes::search_roots() {
         if root.is_dir() {
             watch_dirs.push((root.clone(), WatchKind::ThemesDir));
@@ -313,6 +320,7 @@ fn watch_loop(hub: Arc<Hub>, config_dir: PathBuf, dirs: Vec<(PathBuf, WatchKind)
                     layouts: true,
                     themes: true,
                     user_css: true,
+                    sources: true,
                 };
                 got_any = true;
                 continue;
@@ -331,10 +339,16 @@ fn watch_loop(hub: Arc<Hub>, config_dir: PathBuf, dirs: Vec<(PathBuf, WatchKind)
                     "layouts.json" => pending.layouts = true,
                     "user.css" => pending.user_css = true,
                     "themes" => pending.themes = true,
+                    "sources" | "widgets" | "source-trust.json" | "variables.json" => {
+                        pending.sources = true;
+                    }
                     _ => {}
                 },
                 WatchKind::ThemesDir => {
                     pending.themes = true;
+                }
+                WatchKind::SourcesOrWidgetsDir => {
+                    pending.sources = true;
                 }
             }
         }
@@ -382,6 +396,14 @@ fn apply_reload(hub: &Hub, config_dir: &Path, mask: ReloadMask) {
                 problems.push(prob);
             }
         }
+    }
+
+    if mask.sources
+        && let Some(mgr) = hub.sources()
+    {
+        let src_probs = mgr.reload_from_disk(hub.safe_mode());
+        problems.extend(src_probs);
+        mgr.publish_catalog(hub);
     }
 
     if need_theme_refresh || !problems.is_empty() {

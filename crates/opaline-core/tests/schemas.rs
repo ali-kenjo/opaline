@@ -61,6 +61,22 @@ fn rice_schema_is_current() {
 }
 
 #[test]
+fn source_schema_is_current() {
+    assert_schema_current(
+        "source.schema.json",
+        &opaline_core::sources::SourceSpec::schema(),
+    );
+}
+
+#[test]
+fn custom_widget_schema_is_current() {
+    assert_schema_current(
+        "custom-widget.schema.json",
+        &opaline_core::sources::CustomWidgetPackage::schema(),
+    );
+}
+
+#[test]
 fn first_party_theme_files_are_valid() {
     for &id in opaline_core::themes::BUILTIN_THEME_IDS {
         let dir = spec(&format!("themes/{id}"));

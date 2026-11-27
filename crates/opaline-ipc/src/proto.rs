@@ -286,6 +286,14 @@ pub enum Command {
     ReleaseFocus,
     /// Ask core to open (or focus) the Settings window.
     OpenSettings,
+    /// Execute a custom source immediately ("Run now") and return its value.
+    RunSourceNow { id: String },
+    /// Set a named custom variable (`var.<name>`).
+    SetVariable { name: String, value: Value },
+    /// Save a custom widget package from the Widget Builder (`~/.config/opaline/widgets/<id>.json`).
+    SaveCustomWidget { widget: Value },
+    /// Delete a custom widget package by id.
+    DeleteCustomWidget { id: String },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
