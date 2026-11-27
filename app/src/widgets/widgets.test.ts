@@ -147,6 +147,23 @@ describe("more widgets", () => {
     expect(read(gpu, "vram")?.text).toMatch(/GiB|GB/);
   });
 
+  it("GPU that reports no usage (a VM's virtual GPU) says so instead of showing dashes", () => {
+    const notReported = {
+      kind: "missing" as const,
+      v: { state: "unavailable" as const, reason: "not-reported" },
+    };
+    const single = { gpu: "0", multiGpu: "single" };
+    const measured = (t: string) =>
+      /^gpu\.0\.(load|temp|vram|power)$/.test(t) ? notReported : values[t];
+    expect(gpu.status({ get: measured, content: resolveContent(gpu, single) })).toEqual({
+      kind: "unavailable",
+      reason: "This GPU doesn't report usage",
+    });
+    // Values that haven't arrived yet never count as "doesn't report".
+    const pending = (t: string) => (t.startsWith("gpu.0.") ? undefined : values[t]);
+    expect(gpu.status({ get: pending, content: resolveContent(gpu, single) }).kind).toBe("ready");
+  });
+
   it("storage follows the chosen volume and offers eject only where it can", () => {
     expect(volume(ctxFor(storage))?.id).toBe("/");
     expect(volume(ctxFor(storage, { volume: "/media/lab/USB" }))?.drive).toBe("sdb");

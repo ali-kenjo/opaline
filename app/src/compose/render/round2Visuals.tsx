@@ -86,7 +86,9 @@ export function DriveListVisual({ params, label }: VisualProps) {
     const tObj = tempsMap[drive];
     const hObj = healthMap[drive];
     const tempC = (isMap(tObj) ? num(tObj.tempC) : null) ?? (isMap(hObj) ? num(hObj.tempC) : null);
-    const health = isMap(hObj) ? str(hObj.status) || null : null;
+    // "unknown" (no SMART: VM disks, most USB sticks) is no data, not a fault: no badge.
+    const status = isMap(hObj) ? str(hObj.status) || null : null;
+    const health = status === "unknown" ? null : status;
     for (const p of parts) {
       if (!isMap(p)) continue;
       const mount = str(p.mount);

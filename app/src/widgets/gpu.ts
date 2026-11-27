@@ -21,6 +21,7 @@ import { BYTE_UNIT, TEMP_UNIT, levels } from "./options";
 import type { CardStatus, Choice, ReadCtx, Reading, WidgetDef } from "./types";
 
 const LIST = "gpu.list";
+const USAGE_METRICS = ["load", "temp", "vram", "power"] as const;
 
 interface GpuInfo {
   index: number;
@@ -378,6 +379,12 @@ export const gpu: WidgetDef = {
         return { kind: "asleep", reason: "Asleep · 0 W" };
       if (state?.kind === "missing" && state.v.state === "asleep")
         return { kind: "asleep", reason: "Asleep · 0 W" };
+      // A GPU core can see but not measure (a VM's virtual GPU, an unsupported driver) reports
+      // every figure as missing; say so instead of a card of dashes. Values that haven't arrived
+      // yet are undefined, not missing, so this never flashes while loading.
+      if (USAGE_METRICS.every((m) => g(c, m)?.kind === "missing")) {
+        return { kind: "unavailable", reason: "This GPU doesn't report usage" };
+      }
     }
     return { kind: "ready" };
   },
