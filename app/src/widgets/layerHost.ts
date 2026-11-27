@@ -21,7 +21,15 @@ import {
   onWaveform,
 } from "./spectrum";
 
-import type { LayoutItem, LayoutsDoc } from "../layer/grid";
+import { ALLOWED_CELL_SIZES, type CellSize } from "../design-system/tokens/tokens";
+import type {
+  FreeAnchor,
+  FreeRect,
+  LayoutItem,
+  LayoutMode,
+  LayoutsDoc,
+  SmartStackRule,
+} from "../layer/grid";
 
 export const SETTINGS_TOPIC = "settings";
 export const LAYOUTS_TOPIC = "layouts";
@@ -88,6 +96,44 @@ export async function updateSettings(patch: Record<string, Json>) {
   return await command({ cmd: "update-settings", patch: fromJson(patch) });
 }
 
+const FREE_ANCHORS = new Set<FreeAnchor>([
+  "top-left",
+  "top-right",
+  "bottom-left",
+  "bottom-right",
+  "center",
+]);
+
+function parseFreeRect(raw: Json): FreeRect | undefined {
+  const r = record(raw);
+  const offsetX = typeof r.offsetX === "number" ? Math.round(r.offsetX) : null;
+  const offsetY = typeof r.offsetY === "number" ? Math.round(r.offsetY) : null;
+  const width = typeof r.width === "number" ? Math.round(r.width) : null;
+  const height = typeof r.height === "number" ? Math.round(r.height) : null;
+  if (offsetX === null || offsetY === null || width === null || height === null) return undefined;
+  const anchor: FreeAnchor =
+    typeof r.anchor === "string" && FREE_ANCHORS.has(r.anchor as FreeAnchor)
+      ? (r.anchor as FreeAnchor)
+      : "top-left";
+  return { anchor, offsetX, offsetY, width, height };
+}
+
+function parseSmartRules(raw: Json): SmartStackRule[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const out: SmartStackRule[] = [];
+  for (const item of raw) {
+    const r = record(item);
+    if (typeof r.childId === "string" && typeof r.when === "string" && r.when.trim()) {
+      out.push({
+        childId: r.childId,
+        when: r.when,
+        ...(typeof r.label === "string" && r.label.trim() ? { label: r.label } : {}),
+      });
+    }
+  }
+  return out.length > 0 ? out : undefined;
+}
+
 function parseItem(raw: Json): LayoutItem | null {
   const r = record(raw);
   const id = typeof r.id === "string" ? r.id : null;
@@ -96,11 +142,22 @@ function parseItem(raw: Json): LayoutItem | null {
   const w = typeof r.w === "number" ? Math.round(r.w) : null;
   const h = typeof r.h === "number" ? Math.round(r.h) : null;
   if (!id || x === null || y === null || w === null || h === null) return null;
+  const free = r.free !== undefined ? parseFreeRect(r.free) : undefined;
+  const z = typeof r.z === "number" && r.z !== 0 ? Math.round(r.z) : undefined;
+  const locked = r.locked === true ? true : undefined;
+  const groupId = typeof r.groupId === "string" && r.groupId ? r.groupId : undefined;
+  const shared = {
+    ...(free ? { free } : {}),
+    ...(z !== undefined ? { z } : {}),
+    ...(locked ? { locked } : {}),
+    ...(groupId ? { groupId } : {}),
+  };
   if (r.type === "stack") {
     const children = Array.isArray(r.children)
       ? r.children.filter((c): c is string => typeof c === "string")
       : [];
     if (children.length === 0) return null;
+    const smartRules = parseSmartRules(r.smartRules ?? null);
     return {
       id,
       type: "stack",
@@ -111,11 +168,13 @@ function parseItem(raw: Json): LayoutItem | null {
       children,
       activeIndex: typeof r.activeIndex === "number" ? Math.round(r.activeIndex) : 0,
       smartRotate: Boolean(r.smartRotate),
+      ...(smartRules ? { smartRules } : {}),
+      ...shared,
     };
   }
   const kind = typeof r.kind === "string" ? r.kind : null;
   if (!kind) return null;
-  return { id, type: "widget", kind, x, y, w, h };
+  return { id, type: "widget", kind, x, y, w, h, ...shared };
 }
 
 /** Core's `layouts` topic value as a typed `LayoutsDoc`. */
@@ -127,13 +186,64 @@ export function storedLayouts(v: Value | undefined): LayoutsDoc {
     const items = Array.isArray(mr.items)
       ? mr.items.map(parseItem).filter((i): i is LayoutItem => i !== null)
       : [];
-    monitors[key] = { items };
+    const mode: LayoutMode | undefined =
+      mr.mode === "free" ? "free" : mr.mode === "grid" ? "grid" : undefined;
+    const rawCell = typeof mr.cellSize === "number" ? Math.round(mr.cellSize) : undefined;
+    const cellSize: CellSize | undefined =
+      rawCell !== undefined && (ALLOWED_CELL_SIZES as readonly number[]).includes(rawCell)
+        ? (rawCell as CellSize)
+        : undefined;
+    monitors[key] = {
+      ...(mode ? { mode } : {}),
+      ...(cellSize !== undefined ? { cellSize } : {}),
+      items,
+    };
   }
   return {
     version: typeof j.version === "number" ? j.version : 1,
     showMissingOnPrimary: Boolean(j.showMissingOnPrimary),
     monitors,
   };
+}
+
+function serializeItem(it: LayoutItem): Record<string, Json> {
+  const extra: Record<string, Json> = {};
+  if (it.free) {
+    extra.free = {
+      anchor: it.free.anchor,
+      offsetX: it.free.offsetX,
+      offsetY: it.free.offsetY,
+      width: it.free.width,
+      height: it.free.height,
+    };
+  }
+  if (it.z !== undefined && it.z !== 0) extra.z = it.z;
+  if (it.locked) extra.locked = true;
+  if (it.groupId) extra.groupId = it.groupId;
+  if (it.type === "stack") {
+    return {
+      id: it.id,
+      type: "stack",
+      x: it.x,
+      y: it.y,
+      w: it.w,
+      h: it.h,
+      children: it.children,
+      activeIndex: it.activeIndex ?? 0,
+      smartRotate: it.smartRotate ?? false,
+      ...(it.smartRules?.length
+        ? {
+            smartRules: it.smartRules.map((r) => ({
+              childId: r.childId,
+              when: r.when,
+              ...(r.label ? { label: r.label } : {}),
+            })),
+          }
+        : {}),
+      ...extra,
+    };
+  }
+  return { id: it.id, type: "widget", kind: it.kind, x: it.x, y: it.y, w: it.w, h: it.h, ...extra };
 }
 
 export async function updateLayouts(doc: LayoutsDoc) {
@@ -144,21 +254,9 @@ export async function updateLayouts(doc: LayoutsDoc) {
       Object.entries(doc.monitors).map(([k, m]) => [
         k,
         {
-          items: m.items.map((it) =>
-            it.type === "stack"
-              ? {
-                  id: it.id,
-                  type: "stack",
-                  x: it.x,
-                  y: it.y,
-                  w: it.w,
-                  h: it.h,
-                  children: it.children,
-                  activeIndex: it.activeIndex ?? 0,
-                  smartRotate: it.smartRotate ?? false,
-                }
-              : { id: it.id, type: "widget", kind: it.kind, x: it.x, y: it.y, w: it.w, h: it.h },
-          ),
+          ...(m.mode && m.mode !== "grid" ? { mode: m.mode } : {}),
+          ...(m.cellSize !== undefined ? { cellSize: m.cellSize } : {}),
+          items: m.items.map(serializeItem),
         },
       ]),
     ),
@@ -240,6 +338,30 @@ export async function attachLayer(): Promise<void> {
       });
     else apply(event);
   });
+}
+
+export interface ThemeSummaryItem {
+  id: string;
+  name: string;
+  description: string;
+}
+
+/** Lists available themes from core's `themes` topic (falls back cleanly when stubbed). */
+export function storedThemeList(v: Value | undefined): ThemeSummaryItem[] {
+  const catalog = record(toJson(v));
+  const raw = Array.isArray(catalog.themes) ? catalog.themes : [];
+  const out: ThemeSummaryItem[] = [];
+  for (const item of raw) {
+    const r = record(item);
+    if (typeof r.id === "string" && typeof r.name === "string") {
+      out.push({
+        id: r.id,
+        name: r.name,
+        description: typeof r.description === "string" ? r.description : "",
+      });
+    }
+  }
+  return out;
 }
 
 /** Extracts the active theme's style layers from core's `themes` topic. */

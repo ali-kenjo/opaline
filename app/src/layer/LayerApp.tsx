@@ -1,7 +1,8 @@
-// The widget layer of one monitor (Phase 5): per-monitor grid, Edit mode (move, resize, stack,
-// remove with 5 s undo snackbar, undo/redo, keyboard navigation, cross-display moves, widget
-// picker, presets), glass context menu, shared-element detail views, Peek, Automatic appearance,
-// and tight WebGL2 canvas bounds outside Edit/Peek.
+// The widget layer of one monitor (Phase 5): per-monitor Grid & Free placement, Edit mode
+// upgrades (multi-select, rubber-band marquee, align/distribute, duplicate, copy/paste across
+// monitors, lock, z-order, Tidy up, theme & look switchers, unified undo/redo for layout, style
+// and content), glass context menu, shared-element detail views, Peek, Automatic appearance, and
+// tight WebGL2 canvas bounds outside Edit/Peek.
 import { invoke } from "@tauri-apps/api/core";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { cssVariables } from "../design-system/color/scheme";
@@ -18,17 +19,19 @@ import {
   rolesFor,
   sanitizeStyle,
 } from "../design-system/style";
-import { type SizeClass, sizes } from "../design-system/tokens/tokens";
+import { type SizeClass, grid as gridTokens, sizes, spanPx } from "../design-system/tokens/tokens";
 import { applyDocumentLocale, isRtl, resolveLocale, t } from "../i18n";
-import { HostContext } from "../widgets/host";
-import { toJson } from "../widgets/json";
+import { HostContext, type StoredWidget, type WidgetHost } from "../widgets/host";
+import { type Json, toJson } from "../widgets/json";
 import {
   LAYOUTS_TOPIC,
   PROBLEMS_TOPIC,
+  THEMES_TOPIC,
   WALLPAPER_TOPIC,
   attachLayer,
   storedLayouts,
   storedProblems,
+  storedThemeList,
   updateLayouts,
   useCoreHost,
   useLiveCss,
@@ -36,39 +39,57 @@ import {
 import { widgetByKind } from "../widgets/registry";
 import { WidgetSettings } from "../widgets/settings/WidgetSettings";
 import { type Rect, inTauri, report, setInputRegion } from "./bridge";
-import { useInputRegion } from "./interactiveRegion";
+import { readEditClipboard, writeEditClipboard } from "./clipboard";
 import { DetailModal } from "./DetailModal";
+import { DragFeedback } from "./DragFeedback";
+import type { ContextMenuState, DetailState, MarqueeState, UndoToast } from "./editTypes";
+import { EditToolbar } from "./EditToolbar";
+import {
+  type AlignKind,
+  type DistributeAxis,
+  type ZOrderOp,
+  alignItems,
+  convertFreeToGrid,
+  convertGridToFree,
+  distributeItems,
+  itemRectPx,
+  itemsInMarquee,
+  pxToFree,
+  reorderZ,
+  tidyUpItems,
+} from "./free";
 import {
   type LayoutItem,
+  type LayoutMode,
   type LayoutsDoc,
   type StackLayoutItem,
-  cellToPx,
   computeGrid,
   findNearestFree,
   matchMonitorKey,
   refitLayout,
   waitingMonitorKeys,
 } from "./grid";
+import { GridItems } from "./GridItems";
+import { useInputRegion } from "./interactiveRegion";
+import { LayerStackEditor } from "./LayerStackEditor";
+import { allowedSizesOf, isInteractiveTarget } from "./layoutRules";
+import { setEditActive, setPeekActive } from "./modes";
 import {
+  BUILTIN_LOOK_IDS,
+  LOOK_STARTER_LAYOUTS,
   PRESETS,
   type PresetSpec,
   buildPreset,
   migrateWidgetsToGrid,
+  newStackId,
   newWidgetId,
 } from "./presets";
 import type { Monitor } from "./protocol";
-import { LayerStackEditor } from "./LayerStackEditor";
-import type { ContextMenuState, DetailState, UndoToast } from "./editTypes";
-import { DragFeedback } from "./DragFeedback";
-import { EditToolbar } from "./EditToolbar";
-import { GridItems } from "./GridItems";
-import { setEditActive, setPeekActive } from "./modes";
-import { useEditHistory } from "./useEditHistory";
+import { useLayer } from "./store";
 import { useDragController } from "./useDragController";
+import { useEditHistory } from "./useEditHistory";
 import { useEditKeyboard } from "./useEditKeyboard";
 import { useLayerPrefs } from "./useLayerPrefs";
-import { allowedSizesOf, isInteractiveTarget } from "./layoutRules";
-import { useLayer } from "./store";
 import { WidgetPicker } from "./WidgetPicker";
 import styles from "./LayerApp.module.css";
 
@@ -106,6 +127,14 @@ function useImage(url: string | null): HTMLImageElement | null {
   return url ? img : null;
 }
 
+function widgetEntryToJson(w: StoredWidget): Record<string, Json> {
+  const out: Record<string, Json> = { kind: w.kind };
+  if (w.style) out.style = w.style as unknown as Json;
+  if (w.elements) out.elements = w.elements as unknown as Json;
+  if (w.content) out.content = w.content;
+  return out;
+}
+
 export function LayerApp() {
   const connection = useLayer((s) => s.connection);
   const monitor = useLayer((s) => s.monitor);
@@ -117,9 +146,10 @@ export function LayerApp() {
   const edit = useLayer((s) => s.edit);
   const wallpapers = useLayer((s) => s.values[WALLPAPER_TOPIC]);
   const layoutsValue = useLayer((s) => s.values[LAYOUTS_TOPIC]);
+  const themesValue = useLayer((s) => s.values[THEMES_TOPIC]);
   const problemsValue = useLayer((s) => s.values[PROBLEMS_TOPIC]);
-  const host = useCoreHost(monitor?.key ?? null);
-  useLiveCss(host.theme?.id);
+  const baseHost = useCoreHost(monitor?.key ?? null);
+  useLiveCss(baseHost.theme?.id);
   const configProblems = useMemo(() => storedProblems(problemsValue), [problemsValue]);
   const [dismissedProblemsKey, setDismissedProblemsKey] = useState("");
   const problemsKey = configProblems.map((p) => `${p.file}:${p.at}:${p.message}`).join("|");
@@ -130,9 +160,12 @@ export function LayerApp() {
   const [focused, setFocused] = useState(false);
   const [openSettings, setOpenSettings] = useState<string | null>(null);
   const [detail, setDetail] = useState<DetailState | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(() => new Set());
+  const [primarySelectedId, setPrimarySelectedId] = useState<string | null>(null);
+  const [marquee, setMarquee] = useState<MarqueeState | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [presetsOpen, setPresetsOpen] = useState(false);
+  const [themeOpen, setThemeOpen] = useState(false);
   const [lookOpen, setLookOpen] = useState(false);
   const [stackEditId, setStackEditId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
@@ -140,6 +173,8 @@ export function LayerApp() {
 
   const root = useRef<HTMLDivElement>(null);
   const migrated = useRef(false);
+  const suppressBackdropClick = useRef(false);
+  const justSelectedOnDown = useRef<string | null>(null);
 
   useEffect(() => {
     if (!inTauri) {
@@ -150,6 +185,26 @@ export function LayerApp() {
       console.error("layer_attach failed", e);
     });
   }, []);
+
+  const layouts = useMemo(() => storedLayouts(layoutsValue), [layoutsValue]);
+
+  // Unified Edit-session undo/redo covering layout, style, content, theme, and Desktop look.
+  const {
+    commit: commitLayouts,
+    commitSettings,
+    commitBoth,
+    undo: handleUndo,
+    redo: handleRedo,
+    canUndo,
+    canRedo,
+    clear: clearHistory,
+  } = useEditHistory(layouts, baseHost.settings);
+
+  // While Edit mode is active, route host.updateSettings through unified Edit history.
+  const host: WidgetHost = useMemo(
+    () => (edit ? { ...baseHost, updateSettings: (patch) => commitSettings(patch) } : baseHost),
+    [baseHost, edit, commitSettings],
+  );
 
   // Global style → page palette (sheets, toolbar, context menu and backdrop use it).
   const lookSettings = host.settings.look ?? DEFAULT_LOOK;
@@ -179,7 +234,6 @@ export function LayerApp() {
   const widgets = host.settings.widgets;
   const settingsLoaded = useLayer((s) => s.values.settings !== undefined);
   const layoutsLoaded = layoutsValue !== undefined;
-  const layouts = useMemo(() => storedLayouts(layoutsValue), [layoutsValue]);
 
   const width = geometry?.width ?? window.innerWidth;
   const height = geometry?.height ?? window.innerHeight;
@@ -201,9 +255,19 @@ export function LayerApp() {
     el.style.setProperty("--text-scale", String(a11y.scale));
   }, [a11y]);
 
+  // Resolve this monitor's layout key (exact → serial → connector+vendor/product).
+  const layoutKey = useMemo(() => {
+    if (!monitor) return "primary";
+    return matchMonitorKey(monitor, Object.keys(layouts.monitors)) ?? monitor.key;
+  }, [monitor, layouts.monitors]);
+
+  const monitorLayout = layouts.monitors[layoutKey];
+  const mode: LayoutMode = monitorLayout?.mode ?? "grid";
+  const cellSize = monitorLayout?.cellSize ?? gridTokens.cell;
+
   const g = useMemo(
-    () => computeGrid(width, height, settingsExtra.marginPx),
-    [width, height, settingsExtra.marginPx],
+    () => computeGrid(width, height, settingsExtra.marginPx, cellSize),
+    [width, height, settingsExtra.marginPx, cellSize],
   );
 
   // Startup diagnostics: page size vs. the window geometry core placed (layer log).
@@ -220,7 +284,7 @@ export function LayerApp() {
   useEffect(() => {
     if (!connected || !isHome || !settingsLoaded || !layoutsLoaded || !monitor) return;
     if (Object.keys(widgets).length === 0) {
-      void host.updateSettings({ widgets: DEFAULT_WIDGETS });
+      void baseHost.updateSettings({ widgets: DEFAULT_WIDGETS });
       return;
     }
     if (Object.keys(layouts.monitors).length === 0 && !migrated.current) {
@@ -242,17 +306,11 @@ export function LayerApp() {
     layouts,
     g.cols,
     g.rows,
-    host,
+    baseHost,
   ]);
 
-  // Resolve this monitor's layout key (exact → serial → connector+vendor/product).
-  const layoutKey = useMemo(() => {
-    if (!monitor) return "primary";
-    return matchMonitorKey(monitor, Object.keys(layouts.monitors)) ?? monitor.key;
-  }, [monitor, layouts.monitors]);
-
   const monitorItems = useMemo(() => {
-    const base = layouts.monitors[layoutKey]?.items ?? [];
+    const base = monitorLayout?.items ?? [];
     const extras: LayoutItem[] = [];
     if (isHome && layouts.showMissingOnPrimary && monitors.length > 0) {
       for (const wk of waitingMonitorKeys(monitors, Object.keys(layouts.monitors))) {
@@ -260,43 +318,354 @@ export function LayerApp() {
       }
     }
     const combined = extras.length > 0 ? [...base, ...extras] : base;
+    if (mode === "free") return combined;
     return refitLayout(combined, g.cols, g.rows, (it) => allowedSizesOf(it, widgets));
-  }, [layouts, layoutKey, isHome, monitors, g.cols, g.rows, widgets]);
+  }, [monitorLayout, layouts, isHome, monitors, mode, g.cols, g.rows, widgets]);
 
-  // Commit a new LayoutsDoc with undo tracking inside the current Edit session.
-  const {
-    commit: commitLayouts,
-    undo: handleUndo,
-    redo: handleRedo,
-    canUndo,
-    canRedo,
-    clear: clearHistory,
-  } = useEditHistory(layouts);
+  const setSingleSelection = useCallback((id: string | null) => {
+    setPrimarySelectedId(id);
+    setSelectedIds(id ? new Set([id]) : new Set());
+  }, []);
+
+  const handleSelectItem = useCallback(
+    (id: string, additive = false) => {
+      const target = monitorItems.find((i) => i.id === id);
+      const groupMembers = target?.groupId
+        ? monitorItems.filter((i) => i.groupId === target.groupId).map((i) => i.id)
+        : [id];
+      if (!additive) {
+        if (selectedIds.size !== 1 || primarySelectedId !== id) {
+          justSelectedOnDown.current = id;
+        }
+        setPrimarySelectedId(id);
+        setSelectedIds(new Set(groupMembers));
+        return;
+      }
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) {
+          for (const mid of groupMembers) next.delete(mid);
+        } else {
+          for (const mid of groupMembers) next.add(mid);
+        }
+        setPrimarySelectedId(next.has(id) ? id : ([...next][0] ?? null));
+        return next;
+      });
+    },
+    [monitorItems, selectedIds.size, primarySelectedId],
+  );
+
+  const commitMonitorState = useCallback(
+    (
+      nextItems: LayoutItem[],
+      opts?: { mode?: LayoutMode; recordUndo?: boolean; settingsPatch?: Record<string, Json> },
+    ) => {
+      const nextMode = opts?.mode ?? mode;
+      const nextDoc: LayoutsDoc = {
+        ...layouts,
+        monitors: {
+          ...layouts.monitors,
+          [layoutKey]: {
+            ...(nextMode === "free" ? { mode: "free" as const } : {}),
+            ...(monitorLayout?.cellSize !== undefined ? { cellSize: monitorLayout.cellSize } : {}),
+            items: nextItems,
+          },
+        },
+      };
+      if (opts?.settingsPatch) {
+        commitBoth(nextDoc, opts.settingsPatch, opts.recordUndo ?? true);
+      } else {
+        commitLayouts(nextDoc, opts?.recordUndo ?? true);
+      }
+    },
+    [layouts, layoutKey, mode, monitorLayout, commitLayouts, commitBoth],
+  );
 
   const commitMonitorItems = useCallback(
     (nextItems: LayoutItem[], recordUndo = true) => {
-      const next: LayoutsDoc = {
-        ...layouts,
-        monitors: { ...layouts.monitors, [layoutKey]: { items: nextItems } },
-      };
-      commitLayouts(next, recordUndo);
+      commitMonitorState(nextItems, { recordUndo });
     },
-    [layouts, layoutKey, commitLayouts],
+    [commitMonitorState],
   );
 
   const handleRemoveItem = useCallback(
     (item: LayoutItem) => {
+      if (item.locked) return;
       const previous = layouts;
       const nextItems = monitorItems.filter((i) => i.id !== item.id);
       commitMonitorItems(nextItems);
-      if (selectedId === item.id) setSelectedId(null);
+      if (selectedIds.has(item.id)) {
+        const rest = new Set(selectedIds);
+        rest.delete(item.id);
+        setSelectedIds(rest);
+        setPrimarySelectedId([...rest][0] ?? null);
+      }
       const label =
         item.type === "stack"
           ? "Stack removed"
           : `${widgetByKind(item.kind)?.name ?? "Widget"} removed`;
       setUndoToast({ message: label, previous });
     },
-    [layouts, monitorItems, commitMonitorItems, selectedId],
+    [layouts, monitorItems, commitMonitorItems, selectedIds],
+  );
+
+  const handleRemoveSelected = useCallback(() => {
+    const removable = monitorItems.filter((i) => selectedIds.has(i.id) && !i.locked);
+    if (removable.length === 0) return;
+    if (removable.length === 1 && removable[0]) {
+      handleRemoveItem(removable[0]);
+      return;
+    }
+    const previous = layouts;
+    const dropIds = new Set(removable.map((r) => r.id));
+    commitMonitorItems(monitorItems.filter((i) => !dropIds.has(i.id)));
+    setSingleSelection(null);
+    setUndoToast({ message: `${String(removable.length)} widgets removed`, previous });
+  }, [
+    monitorItems,
+    selectedIds,
+    layouts,
+    commitMonitorItems,
+    handleRemoveItem,
+    setSingleSelection,
+  ]);
+
+  const cloneItems = useCallback(
+    (sourceItems: readonly LayoutItem[], sourceWidgets: Readonly<Record<string, StoredWidget>>) => {
+      const createdItems: LayoutItem[] = [];
+      const createdWidgets: Record<string, Json> = {};
+      const occupied: LayoutItem[] = [...monitorItems];
+
+      for (const src of sourceItems) {
+        if (src.type === "widget") {
+          const id = newWidgetId(src.kind);
+          const stored = sourceWidgets[src.id];
+          createdWidgets[id] = stored ? widgetEntryToJson(stored) : { kind: src.kind };
+          if (mode === "free") {
+            const r = itemRectPx(src, "free", g, width, height);
+            const free = pxToFree(
+              {
+                x: Math.min(width - r.width, r.x + 24),
+                y: Math.min(height - r.height, r.y + 24),
+                width: r.width,
+                height: r.height,
+              },
+              width,
+              height,
+              src.free?.anchor,
+            );
+            const item: LayoutItem = {
+              id,
+              type: "widget",
+              kind: src.kind,
+              x: src.x,
+              y: src.y,
+              w: src.w,
+              h: src.h,
+              free,
+              z: occupied.length + createdItems.length + 1,
+            };
+            createdItems.push(item);
+          } else {
+            const slot = findNearestFree(occupied, g.cols, g.rows, src.w, src.h, src.x + 1, src.y);
+            if (!slot) continue;
+            const item: LayoutItem = {
+              id,
+              type: "widget",
+              kind: src.kind,
+              x: slot.x,
+              y: slot.y,
+              w: src.w,
+              h: src.h,
+            };
+            occupied.push(item);
+            createdItems.push(item);
+          }
+        } else {
+          const newChildren: string[] = [];
+          const idMap = new Map<string, string>();
+          for (const cid of src.children) {
+            const stored = sourceWidgets[cid];
+            const kind = stored?.kind ?? "cpu";
+            const newCid = newWidgetId(kind);
+            idMap.set(cid, newCid);
+            newChildren.push(newCid);
+            createdWidgets[newCid] = stored ? widgetEntryToJson(stored) : { kind };
+          }
+          const remappedRules = src.smartRules?.map((r) => ({
+            ...r,
+            childId: idMap.get(r.childId) ?? r.childId,
+          }));
+          if (mode === "free") {
+            const r = itemRectPx(src, "free", g, width, height);
+            const item: StackLayoutItem = {
+              id: newStackId(),
+              type: "stack",
+              x: src.x,
+              y: src.y,
+              w: src.w,
+              h: src.h,
+              children: newChildren,
+              activeIndex: src.activeIndex ?? 0,
+              smartRotate: Boolean(src.smartRotate),
+              ...(remappedRules?.length ? { smartRules: remappedRules } : {}),
+              free: pxToFree(
+                {
+                  x: Math.min(width - r.width, r.x + 24),
+                  y: Math.min(height - r.height, r.y + 24),
+                  width: r.width,
+                  height: r.height,
+                },
+                width,
+                height,
+                src.free?.anchor,
+              ),
+              z: occupied.length + createdItems.length + 1,
+            };
+            createdItems.push(item);
+          } else {
+            const slot = findNearestFree(occupied, g.cols, g.rows, src.w, src.h, src.x + 1, src.y);
+            if (!slot) continue;
+            const item: StackLayoutItem = {
+              id: newStackId(),
+              type: "stack",
+              x: slot.x,
+              y: slot.y,
+              w: src.w,
+              h: src.h,
+              children: newChildren,
+              activeIndex: src.activeIndex ?? 0,
+              smartRotate: Boolean(src.smartRotate),
+              ...(remappedRules?.length ? { smartRules: remappedRules } : {}),
+            };
+            occupied.push(item);
+            createdItems.push(item);
+          }
+        }
+      }
+      if (createdItems.length === 0) return;
+      commitMonitorState([...monitorItems, ...createdItems], {
+        settingsPatch: { widgets: createdWidgets },
+      });
+      setSelectedIds(new Set(createdItems.map((i) => i.id)));
+      setPrimarySelectedId(createdItems[0]?.id ?? null);
+    },
+    [monitorItems, mode, g, width, height, commitMonitorState],
+  );
+
+  const handleDuplicate = useCallback(
+    (explicit?: LayoutItem) => {
+      const targets = explicit ? [explicit] : monitorItems.filter((i) => selectedIds.has(i.id));
+      if (targets.length === 0) return;
+      cloneItems(targets, widgets);
+    },
+    [monitorItems, selectedIds, widgets, cloneItems],
+  );
+
+  const handleCopy = useCallback(
+    (explicit?: LayoutItem) => {
+      const targets = explicit ? [explicit] : monitorItems.filter((i) => selectedIds.has(i.id));
+      if (targets.length === 0) return;
+      const copiedWidgets: Record<string, StoredWidget> = {};
+      for (const it of targets) {
+        if (it.type === "widget") {
+          const w = widgets[it.id];
+          if (w) copiedWidgets[it.id] = w;
+        } else {
+          for (const cid of it.children) {
+            const w = widgets[cid];
+            if (w) copiedWidgets[cid] = w;
+          }
+        }
+      }
+      writeEditClipboard({ items: targets, widgets: copiedWidgets });
+    },
+    [monitorItems, selectedIds, widgets],
+  );
+
+  const handlePaste = useCallback(() => {
+    const clip = readEditClipboard();
+    if (!clip || clip.items.length === 0) return;
+    cloneItems(clip.items, clip.widgets);
+  }, [cloneItems]);
+
+  const handleToggleLock = useCallback(
+    (explicit?: LayoutItem) => {
+      const ids = explicit ? new Set([explicit.id]) : selectedIds;
+      if (ids.size === 0) return;
+      const targets = monitorItems.filter((i) => ids.has(i.id));
+      const nextLocked = !targets.every((i) => Boolean(i.locked));
+      commitMonitorItems(
+        monitorItems.map((it) => {
+          if (!ids.has(it.id)) return it;
+          if (!nextLocked) {
+            const copy = { ...it };
+            delete copy.locked;
+            return copy;
+          }
+          return { ...it, locked: true };
+        }),
+      );
+    },
+    [monitorItems, selectedIds, commitMonitorItems],
+  );
+
+  const handleGroupToggle = useCallback(() => {
+    if (selectedIds.size < 2) return;
+    const targets = monitorItems.filter((i) => selectedIds.has(i.id));
+    const existingGroup = targets[0]?.groupId;
+    const allGroupedTogether =
+      Boolean(existingGroup) && targets.every((i) => i.groupId === existingGroup);
+    const gid = allGroupedTogether ? undefined : `grp-${String(Date.now()).slice(-6)}`;
+    commitMonitorItems(
+      monitorItems.map((it) => {
+        if (!selectedIds.has(it.id)) return it;
+        if (!gid) {
+          const copy = { ...it };
+          delete copy.groupId;
+          return copy;
+        }
+        return { ...it, groupId: gid };
+      }),
+    );
+  }, [monitorItems, selectedIds, commitMonitorItems]);
+
+  const handleToggleMode = useCallback(() => {
+    if (mode === "grid") {
+      const converted = convertGridToFree(monitorItems, g, width, height);
+      commitMonitorState(converted, { mode: "free" });
+    } else {
+      const converted = convertFreeToGrid(monitorItems, g, width, height, (it) =>
+        allowedSizesOf(it, widgets),
+      );
+      commitMonitorState(converted, { mode: "grid" });
+    }
+  }, [mode, monitorItems, g, width, height, widgets, commitMonitorState]);
+
+  const handleTidyUp = useCallback(() => {
+    const tidied = tidyUpItems(monitorItems, mode, g, width, height);
+    commitMonitorItems(tidied);
+  }, [monitorItems, mode, g, width, height, commitMonitorItems]);
+
+  const handleAlign = useCallback(
+    (kind: AlignKind) => {
+      commitMonitorItems(alignItems(monitorItems, selectedIds, kind, mode, g, width, height));
+    },
+    [monitorItems, selectedIds, mode, g, width, height, commitMonitorItems],
+  );
+
+  const handleDistribute = useCallback(
+    (axis: DistributeAxis) => {
+      commitMonitorItems(distributeItems(monitorItems, selectedIds, axis, mode, g, width, height));
+    },
+    [monitorItems, selectedIds, mode, g, width, height, commitMonitorItems],
+  );
+
+  const handleZOrder = useCallback(
+    (item: LayoutItem, op: ZOrderOp) => {
+      commitMonitorItems(reorderZ(monitorItems, new Set([item.id]), op));
+    },
+    [monitorItems, commitMonitorItems],
   );
 
   const handleMoveToDisplay = useCallback(
@@ -309,7 +678,8 @@ export function LayerApp() {
         targetArea ? targetArea[2] : targetMonitor.width,
         targetArea ? targetArea[3] : targetMonitor.height,
       );
-      const targetExisting = layouts.monitors[targetKey]?.items ?? [];
+      const targetMon = layouts.monitors[targetKey];
+      const targetExisting = targetMon?.items ?? [];
       const slot = findNearestFree(targetExisting, tg.cols, tg.rows, item.w, item.h, 0, 0);
       if (!slot) return;
       const movedItem: LayoutItem = { ...item, x: slot.x, y: slot.y };
@@ -317,56 +687,117 @@ export function LayerApp() {
         ...layouts,
         monitors: {
           ...layouts.monitors,
-          [layoutKey]: { items: monitorItems.filter((i) => i.id !== item.id) },
-          [targetKey]: { items: [...targetExisting, movedItem] },
+          [layoutKey]: {
+            ...(mode === "free" ? { mode: "free" as const } : {}),
+            ...(monitorLayout?.cellSize !== undefined ? { cellSize: monitorLayout.cellSize } : {}),
+            items: monitorItems.filter((i) => i.id !== item.id),
+          },
+          [targetKey]: {
+            ...(targetMon?.mode === "free" ? { mode: "free" as const } : {}),
+            ...(targetMon?.cellSize !== undefined ? { cellSize: targetMon.cellSize } : {}),
+            items: [...targetExisting, movedItem],
+          },
         },
       };
       commitLayouts(next);
-      if (selectedId === item.id) setSelectedId(null);
+      if (selectedIds.has(item.id)) setSingleSelection(null);
     },
-    [layouts, layoutKey, monitorItems, commitLayouts, selectedId],
+    [
+      layouts,
+      layoutKey,
+      mode,
+      monitorLayout,
+      monitorItems,
+      commitLayouts,
+      selectedIds,
+      setSingleSelection,
+    ],
   );
 
   const handleAddWidget = useCallback(
     (kind: string, size: SizeClass) => {
       const span = sizes[size];
-      const slot = findNearestFree(
-        monitorItems,
-        g.cols,
-        g.rows,
-        span.w,
-        span.h,
-        Math.max(0, g.cols - span.w),
-        0,
-      );
-      if (!slot) return;
       const id = newWidgetId(kind);
-      void host.updateSettings({ widgets: { [id]: { kind } } });
-      const added: LayoutItem = {
-        id,
-        type: "widget",
-        kind,
-        x: slot.x,
-        y: slot.y,
-        w: span.w,
-        h: span.h,
-      };
-      commitMonitorItems([...monitorItems, added]);
-      setSelectedId(id);
+      if (mode === "free") {
+        const wPx = spanPx(span.w, g.cell);
+        const hPx = spanPx(span.h, g.cell);
+        const offset = (monitorItems.length % 5) * 28;
+        const free = pxToFree(
+          {
+            x: Math.max(settingsExtra.marginPx, width - settingsExtra.marginPx - wPx - offset),
+            y: settingsExtra.marginPx + offset,
+            width: wPx,
+            height: hPx,
+          },
+          width,
+          height,
+          "top-right",
+        );
+        const added: LayoutItem = {
+          id,
+          type: "widget",
+          kind,
+          x: Math.max(0, g.cols - span.w),
+          y: 0,
+          w: span.w,
+          h: span.h,
+          free,
+          z: monitorItems.length + 1,
+        };
+        commitMonitorState([...monitorItems, added], {
+          settingsPatch: { widgets: { [id]: { kind } } },
+        });
+      } else {
+        const slot = findNearestFree(
+          monitorItems,
+          g.cols,
+          g.rows,
+          span.w,
+          span.h,
+          Math.max(0, g.cols - span.w),
+          0,
+        );
+        if (!slot) return;
+        const added: LayoutItem = {
+          id,
+          type: "widget",
+          kind,
+          x: slot.x,
+          y: slot.y,
+          w: span.w,
+          h: span.h,
+        };
+        commitMonitorState([...monitorItems, added], {
+          settingsPatch: { widgets: { [id]: { kind } } },
+        });
+      }
+      setSingleSelection(id);
       setPickerOpen(false);
     },
-    [monitorItems, g.cols, g.rows, host, commitMonitorItems],
+    [
+      mode,
+      monitorItems,
+      g,
+      width,
+      height,
+      settingsExtra.marginPx,
+      commitMonitorState,
+      setSingleSelection,
+    ],
   );
 
   const handleApplyPreset = useCallback(
     (preset: PresetSpec) => {
       const built = buildPreset(preset, g.cols, g.rows);
-      void host.updateSettings({ widgets: built.widgets });
-      commitMonitorItems(built.items);
+      const nextItems =
+        mode === "free" ? convertGridToFree(built.items, g, width, height) : built.items;
+      commitMonitorState(nextItems, {
+        settingsPatch: { widgets: built.widgets },
+      });
       setPresetsOpen(false);
-      setSelectedId(null);
+      setSingleSelection(null);
     },
-    [g.cols, g.rows, host, commitMonitorItems],
+    [mode, g, width, height, commitMonitorState, setSingleSelection],
   );
 
   const {
@@ -379,17 +810,22 @@ export function LayerApp() {
     onPickerDragStart: handlePickerDragStart,
   } = useDragController({
     edit,
+    mode,
     items: monitorItems,
+    selectedIds,
     widgets,
     g,
     width,
     height,
+    marginPx: settingsExtra.marginPx,
     monitor,
     monitors,
-    onSelect: setSelectedId,
+    onSelect: handleSelectItem,
     onDragStart: () => {
       setContextMenu(null);
       setPresetsOpen(false);
+      setThemeOpen(false);
+      setLookOpen(false);
     },
     onClosePicker: () => {
       setPickerOpen(false);
@@ -404,10 +840,10 @@ export function LayerApp() {
 
   const displayedItems = drag?.preview ?? resize?.preview ?? monitorItems;
 
-  const latestAlertCtx = useRef({ monitorItems, widgets, g });
+  const latestAlertCtx = useRef({ monitorItems, widgets, g, mode, width, height });
   useLayoutEffect(() => {
-    latestAlertCtx.current = { monitorItems, widgets, g };
-  }, [monitorItems, widgets, g]);
+    latestAlertCtx.current = { monitorItems, widgets, g, mode, width, height };
+  }, [monitorItems, widgets, g, mode, width, height]);
 
   // Clear edit session UI when leaving Edit mode, and open detail view when an alert is opened.
   useEffect(
@@ -418,9 +854,12 @@ export function LayerApp() {
           setHovered(false);
         }
         if (prev.edit && !next.edit) {
-          setSelectedId(null);
+          setSelectedIds(new Set());
+          setPrimarySelectedId(null);
+          setMarquee(null);
           setPickerOpen(false);
           setPresetsOpen(false);
+          setThemeOpen(false);
           setLookOpen(false);
           setStackEditId(null);
           setContextMenu(null);
@@ -430,7 +869,14 @@ export function LayerApp() {
           clearHistory();
         }
         if (next.alertRule && next.alertRule !== prev.alertRule) {
-          const { monitorItems: items, widgets: ws, g: grid } = latestAlertCtx.current;
+          const {
+            monitorItems: items,
+            widgets: ws,
+            g: grid,
+            mode: curMode,
+            width: w,
+            height: h,
+          } = latestAlertCtx.current;
           const prefix = next.alertRule.split("-")[0] ?? "";
           const match = items.find((it) => {
             if (it.type === "widget") return it.kind === prefix;
@@ -450,7 +896,7 @@ export function LayerApp() {
               setDetail({
                 widgetId,
                 kind,
-                origin: cellToPx(grid, match.x, match.y, match.w, match.h),
+                origin: itemRectPx(match, curMode, grid, w, h),
               });
             }
           }
@@ -474,19 +920,37 @@ export function LayerApp() {
 
   useEditKeyboard({
     active: edit && !openSettings && !pickerOpen && !stackEditId && !contextMenu,
+    mode,
     items: monitorItems,
-    selectedId,
-    setSelectedId,
+    selectedIds,
+    primarySelectedId,
+    setSelectedId: (id) => {
+      setSingleSelection(id);
+    },
+    setSelectedIds: (ids) => {
+      setSelectedIds(ids);
+      setPrimarySelectedId([...ids][0] ?? null);
+    },
     widgets,
-    cols: g.cols,
-    rows: g.rows,
-    presetsOpen,
-    closePresets: () => {
+    g,
+    width,
+    height,
+    hasOpenPopover: presetsOpen || themeOpen || lookOpen,
+    closePopovers: () => {
       setPresetsOpen(false);
+      setThemeOpen(false);
+      setLookOpen(false);
     },
     onUndo: handleUndo,
     onRedo: handleRedo,
-    onRemove: handleRemoveItem,
+    onDuplicate: () => {
+      handleDuplicate();
+    },
+    onCopy: () => {
+      handleCopy();
+    },
+    onPaste: handlePaste,
+    onRemoveSelected: handleRemoveSelected,
     onOpen: (item) => {
       if (item.type === "stack") setStackEditId(item.id);
       else setOpenSettings(item.id);
@@ -517,20 +981,85 @@ export function LayerApp() {
     };
   }, []);
 
-  // Click widget: in Edit mode opens settings/stack editor; outside Edit mode opens shared-element DetailModal.
+  // Rubber-band marquee drag on empty backdrop in Edit mode.
+  const handleBackdropPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!edit || e.button !== 0) return;
+      const startX = e.clientX;
+      const startY = e.clientY;
+      let started = false;
+      let latestBox: MarqueeState | null = null;
+
+      const onMove = (ev: PointerEvent) => {
+        if (!started && Math.hypot(ev.clientX - startX, ev.clientY - startY) > 6) {
+          started = true;
+          setContextMenu(null);
+          setPresetsOpen(false);
+          setThemeOpen(false);
+          setLookOpen(false);
+        }
+        if (started) {
+          latestBox = { startX, startY, currentX: ev.clientX, currentY: ev.clientY };
+          setMarquee(latestBox);
+        }
+      };
+      const onUp = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onUp);
+        if (started && latestBox) {
+          suppressBackdropClick.current = true;
+          setTimeout(() => {
+            suppressBackdropClick.current = false;
+          }, 80);
+          const hits = itemsInMarquee(
+            monitorItems,
+            {
+              x: latestBox.startX,
+              y: latestBox.startY,
+              width: latestBox.currentX - latestBox.startX,
+              height: latestBox.currentY - latestBox.startY,
+            },
+            mode,
+            g,
+            width,
+            height,
+          );
+          setSelectedIds(new Set(hits));
+          setPrimarySelectedId(hits[0] ?? null);
+        }
+        setMarquee(null);
+      };
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onUp);
+    },
+    [edit, monitorItems, mode, g, width, height],
+  );
+
+  // Click widget: in Edit mode selects (Shift/Ctrl multi-select) or opens settings; outside opens DetailModal.
   const handleClickItem = useCallback(
     (item: LayoutItem, e: React.MouseEvent<HTMLDivElement>) => {
       if (isClickSuppressed() || isInteractiveTarget(e.target)) return;
       if (edit) {
-        if (selectedId === item.id) {
+        if (e.shiftKey || e.ctrlKey || e.metaKey) {
+          justSelectedOnDown.current = null;
+          handleSelectItem(item.id, true);
+          return;
+        }
+        if (justSelectedOnDown.current === item.id) {
+          justSelectedOnDown.current = null;
+          return;
+        }
+        if (selectedIds.size === 1 && primarySelectedId === item.id) {
           if (item.type === "stack") setStackEditId(item.id);
           else setOpenSettings(item.id);
         } else {
-          setSelectedId(item.id);
+          handleSelectItem(item.id, false);
         }
         return;
       }
-      const rect = cellToPx(g, item.x, item.y, item.w, item.h);
+      const rect = itemRectPx(item, mode, g, width, height);
       if (item.type === "widget") {
         setDetail({ widgetId: item.id, kind: item.kind, origin: rect });
       } else {
@@ -539,7 +1068,18 @@ export function LayerApp() {
         if (activeId && kind) setDetail({ widgetId: activeId, kind, origin: rect });
       }
     },
-    [edit, selectedId, g, widgets, isClickSuppressed],
+    [
+      edit,
+      selectedIds.size,
+      primarySelectedId,
+      mode,
+      g,
+      width,
+      height,
+      widgets,
+      isClickSuppressed,
+      handleSelectItem,
+    ],
   );
 
   const handleContextItem = useCallback(
@@ -547,7 +1087,7 @@ export function LayerApp() {
       e.preventDefault();
       e.stopPropagation();
       const x = Math.min(e.clientX, Math.max(8, width - 220));
-      const y = Math.min(e.clientY, Math.max(8, height - 240));
+      const y = Math.min(e.clientY, Math.max(8, height - 320));
       setContextMenu({ item, x, y });
     },
     [width, height],
@@ -590,8 +1130,6 @@ export function LayerApp() {
     return typeof e === "object" && e !== null && !Array.isArray(e) ? e : null;
   }, [wallpapers, monitor]);
   const wallpaper = useImage(typeof entry?.glass === "string" ? entry.glass : null);
-  // The full-resolution wallpaper, loaded only while a widget's blur is below the 1.x level
-  // (ADR 0012); GlassStage reports that.
   const [needsSharp, setNeedsSharp] = useState(SPIKE_WANTS_SHARP);
   const sharpWallpaper = useImage(
     needsSharp && typeof entry?.sharp === "string" ? entry.sharp : null,
@@ -630,9 +1168,34 @@ export function LayerApp() {
     [stackEditId, monitorItems],
   );
 
+  const themeChoices = useMemo(() => {
+    const fromCore = storedThemeList(themesValue);
+    if (fromCore.length > 0) return fromCore;
+    return BUILTIN_LOOK_IDS.map((id) => ({
+      id,
+      name: LOOK_STARTER_LAYOUTS[id].name,
+      description: LOOK_STARTER_LAYOUTS[id].tagline,
+    }));
+  }, [themesValue]);
+  const activeThemeId = host.theme?.id ?? host.settings.theme ?? "opaline";
+
+  const selectedItems = useMemo(
+    () => monitorItems.filter((i) => selectedIds.has(i.id)),
+    [monitorItems, selectedIds],
+  );
+  const allSelectedLocked =
+    selectedItems.length > 0 && selectedItems.every((i) => Boolean(i.locked));
+  const sharedGroup = selectedItems[0]?.groupId;
+  const canUngroup =
+    selectedItems.length >= 2 &&
+    Boolean(sharedGroup) &&
+    selectedItems.every((i) => i.groupId === sharedGroup);
+  const canGroup = selectedItems.length >= 2 && !canUngroup;
+
   // Context menu items for right-clicked widget/stack.
   const contextItems = useMemo<MenuItem[]>(() => {
     if (!contextMenu) return [];
+    const it = contextMenu.item;
     const list: MenuItem[] = [
       {
         id: "edit",
@@ -641,8 +1204,17 @@ export function LayerApp() {
       },
       { id: "settings", label: t(locale, "action.widgetSettings"), icon: "tune" },
     ];
-    if (contextMenu.item.type === "stack") {
+    if (it.type === "stack") {
       list.push({ id: "stack", label: t(locale, "action.editStack"), icon: "stacks" });
+    }
+    if (edit) {
+      list.push({ id: "duplicate", label: "Duplicate", icon: "content_copy" });
+      list.push({ id: "copy", label: "Copy", icon: "content_copy" });
+      list.push({ id: "lock", label: it.locked ? "Unlock" : "Lock", icon: "lock" });
+      if (mode === "free") {
+        list.push({ id: "z-front", label: "Bring to front", icon: "keyboard_arrow_up" });
+        list.push({ id: "z-back", label: "Send to back", icon: "keyboard_arrow_down" });
+      }
     }
     for (const m of monitors) {
       if (monitor && m.key !== monitor.key) {
@@ -653,9 +1225,11 @@ export function LayerApp() {
         });
       }
     }
-    list.push({ id: "remove", label: t(locale, "action.remove"), icon: "delete", danger: true });
+    if (!it.locked) {
+      list.push({ id: "remove", label: t(locale, "action.remove"), icon: "delete", danger: true });
+    }
     return list;
-  }, [contextMenu, edit, monitors, monitor, locale]);
+  }, [contextMenu, edit, mode, monitors, monitor, locale]);
 
   const handleContextSelect = (id: string) => {
     if (!contextMenu) return;
@@ -671,6 +1245,16 @@ export function LayerApp() {
       if (targetId) setOpenSettings(targetId);
     } else if (id === "stack" && item.type === "stack") {
       setStackEditId(item.id);
+    } else if (id === "duplicate") {
+      handleDuplicate(item);
+    } else if (id === "copy") {
+      handleCopy(item);
+    } else if (id === "lock") {
+      handleToggleLock(item);
+    } else if (id === "z-front") {
+      handleZOrder(item, "front");
+    } else if (id === "z-back") {
+      handleZOrder(item, "back");
     } else if (id === "remove") {
       handleRemoveItem(item);
     } else if (id.startsWith("move:")) {
@@ -704,20 +1288,24 @@ export function LayerApp() {
           backdrop={peek || edit ? 0.92 : 0}
           tightCanvas
         >
-          <div className={styles.surface}>
+          <div className={styles.surface} data-layout-mode={mode}>
             {peek || edit ? (
               <div
                 className={styles.backdrop}
                 role="button"
                 tabIndex={-1}
                 aria-label={edit ? "Done editing" : "Close Peek"}
+                onPointerDown={handleBackdropPointerDown}
                 onClick={() => {
+                  if (suppressBackdropClick.current) return;
                   if (contextMenu) {
                     setContextMenu(null);
                     return;
                   }
-                  if (presetsOpen) {
+                  if (presetsOpen || themeOpen || lookOpen) {
                     setPresetsOpen(false);
+                    setThemeOpen(false);
+                    setLookOpen(false);
                     return;
                   }
                   if (edit) void setEditActive(false);
@@ -726,7 +1314,7 @@ export function LayerApp() {
               />
             ) : null}
 
-            {edit ? (
+            {edit && mode === "grid" ? (
               <div
                 className={styles.dotGrid}
                 aria-hidden="true"
@@ -735,6 +1323,7 @@ export function LayerApp() {
                   top: g.originY,
                   width: g.width,
                   height: g.height,
+                  backgroundSize: `${String(g.step)}px ${String(g.step)}px`,
                 }}
               />
             ) : null}
@@ -743,6 +1332,7 @@ export function LayerApp() {
               part="ghost"
               drag={drag}
               resize={resize}
+              marquee={marquee}
               g={g}
               locale={locale}
               dir={contentDir}
@@ -750,9 +1340,12 @@ export function LayerApp() {
 
             <GridItems
               items={displayedItems}
+              mode={mode}
               g={g}
+              workW={width}
+              workH={height}
               edit={edit}
-              selectedId={selectedId}
+              selectedIds={selectedIds}
               drag={drag}
               resize={resize}
               autoDimmed={autoDimmed}
@@ -778,22 +1371,49 @@ export function LayerApp() {
               <EditToolbar
                 locale={locale}
                 dir={contentDir}
+                mode={mode}
+                selectedCount={selectedIds.size}
+                allSelectedLocked={allSelectedLocked}
+                canGroup={canGroup}
+                canUngroup={canUngroup}
                 canUndo={canUndo}
                 canRedo={canRedo}
                 onAdd={() => {
                   setPresetsOpen(false);
+                  setThemeOpen(false);
+                  setLookOpen(false);
                   setPickerOpen(true);
                 }}
                 onTogglePresets={() => {
+                  setThemeOpen(false);
                   setLookOpen(false);
                   setPresetsOpen((p) => !p);
                 }}
+                onToggleTheme={() => {
+                  setPresetsOpen(false);
+                  setLookOpen(false);
+                  setThemeOpen((o) => !o);
+                }}
                 onToggleLook={() => {
                   setPresetsOpen(false);
+                  setThemeOpen(false);
                   setLookOpen((o) => !o);
                 }}
+                onToggleMode={handleToggleMode}
+                onTidyUp={handleTidyUp}
+                onAlign={handleAlign}
+                onDistribute={handleDistribute}
+                onDuplicate={() => {
+                  handleDuplicate();
+                }}
+                onToggleLock={() => {
+                  handleToggleLock();
+                }}
+                onGroupToggle={handleGroupToggle}
                 onSettings={() => {
                   setPresetsOpen(false);
+                  setThemeOpen(false);
+                  setLookOpen(false);
                   void setEditActive(false);
                   void host.command({ cmd: "open-settings" });
                 }}
@@ -817,7 +1437,7 @@ export function LayerApp() {
             {presetsOpen && edit ? (
               <div
                 className={styles.menuAnchor}
-                style={{ bottom: 76, left: Math.max(16, width / 2 - 110) }}
+                style={{ bottom: 76, left: Math.max(16, width / 2 - 180) }}
               >
                 <ContextMenu
                   label="Layout presets"
@@ -828,6 +1448,29 @@ export function LayerApp() {
                   }}
                   onClose={() => {
                     setPresetsOpen(false);
+                  }}
+                />
+              </div>
+            ) : null}
+
+            {themeOpen && edit ? (
+              <div
+                className={styles.menuAnchor}
+                style={{ bottom: 76, left: Math.max(16, width / 2 - 90) }}
+              >
+                <ContextMenu
+                  label="Theme"
+                  items={themeChoices.map((th) => ({
+                    id: th.id,
+                    label: th.name,
+                    icon: th.id === activeThemeId ? "check" : "palette",
+                  }))}
+                  onSelect={(id) => {
+                    setThemeOpen(false);
+                    void host.updateSettings({ theme: id });
+                  }}
+                  onClose={() => {
+                    setThemeOpen(false);
                   }}
                 />
               </div>
@@ -899,8 +1542,6 @@ export function LayerApp() {
               </div>
             ) : null}
 
-            {/* Inside the stage's content layer: as a layer of its own, WebKitGTK stretched the
-                pill's background over the whole window. */}
             {peek ? (
               <div className={styles.hint} dir={contentDir}>
                 {t(locale, "peek.hint")}

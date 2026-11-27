@@ -1,8 +1,26 @@
 // Per-monitor grid engine (brief §2.4, PLAN 5.1-5.2): cell geometry from work area minus
 // 24 px margins, collision resolution with minimal movement, refit on resolution/scale change,
 // monitor key matching (ARCHITECTURE §3.6), and cross-display neighbor lookup.
-import { grid, type SizeClass, sizes, spanPx } from "../design-system/tokens/tokens";
+import { type CellSize, grid, type SizeClass, sizes, spanPx } from "../design-system/tokens/tokens";
 import type { Monitor } from "./protocol";
+
+export type LayoutMode = "grid" | "free";
+
+export type FreeAnchor = "top-left" | "top-right" | "bottom-left" | "bottom-right" | "center";
+
+export interface FreeRect {
+  anchor: FreeAnchor;
+  offsetX: number;
+  offsetY: number;
+  width: number;
+  height: number;
+}
+
+export interface SmartStackRule {
+  childId: string;
+  when: string;
+  label?: string;
+}
 
 export interface WidgetLayoutItem {
   id: string;
@@ -12,6 +30,10 @@ export interface WidgetLayoutItem {
   y: number;
   w: number;
   h: number;
+  free?: FreeRect;
+  z?: number;
+  locked?: boolean;
+  groupId?: string;
 }
 
 export interface StackLayoutItem {
@@ -24,11 +46,18 @@ export interface StackLayoutItem {
   children: string[];
   activeIndex?: number;
   smartRotate?: boolean;
+  smartRules?: SmartStackRule[];
+  free?: FreeRect;
+  z?: number;
+  locked?: boolean;
+  groupId?: string;
 }
 
 export type LayoutItem = WidgetLayoutItem | StackLayoutItem;
 
 export interface MonitorLayout {
+  mode?: LayoutMode;
+  cellSize?: CellSize;
   items: LayoutItem[];
 }
 
@@ -62,17 +91,19 @@ export function computeGrid(
   workWidth: number,
   workHeight: number,
   margin: number = grid.safeMargin,
+  cellSize: number = grid.cell,
 ): GridMetrics {
-  const step = grid.cell + grid.gap;
-  const usableW = Math.max(grid.cell * 2 + grid.gap, workWidth - margin * 2);
-  const usableH = Math.max(grid.cell * 2 + grid.gap, workHeight - margin * 2);
+  const cell = cellSize;
+  const step = cell + grid.gap;
+  const usableW = Math.max(cell * 2 + grid.gap, workWidth - margin * 2);
+  const usableH = Math.max(cell * 2 + grid.gap, workHeight - margin * 2);
   const cols = Math.max(2, Math.floor((usableW + grid.gap) / step));
   const rows = Math.max(2, Math.floor((usableH + grid.gap) / step));
-  const width = spanPx(cols);
-  const height = spanPx(rows);
+  const width = spanPx(cols, cell);
+  const height = spanPx(rows, cell);
   const originX = Math.max(0, Math.floor((workWidth - width) / 2));
   const originY = Math.max(0, Math.floor((workHeight - height) / 2));
-  return { cols, rows, originX, originY, cell: grid.cell, gap: grid.gap, step, width, height };
+  return { cols, rows, originX, originY, cell, gap: grid.gap, step, width, height };
 }
 
 /** Pixel rectangle of an item inside its layer window. */
@@ -80,8 +111,8 @@ export function cellToPx(g: GridMetrics, x: number, y: number, w: number, h: num
   return {
     x: g.originX + x * g.step,
     y: g.originY + y * g.step,
-    width: spanPx(w),
-    height: spanPx(h),
+    width: spanPx(w, g.cell),
+    height: spanPx(h, g.cell),
   };
 }
 

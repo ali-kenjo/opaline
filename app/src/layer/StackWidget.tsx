@@ -3,21 +3,43 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Sheet, Switch } from "../design-system/components";
 import { Icon } from "../design-system/icons";
+import { exprHostFromTopics } from "../design-system/style";
 import type { SizeClass } from "../design-system/tokens/tokens";
+import { Program, type Value as ExprValue } from "../expr";
 import { useHost } from "../widgets/host";
 import { toJson } from "../widgets/json";
 import { widgetByKind } from "../widgets/registry";
 import { WidgetFrame } from "../widgets/WidgetFrame";
-import type { StackLayoutItem } from "./grid";
+import type { SmartStackRule, StackLayoutItem } from "./grid";
 import { useLayer } from "./store";
 import styles from "./StackWidget.module.css";
 
 /** Picks the highest-priority child index when Smart Rotate is on. */
 function smartRotateIndex(
   children: readonly string[],
+  rules: readonly SmartStackRule[] | undefined,
   widgets: Readonly<Record<string, { kind: string }>>,
   values: Readonly<Record<string, import("./protocol").Value>>,
 ): number | null {
+  // 0. User-configured Smart Stack expression rules (brief §6.2), evaluated in order.
+  if (rules && rules.length > 0) {
+    const plain: Record<string, ExprValue> = {};
+    for (const [k, v] of Object.entries(values)) plain[k] = toJson(v);
+    const exprHost = exprHostFromTopics(plain);
+    for (const rule of rules) {
+      const idx = children.indexOf(rule.childId);
+      if (idx < 0) continue;
+      try {
+        const compiled = Program.compile(rule.when, "expression");
+        if (compiled instanceof Program) {
+          const out = compiled.eval(exprHost);
+          if (out.errors.length === 0 && Boolean(out.value)) return idx;
+        }
+      } catch {
+        // Ignore broken rule; fall through to the next rule.
+      }
+    }
+  }
   // 1. Battery <= 20% and discharging.
   const battPct = toJson(values["battery.percent"]);
   const battState = toJson(values["battery.state"]);
@@ -56,6 +78,8 @@ function smartRotateIndex(
 export interface StackWidgetProps {
   item: StackLayoutItem;
   size: SizeClass;
+  widthPx?: number | undefined;
+  heightPx?: number | undefined;
   autoDimmed: boolean;
   lifted?: boolean;
   editMode: boolean;
@@ -66,6 +90,8 @@ export interface StackWidgetProps {
 export function StackWidget({
   item,
   size,
+  widthPx,
+  heightPx,
   autoDimmed,
   lifted = false,
   editMode,
@@ -81,8 +107,10 @@ export function StackWidget({
   const count = item.children.length;
   const smart = useMemo(
     () =>
-      item.smartRotate ? smartRotateIndex(item.children, host.settings.widgets, values) : null,
-    [item.smartRotate, item.children, host.settings.widgets, values],
+      item.smartRotate
+        ? smartRotateIndex(item.children, item.smartRules, host.settings.widgets, values)
+        : null,
+    [item.smartRotate, item.children, item.smartRules, host.settings.widgets, values],
   );
   const baseIdx = Math.max(0, Math.min(count - 1, item.activeIndex ?? 0));
   const [nowTs, setNowTs] = useState(0);
@@ -147,6 +175,8 @@ export function StackWidget({
         id={activeId}
         def={def}
         size={size}
+        widthPx={widthPx}
+        heightPx={heightPx}
         autoDimmed={autoDimmed}
         lifted={lifted}
         onOpenSettings={() => {
@@ -184,6 +214,7 @@ export interface StackEditorProps {
   onRemoveChild: (childId: string) => void;
   onUnstackChild: (childId: string) => void;
   onToggleSmartRotate: (enabled: boolean) => void;
+  onUpdateSmartRules?: (rules: SmartStackRule[]) => void;
   onOpenWidgetSettings: (childId: string) => void;
 }
 
@@ -195,9 +226,13 @@ export function StackEditor({
   onRemoveChild,
   onUnstackChild,
   onToggleSmartRotate,
+  onUpdateSmartRules,
   onOpenWidgetSettings,
 }: StackEditorProps) {
   const host = useHost();
+  const [ruleChild, setRuleChild] = useState(stack.children[0] ?? "");
+  const [ruleWhen, setRuleWhen] = useState("");
+  const rules = stack.smartRules ?? [];
 
   const move = (index: number, delta: number) => {
     const next = [...stack.children];
@@ -206,6 +241,14 @@ export function StackEditor({
     const [entry] = next.splice(index, 1);
     if (entry) next.splice(target, 0, entry);
     onReorder(next);
+  };
+
+  const addRule = () => {
+    const cid = stack.children.includes(ruleChild) ? ruleChild : (stack.children[0] ?? "");
+    const expr = ruleWhen.trim();
+    if (!cid || !expr || !onUpdateSmartRules) return;
+    onUpdateSmartRules([...rules, { childId: cid, when: expr }]);
+    setRuleWhen("");
   };
 
   return (
@@ -234,6 +277,70 @@ export function StackEditor({
             label="Smart Rotate"
           />
         </div>
+
+        {stack.smartRotate && onUpdateSmartRules ? (
+          <div className={styles.childList} aria-label="Smart Stack rules">
+            {rules.map((r, rIdx) => {
+              const w = host.settings.widgets[r.childId];
+              const def = w ? widgetByKind(w.kind) : undefined;
+              return (
+                <div key={`${r.childId}-${String(rIdx)}`} className={styles.childRow}>
+                  <span className={styles.childName}>
+                    <strong>{def?.name ?? r.childId}</strong> when <code>{r.when}</code>
+                  </span>
+                  <button
+                    type="button"
+                    className={`${styles.iconBtn} ${styles.dangerBtn}`}
+                    aria-label="Remove smart rule"
+                    onClick={() => {
+                      onUpdateSmartRules(rules.filter((_, i) => i !== rIdx));
+                    }}
+                  >
+                    <Icon name="delete" size={16} />
+                  </button>
+                </div>
+              );
+            })}
+            <div className={styles.childRow}>
+              <select
+                aria-label="Smart rule widget"
+                value={stack.children.includes(ruleChild) ? ruleChild : (stack.children[0] ?? "")}
+                onChange={(e) => {
+                  setRuleChild(e.target.value);
+                }}
+              >
+                {stack.children.map((cid) => {
+                  const w = host.settings.widgets[cid];
+                  const def = w ? widgetByKind(w.kind) : undefined;
+                  return (
+                    <option key={cid} value={cid}>
+                      {def?.name ?? cid}
+                    </option>
+                  );
+                })}
+              </select>
+              <input
+                type="text"
+                aria-label="Smart rule expression"
+                placeholder="e.g. cpu.load >= 80"
+                value={ruleWhen}
+                onChange={(e) => {
+                  setRuleWhen(e.target.value);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addRule();
+                  }
+                }}
+                style={{ flex: 1, minWidth: 0 }}
+              />
+              <Button variant="tonal" onClick={addRule}>
+                Add rule
+              </Button>
+            </div>
+          </div>
+        ) : null}
 
         <div className={styles.childList}>
           {stack.children.map((cid, idx) => {

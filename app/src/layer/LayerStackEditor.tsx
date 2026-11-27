@@ -107,6 +107,19 @@ export function LayerStackEditor({
           ),
         );
       }}
+      onUpdateSmartRules={(smartRules) => {
+        onCommit(
+          items.map((it) => {
+            if (it.type !== "stack" || it.id !== stack.id) return it;
+            if (smartRules.length === 0) {
+              const copy = { ...it };
+              delete copy.smartRules;
+              return copy;
+            }
+            return { ...it, smartRules };
+          }),
+        );
+      }}
       onOpenWidgetSettings={(childId) => {
         onClose();
         onOpenWidgetSettings(childId);

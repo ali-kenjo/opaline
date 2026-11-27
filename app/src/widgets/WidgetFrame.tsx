@@ -48,6 +48,9 @@ export interface WidgetFrameProps {
   id: string;
   def: WidgetDef;
   size: SizeClass;
+  /** Optional explicit pixel dimensions (Free mode & custom grid cell sizes). */
+  widthPx?: number | undefined;
+  heightPx?: number | undefined;
   /** The layer's Automatic appearance currently dims widgets (Phase 4 drives this). */
   autoDimmed?: boolean;
   lifted?: boolean;
@@ -153,6 +156,8 @@ export function WidgetFrame({
   id,
   def,
   size,
+  widthPx,
+  heightPx,
   autoDimmed = false,
   lifted = false,
   onOpenSettings,
@@ -369,8 +374,8 @@ export function WidgetFrame({
       className={`${styles.frame} ${level === "crit" ? styles.alert : ""}`}
       style={{
         ...vars,
-        width: spanPx(w),
-        height: spanPx(h),
+        width: widthPx ?? spanPx(w),
+        height: heightPx ?? spanPx(h),
         padding: "var(--w-padding)",
         opacity: 1,
         ...extraSurface,

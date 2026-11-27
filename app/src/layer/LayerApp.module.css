@@ -85,20 +85,91 @@
   font: 600 13px/1.2 var(--font-ui);
 }
 
-/* Floating bottom toolbar in Edit mode (Add widget · Presets · Settings · Undo/Redo · Done). */
+/* Floating bottom toolbar in Edit mode (Add widget · Presets · Theme · Look · Grid/Free · Tidy up · Settings · Undo/Redo · Done). */
 .toolbarWrap {
   position: absolute;
   bottom: 16px;
   left: 0;
   right: 0;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
   pointer-events: none;
   z-index: 30;
 }
 
 .toolbarWrap > * {
   pointer-events: auto;
+}
+
+.multiBar {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgb(var(--md-surface-container-high) / 0.92);
+  border: 1px solid rgb(var(--md-outline-variant) / 0.55);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.28);
+  color: rgb(var(--md-on-surface));
+  font: 500 12px/1.2 var(--font-ui);
+}
+
+.multiCount {
+  padding: 0 8px;
+  font-weight: 600;
+  color: rgb(var(--md-primary));
+}
+
+.widgetLocked {
+  cursor: default;
+}
+
+.lockBadge {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 2px solid rgb(var(--md-surface));
+  background: rgb(var(--md-secondary-container));
+  color: rgb(var(--md-on-secondary-container));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 6;
+}
+
+.guideX,
+.guideY {
+  position: absolute;
+  pointer-events: none;
+  z-index: 22;
+  background: rgb(var(--md-primary) / 0.85);
+}
+
+.guideX {
+  width: 1.5px;
+}
+
+.guideY {
+  height: 1.5px;
+}
+
+.guideCenter {
+  background: rgb(var(--md-tertiary) / 0.9);
+}
+
+.marquee {
+  position: absolute;
+  pointer-events: none;
+  z-index: 24;
+  border-radius: 8px;
+  border: 1.5px solid rgb(var(--md-primary));
+  background: rgb(var(--md-primary) / 0.14);
 }
 
 /* Remove drop target shown at top center while dragging a widget. */

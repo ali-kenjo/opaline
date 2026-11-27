@@ -1,13 +1,14 @@
-// The widgets and stacks of one monitor, placed on the grid, with their Edit mode badges and
-// resize handles (split out of LayerApp.tsx).
+// The widgets and stacks of one monitor, placed on the grid or in Free mode, with their Edit
+// mode badges, multi-select outlines, lock indicator, z-order, and resize handles.
 import { useGlassSync } from "../design-system/glass";
 import { Icon } from "../design-system/icons";
-import { spanPx } from "../design-system/tokens/tokens";
+import { grid as gridTokens } from "../design-system/tokens/tokens";
 import type { StoredSettings } from "../widgets/host";
 import { widgetByKind } from "../widgets/registry";
 import { WidgetFrame } from "../widgets/WidgetFrame";
 import type { DragState, ResizeEdge, ResizeState } from "./editTypes";
-import { type GridMetrics, type LayoutItem, cellToPx, sizeClassForSpan } from "./grid";
+import { itemRectPx, sizeClassForPx } from "./free";
+import { type GridMetrics, type LayoutItem, type LayoutMode, sizeClassForSpan } from "./grid";
 import { allowedSizesOf } from "./layoutRules";
 import { SpringSlot } from "./SpringSlot";
 import { StackWidget } from "./StackWidget";
@@ -15,9 +16,12 @@ import styles from "./LayerApp.module.css";
 
 interface GridItemsProps {
   items: readonly LayoutItem[];
+  mode: LayoutMode;
   g: GridMetrics;
+  workW: number;
+  workH: number;
   edit: boolean;
-  selectedId: string | null;
+  selectedIds: ReadonlySet<string>;
   drag: DragState | null;
   resize: ResizeState | null;
   autoDimmed: boolean;
@@ -40,9 +44,12 @@ interface GridItemsProps {
 
 export function GridItems({
   items,
+  mode,
   g,
+  workW,
+  workH,
   edit,
-  selectedId,
+  selectedIds,
   drag,
   resize,
   autoDimmed,
@@ -62,32 +69,52 @@ export function GridItems({
 
   return (
     <>
-      {items.map((item) => {
-        const isDragging = drag?.item.id === item.id;
+      {items.map((item, idx) => {
+        const isDragging = drag?.movingIds.includes(item.id) ?? false;
+        const isPrimaryDrag = drag?.item.id === item.id;
         const isResizing = resize?.item.id === item.id;
-        const rect = isDragging
+        const baseRect = itemRectPx(item, mode, g, workW, workH);
+        const rect = isPrimaryDrag
           ? {
               x: drag.pointerX - drag.grabX,
               y: drag.pointerY - drag.grabY,
-              width: spanPx(item.w),
-              height: spanPx(item.h),
+              width: baseRect.width,
+              height: baseRect.height,
             }
-          : cellToPx(g, item.x, item.y, item.w, item.h);
-        const size = sizeClassForSpan(item.w, item.h);
-        const isSelected = edit && selectedId === item.id;
+          : isDragging && drag
+            ? {
+                x: baseRect.x + (drag.pointerX - drag.startX),
+                y: baseRect.y + (drag.pointerY - drag.startY),
+                width: baseRect.width,
+                height: baseRect.height,
+              }
+            : isResizing && resize.mode === "free" && resize.freeRect
+              ? resize.freeRect
+              : baseRect;
+
+        const size =
+          mode === "free"
+            ? sizeClassForPx(rect.width, rect.height, g.cell)
+            : sizeClassForSpan(item.w, item.h);
+        const customSize = mode === "free" || g.cell !== gridTokens.cell;
+        const isSelected = edit && selectedIds.has(item.id);
+        const showHandles = isSelected && selectedIds.size === 1 && !item.locked;
         const isStackTarget = drag?.stackTarget?.id === item.id;
-        const canResize = allowedSizesOf(item, widgets).length > 1;
+        const canResize = mode === "free" || allowedSizesOf(item, widgets).length > 1;
+        const zIndex = mode === "free" ? (item.z ?? idx + 1) : undefined;
 
         const body =
           item.type === "stack" ? (
             <StackWidget
               item={item}
               size={size}
+              widthPx={customSize ? rect.width : undefined}
+              heightPx={customSize ? rect.height : undefined}
               autoDimmed={autoDimmed}
               lifted={isDragging}
               editMode={edit}
-              onActiveChange={(idx) => {
-                onStackActive(item.id, idx);
+              onActiveChange={(activeIdx) => {
+                onStackActive(item.id, activeIdx);
               }}
               onOpenSettings={onOpenSettings}
             />
@@ -99,6 +126,8 @@ export function GridItems({
                   id={item.id}
                   def={def}
                   size={size}
+                  widthPx={customSize ? rect.width : undefined}
+                  heightPx={customSize ? rect.height : undefined}
                   autoDimmed={autoDimmed}
                   lifted={isDragging}
                   onOpenSettings={() => {
@@ -117,6 +146,7 @@ export function GridItems({
             x={rect.x}
             y={rect.y}
             dragging={isDragging || isResizing}
+            zIndex={zIndex}
             onTick={syncGlass}
             dataItemId={item.id}
             dir={contentDir}
@@ -124,7 +154,7 @@ export function GridItems({
             ariaLabel={
               item.type === "stack" ? `Stack of ${String(item.children.length)} widgets` : item.kind
             }
-            className={`${styles.widget} ${edit ? styles.widgetEdit : ""} ${isDragging ? styles.widgetDragging : ""} ${isSelected ? styles.widgetSelected : ""} ${isStackTarget ? styles.stackHighlight : ""}`}
+            className={`${styles.widget} ${edit ? styles.widgetEdit : ""} ${item.locked && edit ? styles.widgetLocked : ""} ${isDragging ? styles.widgetDragging : ""} ${isSelected ? styles.widgetSelected : ""} ${isStackTarget ? styles.stackHighlight : ""}`}
             onPointerEnter={() => {
               onHover(true);
             }}
@@ -144,20 +174,26 @@ export function GridItems({
             {body}
             {edit && !isDragging ? (
               <>
-                <button
-                  type="button"
-                  className={styles.removeBadge}
-                  aria-label="Remove widget"
-                  onPointerDown={(e) => {
-                    e.stopPropagation();
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRemoveItem(item);
-                  }}
-                >
-                  <Icon name="remove" size={16} />
-                </button>
+                {!item.locked ? (
+                  <button
+                    type="button"
+                    className={styles.removeBadge}
+                    aria-label="Remove widget"
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemoveItem(item);
+                    }}
+                  >
+                    <Icon name="remove" size={16} />
+                  </button>
+                ) : (
+                  <span className={styles.lockBadge} title="Locked" aria-label="Locked widget">
+                    <Icon name="lock" size={14} />
+                  </span>
+                )}
                 <button
                   type="button"
                   className={styles.settingsBadge}
@@ -192,7 +228,7 @@ export function GridItems({
                 {item.children.length}
               </button>
             ) : null}
-            {isSelected && canResize && !isDragging ? (
+            {showHandles && canResize && !isDragging ? (
               <>
                 <button
                   type="button"

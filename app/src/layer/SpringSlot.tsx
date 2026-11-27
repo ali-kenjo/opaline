@@ -10,6 +10,7 @@ export interface SpringSlotProps {
   y: number;
   /** When true (actively dragged), snap immediately to `(x, y)` with scale 1.04. */
   dragging: boolean;
+  zIndex?: number | undefined;
   className?: string;
   children: ReactNode;
   onTick?: () => void;
@@ -28,6 +29,7 @@ export function SpringSlot({
   x,
   y,
   dragging,
+  zIndex,
   className,
   children,
   onTick,
@@ -92,7 +94,7 @@ export function SpringSlot({
     <div
       ref={el}
       className={className}
-      style={{ left: 0, top: 0, zIndex: dragging ? 20 : undefined }}
+      style={{ left: 0, top: 0, zIndex: dragging ? 20 : zIndex }}
       tabIndex={tabIndex}
       aria-label={ariaLabel}
       data-item-id={dataItemId}
