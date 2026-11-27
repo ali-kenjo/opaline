@@ -752,7 +752,7 @@ frames), `eslint`, `prettier`, `tsc`.
 WebKit e2e (all Classic 1.1 Lab baselines + all 10 looks + all Phase 5 specs passing), `eslint`, `prettier`,
 `tsc`, `lint:helper`, production `vite build` confirming `Inspector` code-split chunk.
 
-**Sign-off:** ⏳ Awaiting owner sign-off. Next: Phase 6 (Custom sources & Widget Builder).
+**Sign-off:** ✅ 2026-11-27. Phase 5 complete. Next: Phase 6 (Custom sources & Widget Builder).
 
 
 
