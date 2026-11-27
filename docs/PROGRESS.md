@@ -700,6 +700,60 @@ frames), `eslint`, `prettier`, `tsc`.
 
 **Sign-off:** ✅ 2026-11-27. Phase 4 complete. Next: Phase 5 (Editing experience & placement).
 
+## 2.0 · Phase 5: Editing experience and placement (2026-11-27)
+
+**Done**
+- **5.1 Live floating & dockable Inspector (`app/src/inspector/Inspector.tsx`, `ContentTab.tsx`, `styleChips.ts`):**
+  - Replaced both the 1.1 `WidgetSettings` slide-over and `Settings → WidgetCustomizer` with a single live
+    Inspector, code-split via `React.lazy` (`dist/assets/Inspector-*.js` 33 KB + `.css` 11 KB) so it loads zero
+    code outside Edit mode.
+  - Positions beside the inspected widget without covering it (`computeInspectorPos`) and toggles between
+    floating, docked left, and docked right.
+  - Five tabs (**Look**, **Content**, **Data**, **Behavior**, **Advanced**): 8 one-click style chips (`Glass`,
+    `Clear`, `Tinted`, `Solid`, `Gradient`, `Shaped`, `Bold`, `Minimal`), scope switcher (`This widget` /
+    `All <Kind>` / `All widgets`), copy/paste style (`Ctrl+Shift+C`/`V`), wallpaper & widget color eyedropper,
+    live glass contrast readout, Reset to theme, numeric position & size (px in Free mode, cells in Grid mode),
+    live topic values & bindings, conditional style rule editor, pointer actions, schema-validated Style JSON
+    editor, and copyable `[data-kind="…"]` CSS selector.
+- **5.2 Edit mode upgrades (`app/src/layer/LayerApp.tsx`, `EditToolbar.tsx`, `useEditHistory.ts`, `clipboard.ts`):**
+  - Multi-select (`Shift+click` and rubber-band marquee), contextual multi-select bar (Align left/center/right/top/middle/bottom,
+    Distribute H/V, Group/Ungroup), **Tidy up**, Duplicate (`Ctrl+D`), Copy/Paste across monitors (`Ctrl+C`/`V` via
+    `localStorage`), Lock/Unlock, **Theme** switcher alongside **Look**, and **Grid ⇄ Free** mode toggle.
+  - Unified Edit-session Undo/Redo (`useEditHistory.ts` with RFC 7396 `settingsDiffPatch`) covering layout,
+    style, content, theme, and desktop look edits together.
+- **5.3 Free mode & z-order (`crates/opaline-core/src/layouts.rs`, `app/src/layer/free.ts`, `DragFeedback.tsx`):**
+  - Per-monitor `mode: "grid" | "free"` and `cellSize` (`72 | 84 | 96 | 112` px), plus per-item work-area
+    anchored `free` geometry (`top-left`..`bottom-right` + `center`), `z`, `locked`, and `groupId`.
+  - Overlaps permitted in `Free` mode (strict non-overlap kept in `Grid` mode), smart alignment & spacing guides
+    with snapping (`Alt` temporarily disables), pixel resizing, 1 px / 10 px keyboard nudging, and z-order
+    actions (Bring to front / Send to back / Forward / Backward). 1.1 layouts load unchanged.
+- **5.4 Extended sizes & Smart Stack rules (`crates/opaline-compose/src/model.rs`, `StackWidget.tsx`, `LayerStackEditor.tsx`):**
+  - Added `"1x2"`, `"2x3"`, and `"6x4"` size classes across Rust schemas, `model.gen.ts`, and design-system
+    tokens, plus custom expression-based Smart Stack promotion rules (`smartRules` evaluated via `Program.compile`).
+- **5.5 Widget Gallery (`app/src/layer/WidgetGallery.tsx`):**
+  - Replaced `WidgetPicker` with the 2.0 Widget Gallery: 2.0 categories (`All`, `System`, `Controls`,
+    `Time & Personal`, `Media & Photos`, `Weather & Ambient`, `Developer & Online`, `Custom`, `Community`),
+    source switcher (`Built-in` / `Your widgets` / `From themes & plugins`), live widget previews with size
+    swipe arrows & size pills, and click or drag-to-place.
+- **5.6 Settings consolidation & search (`app/src/settings/SettingsApp.tsx`, `LooksSection.tsx`, `settingsIndex.ts`):**
+  - Removed obsolete `WidgetSettings.tsx`, `WidgetCustomizer.tsx`, and `WidgetPicker.tsx`.
+  - Added sidebar live search with deep-link section jumps, new **Looks** (all 10 built-in looks with one-click
+    apply & starter layout) and **Widget defaults** sections, Grid cell-size (`72/84/96/112 px`) selector in
+    **Layout**, and live shortcut conflict detection in **Shortcuts**.
+- **5.7 Onboarding 7-step flow (`app/src/onboarding/OnboardingApp.tsx`):**
+  - Added Step 1 **"Pick a look"** over live desktop preview; Step 2 now defaults to the chosen look's starter
+    layout; updated Finish step with Inspector & Widget Gallery pointers.
+- **5.8 Tests (`free.test.ts`, `useEditHistory.test.ts`, `inspector.test.ts`, `e2e/edit-free.spec.ts`, `e2e/inspector.spec.ts`, updated `e2e/shell.spec.ts` & `e2e/lab.spec.ts`):**
+  - Added unit and Playwright WebKit E2E coverage for Grid ⇄ Free, multi-select, align/distribute, Tidy up,
+    Smart Stack rules, unified undo/redo, floating non-overlapping Inspector, style chips, Widget Gallery,
+    Settings search & Looks, and 7-step Onboarding.
+
+**Checks:** 214 Rust workspace tests, `clippy -D warnings`, `rustfmt`; 305 Vitest (1 skipped), 79 Playwright
+WebKit e2e (all Classic 1.1 Lab baselines + all 10 looks + all Phase 5 specs passing), `eslint`, `prettier`,
+`tsc`, `lint:helper`, production `vite build` confirming `Inspector` code-split chunk.
+
+**Sign-off:** ⏳ Awaiting owner sign-off. Next: Phase 6 (Custom sources & Widget Builder).
+
 
 
 

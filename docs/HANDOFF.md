@@ -11,12 +11,15 @@ transparent WebKitGTK window per monitor, React 19 frontend) + a small GNOME She
 each ending with acceptance checks, a PROGRESS entry and the owner's sign-off.
 
 ## Status
-- **P0, P1, P2, P3, and all of P4 (Rounds 1–5)** (all 13 redesigned 2.0 widgets + all 10 built-in looks + starter
-  layouts + lazy fonts + per-theme Lab contrast/truncation verification) are signed off and pushed.
+- **P0, P1, P2, P3, and all of P4 (Rounds 1–5)** are signed off and pushed (`origin/main` `377b63a`).
+- **Phase 5: Editing experience & placement (Tasks 5.1–5.8)** is complete and verified locally (214 Rust tests,
+  305 Vitest, 79 Playwright WebKit E2E, `Inspector` code-split 33 KB JS + 11 KB CSS), awaiting owner sign-off
+  before pushing to `origin/main`.
 - **Next steps, in order:**
-  1. Complete **Phase 5: Editing experience & placement** (Inspector, Edit mode upgrades, Free mode, Widget Gallery,
-     Settings consolidation, Onboarding look step).
-  2. Optional, if the owner allows: a real-layer budget run (`scripts/measure-budget.sh 60` with a 2.0 build on a
+  1. Sign off and push **Phase 5**.
+  2. Begin **Phase 6: Custom sources and the builder** (HTTP/JSON, command, file/watch, D-Bus sources +
+     in-app visual Widget Builder + custom widget packages).
+  3. Optional, if the owner allows: a real-layer budget run (`scripts/measure-budget.sh 60` with a 2.0 build on a
      settings copy) to confirm animation CPU and RAM on the desktop.
 - **Settings are version 2.** Run dev builds on a settings copy (`XDG_CONFIG_HOME=<copy>`), never on the owner's
   `~/.config/opaline` (the installed 1.1.0 then treats it as read-only).
