@@ -6,7 +6,7 @@ use std::borrow::Cow;
 
 use tauri::http::{Request, Response, StatusCode, header};
 
-const KINDS: [&str; 2] = ["wallpaper", "art"];
+const KINDS: [&str; 3] = ["wallpaper", "art", "icons"];
 
 /// A file name we would have written ourselves: `[A-Za-z0-9._-]+` with an image extension.
 pub fn safe_name(name: &str) -> Option<&'static str> {
@@ -23,6 +23,7 @@ pub fn safe_name(name: &str) -> Option<&'static str> {
         Some("png") => Some("image/png"),
         Some("jpg" | "jpeg") => Some("image/jpeg"),
         Some("webp") => Some("image/webp"),
+        Some("svg") => Some("image/svg+xml"),
         _ => None,
     }
 }
@@ -82,6 +83,7 @@ mod tests {
     #[test]
     fn only_plain_image_names() {
         assert_eq!(safe_name("0123abcd-glass.png"), Some("image/png"));
+        assert_eq!(safe_name("0123abcd.svg"), Some("image/svg+xml"));
         assert_eq!(read_url("opaline-asset://wallpaper/../../etc/passwd"), None);
         assert_eq!(read_url("opaline-asset://secrets/a.png"), None);
         assert_eq!(read_url("file:///etc/passwd"), None);

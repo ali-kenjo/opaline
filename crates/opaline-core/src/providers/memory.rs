@@ -14,6 +14,7 @@ pub const PERCENT: &str = "memory.percent";
 pub const SWAP: &str = "memory.swap";
 pub const SWAP_PERCENT: &str = "memory.swapPercent";
 pub const ZSWAP: &str = "memory.zswap";
+pub const ZRAM: &str = "memory.zram";
 pub const PRESSURE: &str = "memory.pressure";
 pub const INFO: &str = "memory.info";
 
@@ -23,6 +24,7 @@ const TOPICS: &[TopicDesc] = &[
     TopicDesc::new(SWAP),
     TopicDesc::new(SWAP_PERCENT),
     TopicDesc::new(ZSWAP),
+    TopicDesc::new(ZRAM),
     TopicDesc::new(PRESSURE),
     TopicDesc::every(INFO, Duration::from_secs(60)),
 ];
@@ -295,6 +297,50 @@ impl Memory {
     }
 }
 
+/// Aggregated statistics from `/sys/block/zram*/mm_stat`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct ZramStats {
+    pub orig_data_b: u64,
+    pub compr_data_b: u64,
+    pub mem_used_b: u64,
+    pub devices: usize,
+}
+
+/// Parses one `/sys/block/zram*/mm_stat` line:
+/// `orig_data_size compr_data_size mem_used_total mem_limit mem_used_max same_pages ...`
+pub fn parse_zram_mm_stat(text: &str) -> Option<(u64, u64, u64)> {
+    let mut parts = text.split_ascii_whitespace();
+    let orig: u64 = parts.next()?.parse().ok()?;
+    let compr: u64 = parts.next()?.parse().ok()?;
+    let mem_used: u64 = parts.next()?.parse().ok()?;
+    Some((orig, compr, mem_used))
+}
+
+fn read_zram(root: &Root) -> Option<ZramStats> {
+    let mut stats = ZramStats::default();
+    for entry in root.list("/sys/block") {
+        if !entry.starts_with("zram") {
+            continue;
+        }
+        let dir = format!("/sys/block/{entry}");
+        let disksize = root.read_u64(format!("{dir}/disksize")).unwrap_or(0);
+        let Ok(raw) = root.read(format!("{dir}/mm_stat")) else {
+            continue;
+        };
+        let Some((orig, compr, mem_used)) = parse_zram_mm_stat(&raw) else {
+            continue;
+        };
+        if disksize == 0 && orig == 0 && mem_used == 0 {
+            continue;
+        }
+        stats.orig_data_b = stats.orig_data_b.saturating_add(orig);
+        stats.compr_data_b = stats.compr_data_b.saturating_add(compr);
+        stats.mem_used_b = stats.mem_used_b.saturating_add(mem_used);
+        stats.devices += 1;
+    }
+    (stats.devices > 0).then_some(stats)
+}
+
 fn text(file: &mut Option<HotFile>) -> Option<String> {
     let bytes = file.as_mut()?.read().ok()?;
     std::str::from_utf8(bytes).ok().map(str::to_owned)
@@ -338,6 +384,16 @@ impl Provider for Memory {
                 ZSWAP,
                 Availability::Unavailable {
                     reason: "zswap-disabled".into(),
+                },
+            )
+        };
+        probe = if read_zram(&self.root).is_some() {
+            probe.available(ZRAM)
+        } else {
+            probe.missing(
+                ZRAM,
+                Availability::Unavailable {
+                    reason: "no-zram".into(),
                 },
             )
         };
@@ -437,6 +493,26 @@ impl Provider for Memory {
                 out.push(update(ZSWAP, value));
             }
         }
+        if cx.is_due(ZRAM) {
+            let value = match read_zram(&self.root) {
+                Some(z) => Value::map([
+                    ("origDataB", Value::Num(z.orig_data_b as f64)),
+                    ("comprDataB", Value::Num(z.compr_data_b as f64)),
+                    ("memUsedB", Value::Num(z.mem_used_b as f64)),
+                    ("devices", Value::Num(z.devices as f64)),
+                    (
+                        "ratio",
+                        if z.compr_data_b > 0 {
+                            Value::Num(z.orig_data_b as f64 / z.compr_data_b as f64)
+                        } else {
+                            Value::unavailable("empty")
+                        },
+                    ),
+                ]),
+                None => Value::unavailable("no-zram"),
+            };
+            out.push(update(ZRAM, value));
+        }
         if cx.is_due(PRESSURE) {
             let value = text(&mut self.pressure)
                 .as_deref()
@@ -463,7 +539,7 @@ mod tests {
     use super::*;
     use crate::sysfs::fixture;
 
-    const ALL: &[&str] = &[USAGE, PERCENT, SWAP, SWAP_PERCENT, ZSWAP, PRESSURE];
+    const ALL: &[&str] = &[USAGE, PERCENT, SWAP, SWAP_PERCENT, ZSWAP, ZRAM, PRESSURE];
 
     fn sample(root: Root) -> HashMap<String, Value> {
         let mut m = Memory::new(root);
@@ -555,5 +631,32 @@ E:MEMORY_DEVICE_1_PART_NUMBER=HMA81GS6DJR8N-XN
         assert_eq!(m["manufacturer"], Value::from("SK Hynix"));
         assert_eq!(m["partNumber"], Value::from("HMA81GS6DJR8N-XN"));
         assert_eq!(parse_udev_dmi_memory("E:ID_VENDOR=HP\n"), None);
+    }
+
+    #[test]
+    fn parses_zram_mm_stat_and_samples_topic() {
+        assert_eq!(
+            parse_zram_mm_stat("1073741824 268435456 300000000 0 310000000 100 0 0\n"),
+            Some((1_073_741_824, 268_435_456, 300_000_000))
+        );
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join("proc")).unwrap();
+        std::fs::create_dir_all(dir.path().join("sys/block/zram0")).unwrap();
+        std::fs::write(
+            dir.path().join("proc/meminfo"),
+            "MemTotal: 16000000 kB\nMemAvailable: 8000000 kB\n",
+        )
+        .unwrap();
+        std::fs::write(dir.path().join("sys/block/zram0/disksize"), "4294967296\n").unwrap();
+        std::fs::write(
+            dir.path().join("sys/block/zram0/mm_stat"),
+            "104857600 26214400 30000000 0 30000000 0 0 0\n",
+        )
+        .unwrap();
+        let v = sample(Root::at(dir.path()));
+        assert_eq!(field(&v[ZRAM], "origDataB"), 104_857_600.0);
+        assert_eq!(field(&v[ZRAM], "comprDataB"), 26_214_400.0);
+        assert_eq!(field(&v[ZRAM], "memUsedB"), 30_000_000.0);
+        assert_eq!(field(&v[ZRAM], "ratio"), 4.0);
     }
 }

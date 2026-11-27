@@ -243,6 +243,24 @@ pub fn residency_load(prev_idle_ms: u64, idle_ms: u64, wall: Duration) -> Option
     (wall_ms >= 100.0).then(|| ((1.0 - idle / wall_ms) * 100.0).clamp(0.0, 100.0))
 }
 
+/// Per-engine nanosecond buckets from DRM fdinfo.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct EngineNs {
+    pub render: u64,
+    pub video: u64,
+    pub copy: u64,
+    pub compute: u64,
+}
+
+impl EngineNs {
+    pub fn total(self) -> u64 {
+        self.render
+            .saturating_add(self.video)
+            .saturating_add(self.copy)
+            .saturating_add(self.compute)
+    }
+}
+
 /// One DRM client from `/proc/<pid>/fdinfo/<fd>`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DrmClient {
@@ -250,6 +268,8 @@ pub struct DrmClient {
     pub client_id: u64,
     /// Sum of all `drm-engine-*` counters, in ns.
     pub engine_ns: u64,
+    /// Categorised engine counters (3D/render, video, copy/blitter, compute), in ns.
+    pub engines: EngineNs,
     /// `drm-memory-vram` or `drm-total-vram*` in bytes, if reported.
     pub vram: Option<u64>,
 }
@@ -258,6 +278,7 @@ pub fn parse_fdinfo(text: &str) -> Option<DrmClient> {
     let mut pdev = None;
     let mut client_id = None;
     let mut engine_ns = 0u64;
+    let mut engines = EngineNs::default();
     let mut vram = None;
     for line in text.lines() {
         let Some((key, value)) = line.split_once(':') else {
@@ -268,12 +289,26 @@ pub fn parse_fdinfo(text: &str) -> Option<DrmClient> {
             pdev = Some(value.to_owned());
         } else if key == "drm-client-id" {
             client_id = value.parse().ok();
-        } else if key.starts_with("drm-engine-") && !key.starts_with("drm-engine-capacity") {
-            engine_ns += value
+        } else if let Some(kind) = key.strip_prefix("drm-engine-")
+            && !kind.starts_with("capacity")
+        {
+            let ns = value
                 .split_ascii_whitespace()
                 .next()?
                 .parse::<u64>()
                 .unwrap_or(0);
+            engine_ns = engine_ns.saturating_add(ns);
+            if matches!(kind, "render" | "rcs" | "gfx" | "3d") {
+                engines.render = engines.render.saturating_add(ns);
+            } else if kind.starts_with("video")
+                || matches!(kind, "vcs" | "vecs" | "vcn" | "uvd" | "vce" | "dec" | "enc")
+            {
+                engines.video = engines.video.saturating_add(ns);
+            } else if matches!(kind, "copy" | "bcs" | "sdma" | "dma") {
+                engines.copy = engines.copy.saturating_add(ns);
+            } else if matches!(kind, "compute" | "ccs") {
+                engines.compute = engines.compute.saturating_add(ns);
+            }
         } else if key == "drm-memory-vram" || key.starts_with("drm-total-vram") {
             let mut parts = value.split_ascii_whitespace();
             let n: u64 = parts.next()?.parse().ok()?;
@@ -290,6 +325,7 @@ pub fn parse_fdinfo(text: &str) -> Option<DrmClient> {
         pdev: pdev?,
         client_id: client_id?,
         engine_ns,
+        engines,
         vram,
     })
 }
@@ -302,6 +338,7 @@ struct Topics {
     clocks: &'static str,
     fan: &'static str,
     encdec: &'static str,
+    engines: &'static str,
     processes: &'static str,
     state: &'static str,
 }
@@ -319,12 +356,13 @@ impl Topics {
             clocks: t("clocks"),
             fan: t("fan"),
             encdec: t("encdec"),
+            engines: t("engines"),
             processes: t("processes"),
             state: t("state"),
         }
     }
 
-    fn all(&self) -> [&'static str; 9] {
+    fn all(&self) -> [&'static str; 10] {
         [
             self.load,
             self.temp,
@@ -333,6 +371,7 @@ impl Topics {
             self.clocks,
             self.fan,
             self.encdec,
+            self.engines,
             self.processes,
             self.state,
         ]
@@ -342,7 +381,7 @@ impl Topics {
         self.all()
             .into_iter()
             .map(|name| {
-                if name == self.processes {
+                if name == self.processes || name == self.engines {
                     TopicDesc::every(name, Duration::from_secs(2))
                 } else {
                     TopicDesc::new(name)
@@ -383,8 +422,8 @@ struct Card {
     runtime: Option<HotFile>,
     intel: Option<IntelGt>,
     amd: Option<Amd>,
-    /// Engine nanoseconds per `(pid, client id)` at the last process sample.
-    prev_engines: HashMap<(u32, u64), u64>,
+    /// Engine nanoseconds per `(pid, client id)` at the last fdinfo scan.
+    prev_engines: HashMap<(u32, u64), (u64, EngineNs)>,
     prev_engines_at: Option<Instant>,
 }
 
@@ -639,9 +678,9 @@ impl Card {
         .collect()
     }
 
-    /// Per-process engine use from DRM fdinfo (the user's own processes; others aren't readable).
-    fn fdinfo_processes(&mut self, root: &Root, now: Instant) -> Value {
-        let mut clients: HashMap<(u32, u64), (u64, Option<u64>)> = HashMap::new();
+    /// Per-process and per-engine use from DRM fdinfo (the user's own processes; others aren't readable).
+    fn fdinfo_scan(&mut self, root: &Root, now: Instant) -> (Value, Value) {
+        let mut clients: HashMap<(u32, u64), (u64, EngineNs, Option<u64>)> = HashMap::new();
         for pid in root
             .list("/proc")
             .into_iter()
@@ -652,7 +691,7 @@ impl Card {
                     continue;
                 };
                 if let Some(c) = parse_fdinfo(&text).filter(|c| c.pdev == self.pci) {
-                    clients.insert((pid, c.client_id), (c.engine_ns, c.vram));
+                    clients.insert((pid, c.client_id), (c.engine_ns, c.engines, c.vram));
                 }
             }
         }
@@ -660,9 +699,18 @@ impl Card {
             .prev_engines_at
             .map(|at| now.duration_since(at).as_nanos() as f64);
         let mut per_pid: BTreeMap<u32, (f64, Option<u64>)> = BTreeMap::new();
-        for (&(pid, id), &(ns, vram)) in &clients {
+        let (mut render_pct, mut video_pct, mut copy_pct, mut compute_pct) = (0.0, 0.0, 0.0, 0.0);
+        let mut has_delta = false;
+        for (&(pid, id), &(ns, eng, vram)) in &clients {
             let busy = match (wall, self.prev_engines.get(&(pid, id))) {
-                (Some(w), Some(prev)) if w > 0.0 => ns.saturating_sub(*prev) as f64 / w * 100.0,
+                (Some(w), Some((prev_ns, prev_eng))) if w > 0.0 => {
+                    has_delta = true;
+                    render_pct += eng.render.saturating_sub(prev_eng.render) as f64 / w * 100.0;
+                    video_pct += eng.video.saturating_sub(prev_eng.video) as f64 / w * 100.0;
+                    copy_pct += eng.copy.saturating_sub(prev_eng.copy) as f64 / w * 100.0;
+                    compute_pct += eng.compute.saturating_sub(prev_eng.compute) as f64 / w * 100.0;
+                    ns.saturating_sub(*prev_ns) as f64 / w * 100.0
+                }
                 _ => 0.0,
             };
             let entry = per_pid.entry(pid).or_insert((0.0, None));
@@ -671,7 +719,10 @@ impl Card {
                 entry.1 = Some(entry.1.unwrap_or(0) + v);
             }
         }
-        self.prev_engines = clients.into_iter().map(|(k, (ns, _))| (k, ns)).collect();
+        self.prev_engines = clients
+            .into_iter()
+            .map(|(k, (ns, eng, _))| (k, (ns, eng)))
+            .collect();
         self.prev_engines_at = Some(now);
         let names = Self::process_names(root, per_pid.keys().copied());
         let mut list: Vec<(u32, f64, Option<u64>)> = per_pid
@@ -679,7 +730,7 @@ impl Card {
             .map(|(pid, (busy, vram))| (pid, busy, vram))
             .collect();
         list.sort_by(|a, b| b.1.total_cmp(&a.1));
-        Value::List(
+        let procs = Value::List(
             list.into_iter()
                 .take(10)
                 .map(|(pid, busy, vram)| {
@@ -691,7 +742,18 @@ impl Card {
                     ])
                 })
                 .collect(),
-        )
+        );
+        let engines = if has_delta {
+            Value::map([
+                ("render3d", Value::Num(render_pct.clamp(0.0, 100.0))),
+                ("video", Value::Num(video_pct.clamp(0.0, 100.0))),
+                ("copy", Value::Num(copy_pct.clamp(0.0, 100.0))),
+                ("compute", Value::Num(compute_pct.clamp(0.0, 100.0))),
+            ])
+        } else {
+            not_reported()
+        };
+        (procs, engines)
     }
 }
 
@@ -808,6 +870,22 @@ impl Provider for Gpu {
                             t.encdec,
                             Value::map([("encoder", num(s.encoder)), ("decoder", num(s.decoder))]),
                         ));
+                        let video = match (s.encoder, s.decoder) {
+                            (Some(e), Some(d)) => Some(e.max(d)),
+                            (Some(e), None) => Some(e),
+                            (None, Some(d)) => Some(d),
+                            (None, None) => None,
+                        };
+                        values.push((
+                            t.engines,
+                            Value::map([
+                                ("render3d", num(s.load)),
+                                ("video", num(video)),
+                                ("encoder", num(s.encoder)),
+                                ("decoder", num(s.decoder)),
+                                ("copy", not_reported()),
+                            ]),
+                        ));
                         let names = Card::process_names(&root, s.processes.iter().map(|p| p.0));
                         values.push((
                             t.processes,
@@ -923,9 +1001,12 @@ impl Provider for Gpu {
                     values.push((t.encdec, not_reported()));
                 }
             }
-            if card.vendor != Vendor::Nvidia && due.contains(&t.processes) {
-                let v = card.fdinfo_processes(&root, cx.now);
-                values.push((card.topics.processes, v));
+            if card.vendor != Vendor::Nvidia
+                && (due.contains(&t.processes) || due.contains(&t.engines))
+            {
+                let (procs, engines) = card.fdinfo_scan(&root, cx.now);
+                values.push((card.topics.processes, procs));
+                values.push((card.topics.engines, engines));
             }
             let t = &card.topics;
             if due.contains(&t.state) {
@@ -1029,12 +1110,15 @@ mod tests {
     #[test]
     fn fdinfo_parsing() {
         let c = parse_fdinfo(
-            "pos:\t0\ndrm-driver:\ti915\ndrm-pdev:\t0000:00:02.0\ndrm-client-id:\t42\ndrm-engine-render:\t1000 ns\ndrm-engine-video:\t500 ns\ndrm-engine-capacity-video:\t2\ndrm-total-vram0:\t4 MiB\n",
+            "pos:\t0\ndrm-driver:\ti915\ndrm-pdev:\t0000:00:02.0\ndrm-client-id:\t42\ndrm-engine-render:\t1000 ns\ndrm-engine-video:\t500 ns\ndrm-engine-copy:\t250 ns\ndrm-engine-capacity-video:\t2\ndrm-total-vram0:\t4 MiB\n",
         )
         .unwrap();
         assert_eq!(c.pdev, "0000:00:02.0");
         assert_eq!(c.client_id, 42);
-        assert_eq!(c.engine_ns, 1500);
+        assert_eq!(c.engine_ns, 1750);
+        assert_eq!(c.engines.render, 1000);
+        assert_eq!(c.engines.video, 500);
+        assert_eq!(c.engines.copy, 250);
         assert_eq!(c.vram, Some(4 << 20));
         assert_eq!(parse_fdinfo("pos: 0\nflags: 0\n"), None);
     }
@@ -1062,6 +1146,7 @@ mod tests {
         );
         // NVIDIA through the (fake) NVML.
         assert_eq!(v["gpu.1.load"], Value::Num(3.0));
+        assert_eq!(field(&v["gpu.1.engines"], "render3d"), &Value::Num(3.0));
         assert_eq!(
             field(&v["gpu.1.vram"], "totalB"),
             &Value::Num(6144.0 * 1048576.0)
@@ -1092,6 +1177,7 @@ mod tests {
         let v = sample_all(&mut gpu);
         assert_eq!(v["gpu.1.load"], Value::Missing(Availability::Asleep));
         assert_eq!(v["gpu.1.vram"], Value::Missing(Availability::Asleep));
+        assert_eq!(v["gpu.1.engines"], Value::Missing(Availability::Asleep));
         assert_eq!(field(&v["gpu.1.state"], "awake"), &Value::Bool(false));
         assert_eq!(
             fake.calls.load(Ordering::SeqCst),

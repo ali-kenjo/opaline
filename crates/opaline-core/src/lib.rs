@@ -17,6 +17,7 @@ pub mod fonts;
 pub mod history;
 pub mod http;
 pub mod hub;
+pub mod icons;
 pub mod ipc_server;
 pub mod json;
 pub mod layouts;

@@ -8,6 +8,7 @@ use std::time::{Duration, Instant};
 use opaline_ipc::{TopicUpdate, Value};
 
 use crate::engine::{Cost, Probe, Provider, ProviderError, SampleCx, TopicDesc, update};
+use crate::icons::IconResolver;
 use crate::sysfs::Root;
 
 pub const APPS: &str = "processes.apps";
@@ -242,6 +243,7 @@ pub struct Processes {
     apps: HashMap<(u32, u64), (AppKey, bool)>,
     desktop: HashMap<String, DesktopEntry>,
     desktop_at: Option<Instant>,
+    icons: IconResolver,
     pss: HashMap<(u32, u64), u64>,
     pss_at: Option<Instant>,
 }
@@ -256,6 +258,11 @@ impl std::fmt::Debug for Processes {
 
 impl Processes {
     pub fn new(root: Root) -> Self {
+        let icons = if root.is_system() {
+            IconResolver::system()
+        } else {
+            IconResolver::default()
+        };
         Self {
             uid: rustix::process::getuid().as_raw(),
             page: rustix::param::page_size() as u64,
@@ -264,6 +271,7 @@ impl Processes {
             apps: HashMap::new(),
             desktop: HashMap::new(),
             desktop_at: None,
+            icons,
             pss: HashMap::new(),
             pss_at: None,
             root,
@@ -416,11 +424,11 @@ impl Provider for Processes {
             self.desktop_at = Some(cx.now);
         }
         let procs = self.scan(cx.now);
-        let mem = |p: &Proc| {
-            self.pss
-                .get(&(p.pid, p.stat.start))
+        let page = self.page;
+        let mem = |pss: &HashMap<(u32, u64), u64>, p: &Proc| {
+            pss.get(&(p.pid, p.stat.start))
                 .copied()
-                .unwrap_or(p.stat.rss_pages * self.page)
+                .unwrap_or(p.stat.rss_pages * page)
         };
         let mut out = Vec::new();
         if cx.is_due(APPS) {
@@ -428,7 +436,7 @@ impl Provider for Processes {
             for p in &procs {
                 let g = groups.entry(p.app.clone()).or_insert((0.0, 0, Vec::new()));
                 g.0 += p.cpu;
-                g.1 += mem(p);
+                g.1 += mem(&self.pss, p);
                 g.2.push(p);
             }
             let mut list: Vec<_> = groups.into_iter().collect();
@@ -442,10 +450,12 @@ impl Provider for Processes {
                         .max_by_key(|p| p.stat.rss_pages)
                         .map_or("", |p| p.stat.comm.as_str());
                     let (id, name, icon) = self.app_label(&key, leader);
+                    let icon_url = icon.as_deref().and_then(|name| self.icons.resolve(name));
                     Value::map([
                         ("id", Value::from(id)),
                         ("name", Value::from(name)),
                         ("icon", Value::from(icon)),
+                        ("iconUrl", Value::from(icon_url)),
                         ("system", Value::Bool(key == AppKey::System)),
                         ("cpu", Value::Num(cpu)),
                         ("memB", Value::Num(mem_b as f64)),
@@ -474,7 +484,7 @@ impl Provider for Processes {
                         ("app", Value::from(app)),
                         ("own", Value::Bool(p.own)),
                         ("cpu", Value::Num(p.cpu)),
-                        ("memB", Value::Num(mem(p) as f64)),
+                        ("memB", Value::Num(mem(&self.pss, p) as f64)),
                     ])
                 })
                 .collect();
