@@ -74,8 +74,8 @@ export function ComposedBody({
     [host, colorSource, dark],
   );
   const topics = useMemo(
-    () => (def.compositionTopics ? def.compositionTopics(values) : values),
-    [def, values],
+    () => (def.compositionTopics ? def.compositionTopics(values, content) : values),
+    [def, values, content],
   );
   const fixed = host.now;
   runtime.setEnv({

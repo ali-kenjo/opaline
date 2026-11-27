@@ -1,5 +1,7 @@
 // Fans widget: every fan the system reports (and the GPU's), the fastest as the main value.
+import { defaultOptions } from "../compose/widget";
 import type { Value } from "../layer/protocol";
+import { fansComposition } from "./fans.composition";
 import { fixed, map, num, percent, temperature, type TempUnit, text } from "./format";
 import { gpuIndex } from "./gpu";
 import { TEMP_UNIT } from "./options";
@@ -135,6 +137,31 @@ export const fansWidget: WidgetDef = {
     },
     TEMP_UNIT,
   ],
+  extraTopics: (c) => {
+    const i = gpuIndex(c);
+    return i === null
+      ? ["cpu.temp"]
+      : ["cpu.temp", `gpu.${String(i)}.temp`, `gpu.${String(i)}.fan`];
+  },
+  composition: fansComposition,
+  useClassicStat: true,
+  compositionOptions: (content) => defaultOptions(fansWidget, content),
+  compositionTopics(values, content) {
+    const ctx: ReadCtx = { get: (k) => values[k], content };
+    const list = fans(values[FANS]).filter((f) => f.rpm !== null);
+    const top = list.length
+      ? list.reduce((a, b) => ((b.rpm ?? 0) > (a.rpm ?? 0) ? b : a))
+      : undefined;
+    const gi = gpuIndex(ctx);
+    const gpuTemp = gi === null ? null : num(values[`gpu.${String(gi)}.temp`]);
+    const active: Record<string, Value> = {
+      fastestRpm: { kind: "num", v: top?.rpm ?? 0 },
+      fastestName: { kind: "text", v: top?.name ?? "Fan" },
+      maxRpm: { kind: "num", v: top ? scaleRpm(ctx, top) : content.opt<number>("maxRpm") },
+    };
+    if (gpuTemp !== null) active.gpuTemp = { kind: "num", v: gpuTemp };
+    return { ...values, fansActive: { kind: "map", v: active } };
+  },
   status(c): CardStatus {
     const f = c.get(FANS);
     if (f === undefined) return { kind: "loading" };

@@ -169,6 +169,7 @@ export interface WidgetDef {
   /** Optional topic aliasing for compositions (e.g. `gpu.0.*` → `gpu0.*`). Preserves object identity. */
   compositionTopics?: (
     values: Readonly<Record<string, Value | undefined>>,
+    content: ResolvedContent,
   ) => Readonly<Record<string, Value | undefined>>;
   /** The activity class its topics are subscribed at while visible. */
   activity?: ActivityClass;

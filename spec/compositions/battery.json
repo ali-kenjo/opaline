@@ -1,0 +1,352 @@
+{
+  "version": 1,
+  "bindings": {
+    "ratio": "clamp((power.battery.percent ?? 0) / 100, 0, 1)",
+    "timeText": "if(power.battery.state == 'charging' && power.battery.timeToFullS != null, duration(power.battery.timeToFullS) + ' to full', if(power.battery.state == 'discharging' && power.battery.timeToEmptyS != null, duration(power.battery.timeToEmptyS) + ' left', power.battery.state ?? ''))",
+    "rateText": "if(power.battery.rateW != null, fixed(power.battery.rateW, 1) + ' W', '')",
+    "healthText": "if(power.battery.capacityPercent != null, 'Health ' + string(round(power.battery.capacityPercent)) + '%', '')",
+    "limitText": "if(power.battery.chargeThresholdEnabled == true && power.battery.chargeEndThreshold != null, 'Limit ' + string(round(power.battery.chargeEndThreshold)) + '%', '')",
+    "profileText": "power.profile.active ?? ''"
+  },
+  "layouts": [
+    {
+      "sizes": [
+        "1x1"
+      ],
+      "root": {
+        "id": "root",
+        "type": "column",
+        "align": "center",
+        "justify": "center",
+        "children": [
+          {
+            "id": "pct",
+            "type": "number",
+            "role": "hero",
+            "value": "power.battery.percent",
+            "text": "{round(power.battery.percent)}",
+            "unit": "%"
+          }
+        ]
+      }
+    },
+    {
+      "sizes": [
+        "2x1",
+        "4x1"
+      ],
+      "root": {
+        "id": "root",
+        "type": "row",
+        "align": "center",
+        "justify": "between",
+        "gap": 2,
+        "children": [
+          {
+            "id": "pill",
+            "type": "canvas",
+            "visual": "battery-pill",
+            "label": "Battery charge",
+            "params": {
+              "percent": "power.battery.percent",
+              "state": "power.battery.state",
+              "sub": "bind.timeText",
+              "color": "ramp(bind.ratio, 'health')"
+            }
+          },
+          {
+            "id": "meta",
+            "type": "column",
+            "align": "end",
+            "gap": 0,
+            "children": [
+              {
+                "id": "rate",
+                "type": "text",
+                "role": "value",
+                "text": "{bind.rateText}"
+              },
+              {
+                "id": "health",
+                "type": "text",
+                "role": "caption",
+                "text": "{bind.healthText}"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "sizes": [
+        "S"
+      ],
+      "root": {
+        "id": "root",
+        "type": "column",
+        "justify": "between",
+        "gap": 2,
+        "children": [
+          {
+            "id": "pill",
+            "type": "canvas",
+            "visual": "battery-pill",
+            "label": "Battery charge",
+            "params": {
+              "percent": "power.battery.percent",
+              "state": "power.battery.state",
+              "sub": "bind.timeText",
+              "color": "ramp(bind.ratio, 'health')"
+            }
+          },
+          {
+            "id": "foot",
+            "type": "row",
+            "align": "center",
+            "justify": "between",
+            "gap": 2,
+            "children": [
+              {
+                "id": "rate",
+                "type": "text",
+                "role": "value",
+                "text": "{bind.rateText}"
+              },
+              {
+                "id": "health",
+                "type": "text",
+                "role": "caption",
+                "text": "{bind.healthText}"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "sizes": [
+        "M"
+      ],
+      "root": {
+        "id": "root",
+        "type": "column",
+        "justify": "between",
+        "gap": 2,
+        "children": [
+          {
+            "id": "top",
+            "type": "row",
+            "align": "center",
+            "gap": 3,
+            "grow": 1,
+            "children": [
+              {
+                "id": "pill",
+                "type": "canvas",
+                "visual": "battery-pill",
+                "label": "Battery charge",
+                "params": {
+                  "percent": "power.battery.percent",
+                  "state": "power.battery.state",
+                  "sub": "bind.timeText",
+                  "color": "ramp(bind.ratio, 'health')"
+                }
+              },
+              {
+                "id": "stats",
+                "type": "column",
+                "justify": "center",
+                "gap": 1,
+                "children": [
+                  {
+                    "id": "rate",
+                    "type": "text",
+                    "role": "value",
+                    "text": "{bind.rateText}"
+                  },
+                  {
+                    "id": "health",
+                    "type": "text",
+                    "role": "caption",
+                    "text": "{bind.healthText}"
+                  },
+                  {
+                    "id": "limit",
+                    "type": "text",
+                    "role": "badge",
+                    "text": "{bind.limitText}",
+                    "visible": "len(bind.limitText) > 0"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "profiles",
+            "type": "row",
+            "gap": 1,
+            "visible": "opt.profileButtons == true && len(power.profile.available) > 0",
+            "children": [
+              {
+                "id": "p-saver",
+                "type": "button",
+                "text": "Saver",
+                "icon": "eco",
+                "visible": "opt.profileButtons == true && has(power.profile.available, 'power-saver')",
+                "command": {
+                  "cmd": "set-power-profile",
+                  "args": {
+                    "profile": "'power-saver'"
+                  }
+                }
+              },
+              {
+                "id": "p-balanced",
+                "type": "button",
+                "text": "Balanced",
+                "icon": "tune",
+                "visible": "opt.profileButtons == true && has(power.profile.available, 'balanced')",
+                "command": {
+                  "cmd": "set-power-profile",
+                  "args": {
+                    "profile": "'balanced'"
+                  }
+                }
+              },
+              {
+                "id": "p-perf",
+                "type": "button",
+                "text": "Perf",
+                "icon": "rocket_launch",
+                "visible": "opt.profileButtons == true && has(power.profile.available, 'performance')",
+                "command": {
+                  "cmd": "set-power-profile",
+                  "args": {
+                    "profile": "'performance'"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "sizes": [
+        "L"
+      ],
+      "root": {
+        "id": "root",
+        "type": "column",
+        "justify": "between",
+        "gap": 3,
+        "children": [
+          {
+            "id": "top",
+            "type": "row",
+            "align": "center",
+            "gap": 3,
+            "children": [
+              {
+                "id": "pill",
+                "type": "canvas",
+                "visual": "battery-pill",
+                "label": "Battery charge",
+                "params": {
+                  "percent": "power.battery.percent",
+                  "state": "power.battery.state",
+                  "sub": "bind.timeText",
+                  "color": "ramp(bind.ratio, 'health')"
+                }
+              },
+              {
+                "id": "stats",
+                "type": "column",
+                "gap": 1,
+                "children": [
+                  {
+                    "id": "rate",
+                    "type": "text",
+                    "role": "value",
+                    "text": "{bind.rateText}"
+                  },
+                  {
+                    "id": "health",
+                    "type": "text",
+                    "role": "caption",
+                    "text": "{bind.healthText}"
+                  },
+                  {
+                    "id": "limit",
+                    "type": "text",
+                    "role": "badge",
+                    "text": "{bind.limitText}",
+                    "visible": "len(bind.limitText) > 0"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "profiles",
+            "type": "row",
+            "gap": 2,
+            "visible": "opt.profileButtons == true && len(power.profile.available) > 0",
+            "children": [
+              {
+                "id": "p-saver",
+                "type": "button",
+                "text": "Saver",
+                "icon": "eco",
+                "visible": "opt.profileButtons == true && has(power.profile.available, 'power-saver')",
+                "command": {
+                  "cmd": "set-power-profile",
+                  "args": {
+                    "profile": "'power-saver'"
+                  }
+                }
+              },
+              {
+                "id": "p-balanced",
+                "type": "button",
+                "text": "Balanced",
+                "icon": "tune",
+                "visible": "opt.profileButtons == true && has(power.profile.available, 'balanced')",
+                "command": {
+                  "cmd": "set-power-profile",
+                  "args": {
+                    "profile": "'balanced'"
+                  }
+                }
+              },
+              {
+                "id": "p-perf",
+                "type": "button",
+                "text": "Performance",
+                "icon": "rocket_launch",
+                "visible": "opt.profileButtons == true && has(power.profile.available, 'performance')",
+                "command": {
+                  "cmd": "set-power-profile",
+                  "args": {
+                    "profile": "'performance'"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "id": "devices",
+            "type": "canvas",
+            "visual": "peripheral-list",
+            "label": "Peripheral batteries",
+            "visible": "len(power.peripherals) > 0",
+            "params": {
+              "devices": "power.peripherals",
+              "max": "4"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

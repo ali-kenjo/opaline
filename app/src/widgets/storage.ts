@@ -1,6 +1,8 @@
 // Storage widget: one volume (/ by default) and the drive it lives on: space, activity,
 // temperature and health; eject or power off removable drives.
+import { defaultOptions } from "../compose/widget";
 import type { Value } from "../layer/protocol";
+import { storageComposition } from "./storage.composition";
 import {
   type ByteUnit,
   bytes,
@@ -101,6 +103,7 @@ export const storage: WidgetDef = {
   defaultSize: "S",
   heroStyles: ["ring", "bar", "number", "sparkline"],
   topics: [DRIVES],
+  extraTopics: () => [IO, HEALTH, TEMPS],
   defaultFields: ["percent", "free", "activity", "health"],
   fields: [
     {
@@ -297,10 +300,86 @@ export const storage: WidgetDef = {
       choices: (v): Choice => volumes(v).map((x) => ({ value: x.id, label: x.label })),
       default: "/",
     },
+    {
+      kind: "enum",
+      key: "displayMode",
+      label: "Drive display",
+      options: [
+        { value: "bars", label: "Bars" },
+        { value: "rings", label: "Rings" },
+      ],
+      default: "bars",
+    },
+    {
+      kind: "enum",
+      key: "sortBy",
+      label: "Sort drives by",
+      options: [
+        { value: "default", label: "System order" },
+        { value: "percent", label: "Most full first" },
+        { value: "free", label: "Most free first" },
+        { value: "name", label: "Mount path" },
+      ],
+      default: "default",
+    },
+    {
+      kind: "text",
+      key: "includeMounts",
+      label: "Include mounts",
+      help: "Comma-separated mount points to show (empty shows all).",
+      maxLength: 128,
+      placeholder: "/, /home",
+      default: "",
+    },
+    {
+      kind: "text",
+      key: "excludeMounts",
+      label: "Exclude mounts",
+      help: "Comma-separated mount points to hide.",
+      maxLength: 128,
+      placeholder: "/boot/efi",
+      default: "",
+    },
     BYTE_UNIT,
     TEMP_UNIT,
     levels([85, 95], "For the main value (% used)."),
   ],
+  composition: storageComposition,
+  useClassicStat: true,
+  compositionOptions: (content) => defaultOptions(storage, content),
+  compositionTopics(values, content) {
+    const ctx: ReadCtx = { get: (k) => values[k], content };
+    const v = volume(ctx);
+    const h = health(ctx);
+    const i = io(ctx);
+    const tObj = v ? map(map(values[TEMPS])?.[v.drive]) : null;
+    const tc = num(tObj?.tempC) ?? num(h?.tempC);
+    const active: Record<string, Value> = {};
+    if (v) {
+      active.drive = { kind: "text", v: v.drive };
+      active.mount = { kind: "text", v: v.id };
+      const model = text(h?.model) ?? text(v.driveInfo.model);
+      if (model) active.model = { kind: "text", v: model };
+      const pct = num(v.part?.percent);
+      if (pct !== null) active.percent = { kind: "num", v: pct };
+      const avail = num(v.part?.availB);
+      if (avail !== null) active.availB = { kind: "num", v: avail };
+      const total = num(v.part?.totalB) ?? num(v.driveInfo.sizeB);
+      if (total !== null) active.totalB = { kind: "num", v: total };
+    }
+    const rb = num(i?.readBps);
+    if (rb !== null) active.readBps = { kind: "num", v: rb };
+    const wb = num(i?.writeBps);
+    if (wb !== null) active.writeBps = { kind: "num", v: wb };
+    if (tc !== null) active.tempC = { kind: "num", v: tc };
+    const status = text(h?.status);
+    if (status) active.healthStatus = { kind: "text", v: status };
+    const worn = num(h?.percentUsed);
+    if (worn !== null) active.percentUsed = { kind: "num", v: worn };
+    if (h?.ejectable?.kind === "bool") active.ejectable = h.ejectable;
+    if (h?.canPowerOff?.kind === "bool") active.canPowerOff = h.canPowerOff;
+    return { ...values, storageActive: { kind: "map", v: active } };
+  },
   actions(c): WidgetAction[] {
     const v = volume(c);
     const h = health(c);

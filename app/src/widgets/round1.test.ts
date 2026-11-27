@@ -108,7 +108,7 @@ describe("Round 1 compositions (CPU, Memory, GPU)", () => {
       "gpu.1.state": m({ awake: b(false) }),
     };
     const env: Env = {
-      topics: gpu.compositionTopics?.(rawTopics) ?? rawTopics,
+      topics: gpu.compositionTopics?.(rawTopics, c) ?? rawTopics,
       options: gpu.compositionOptions?.(c) ?? {},
       locale: "en",
       now: () => 0,

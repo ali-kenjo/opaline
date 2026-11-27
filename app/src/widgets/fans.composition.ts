@@ -1,0 +1,205 @@
+// Fans widget as a 2.0 composition (PLAN-2 4.8, brief §8.1). Kept equal to
+// spec/compositions/fans.json, which the Rust validator checks.
+//
+// Features:
+// - Fan blade glyph spinning in proportion to RPM (static under reduced motion / still / 0 RPM)
+// - Per-fan semicircular RPM gauges at M and L
+// - Related CPU and GPU temperatures
+import type { Composition, Node } from "../compose/model.gen";
+
+const spinner = (id: string): Node => ({
+  id,
+  type: "canvas",
+  visual: "fan-spinner",
+  label: "Fastest fan",
+  params: {
+    rpm: "fansActive.fastestRpm",
+    maxRpm: "fansActive.maxRpm",
+    name: "fansActive.fastestName",
+  },
+});
+
+const gauges = (id: string): Node => ({
+  id,
+  type: "canvas",
+  visual: "fan-gauges",
+  label: "Fan speeds",
+  params: {
+    fans: "fans.list",
+    maxRpm: "opt.maxRpm",
+  },
+});
+
+export const fansComposition: Composition = {
+  version: 1,
+  bindings: {
+    cpuDisp: "if(opt.tempUnit == 'f', cpu.temp * 9 / 5 + 32, cpu.temp)",
+    gpuDisp: "if(opt.tempUnit == 'f', fansActive.gpuTemp * 9 / 5 + 32, fansActive.gpuTemp)",
+    unitStr: "if(opt.tempUnit == 'f', '°F', '°')",
+    cpuText: "if(bind.cpuDisp != null, 'CPU ' + string(round(bind.cpuDisp)) + bind.unitStr, '')",
+    gpuText: "if(bind.gpuDisp != null, 'GPU ' + string(round(bind.gpuDisp)) + bind.unitStr, '')",
+    cpuBadgeText: "if(bind.cpuDisp != null, string(round(bind.cpuDisp)) + bind.unitStr, '—')",
+    gpuBadgeText: "if(bind.gpuDisp != null, string(round(bind.gpuDisp)) + bind.unitStr, '—')",
+  },
+  layouts: [
+    {
+      sizes: ["1x1"],
+      root: {
+        id: "root",
+        type: "column",
+        align: "center",
+        justify: "center",
+        children: [spinner("spin")],
+      },
+    },
+    {
+      sizes: ["2x1", "4x1"],
+      root: {
+        id: "root",
+        type: "row",
+        align: "center",
+        justify: "between",
+        gap: 2,
+        children: [
+          spinner("spin"),
+          {
+            id: "temps",
+            type: "column",
+            align: "end",
+            gap: 0,
+            children: [
+              {
+                id: "cpu",
+                type: "text",
+                role: "caption",
+                text: "{bind.cpuText}",
+                visible: "len(bind.cpuText) > 0",
+              },
+              {
+                id: "gpu",
+                type: "text",
+                role: "caption",
+                text: "{bind.gpuText}",
+                visible: "len(bind.gpuText) > 0",
+              },
+            ],
+          },
+        ],
+      },
+    },
+    {
+      sizes: ["S"],
+      root: {
+        id: "root",
+        type: "column",
+        justify: "between",
+        gap: 2,
+        children: [
+          spinner("spin"),
+          {
+            id: "temps",
+            type: "row",
+            justify: "between",
+            gap: 2,
+            children: [
+              {
+                id: "cpu",
+                type: "text",
+                role: "caption",
+                text: "{bind.cpuText}",
+                visible: "len(bind.cpuText) > 0",
+              },
+              {
+                id: "gpu",
+                type: "text",
+                role: "caption",
+                text: "{bind.gpuText}",
+                visible: "len(bind.gpuText) > 0",
+              },
+            ],
+          },
+        ],
+      },
+    },
+    {
+      sizes: ["M"],
+      root: {
+        id: "root",
+        type: "row",
+        align: "stretch",
+        gap: 3,
+        children: [
+          {
+            id: "left",
+            type: "column",
+            justify: "between",
+            gap: 1,
+            children: [
+              spinner("spin"),
+              {
+                id: "temps",
+                type: "row",
+                gap: 2,
+                children: [
+                  {
+                    id: "cpu",
+                    type: "text",
+                    role: "caption",
+                    text: "{bind.cpuText}",
+                    visible: "len(bind.cpuText) > 0",
+                  },
+                  {
+                    id: "gpu",
+                    type: "text",
+                    role: "caption",
+                    text: "{bind.gpuText}",
+                    visible: "len(bind.gpuText) > 0",
+                  },
+                ],
+              },
+            ],
+          },
+          gauges("gauges"),
+        ],
+      },
+    },
+    {
+      sizes: ["L"],
+      root: {
+        id: "root",
+        type: "column",
+        justify: "between",
+        gap: 3,
+        children: [
+          {
+            id: "top",
+            type: "row",
+            align: "center",
+            justify: "between",
+            gap: 3,
+            children: [
+              spinner("spin"),
+              {
+                id: "cpu-badge",
+                type: "canvas",
+                visual: "thermal-badge",
+                label: "CPU temperature",
+                visible: "cpu.temp != null",
+                params: { tempC: "cpu.temp", text: "bind.cpuBadgeText" },
+              },
+              {
+                id: "gpu-badge",
+                type: "canvas",
+                visual: "thermal-badge",
+                label: "GPU temperature",
+                visible: "fansActive.gpuTemp != null",
+                params: { tempC: "fansActive.gpuTemp", text: "bind.gpuBadgeText" },
+              },
+            ],
+          },
+          gauges("gauges"),
+        ],
+      },
+    },
+  ],
+};

@@ -687,3 +687,341 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+
+/* Round 2 visuals (Storage, Network, Battery & Power, Fans) ---------------------------------- */
+
+.driveListWrap {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+}
+
+.driveRow {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.driveRowHead {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: calc(12px * var(--w-scale));
+}
+
+.driveMount {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.driveMeta {
+  flex: 1;
+  min-width: 0;
+  color: rgb(var(--md-on-surface-variant));
+  font-size: calc(11px * var(--w-scale));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.healthOk,
+.healthWarn {
+  font-size: 10px;
+  font-weight: 650;
+  padding: 1px 6px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+.healthOk {
+  background: rgb(var(--md-secondary-container));
+  color: rgb(var(--md-on-secondary-container));
+}
+
+.healthWarn {
+  background: rgb(var(--md-error-container));
+  color: rgb(var(--md-on-error-container));
+}
+
+.driveRingsWrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+}
+
+.driveRingItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.driveRingBox {
+  position: relative;
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+}
+
+.driveRingSvg {
+  width: 100%;
+  height: 100%;
+}
+
+.driveRingPct {
+  position: absolute;
+  font-family: var(--w-num-font);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.driveRingMount {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.driveRingSub {
+  font-size: 10px;
+  color: rgb(var(--md-on-surface-variant));
+}
+
+.netWaveWrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 56px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgb(var(--md-on-surface) / 0.06);
+  border: 1px solid rgb(var(--md-on-surface) / 0.12);
+}
+
+.netWaveOverlay {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 8px 10px;
+  height: 100%;
+  gap: 2px;
+}
+
+.netRateLine {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-family: var(--w-num-font);
+  font-variant-numeric: tabular-nums;
+}
+
+.netRateVal {
+  font-size: calc(20px * var(--w-scale));
+  font-weight: 750;
+  line-height: 1.05;
+}
+
+.netRateLineSub {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-family: var(--w-num-font);
+  font-variant-numeric: tabular-nums;
+  font-size: calc(12px * var(--w-scale));
+  color: rgb(var(--md-on-surface-variant));
+}
+
+.netArrowDown {
+  color: rgb(var(--md-primary));
+  font-weight: 700;
+}
+
+.netArrowUp {
+  color: rgb(var(--md-tertiary));
+  font-weight: 700;
+}
+
+.wifiWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+}
+
+.wifiSvg {
+  width: 34px;
+  height: 28px;
+  flex: none;
+}
+
+.wifiArcOn {
+  stroke: rgb(var(--md-primary));
+}
+
+.wifiArcOff {
+  stroke: rgb(var(--md-on-surface) / 0.16);
+}
+
+.wifiDotOn {
+  fill: rgb(var(--md-primary));
+}
+
+.wifiDotOff {
+  fill: rgb(var(--md-on-surface) / 0.16);
+}
+
+.wifiInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.wifiSsid {
+  font-size: calc(13px * var(--w-scale));
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.batPillOuter {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  min-height: 48px;
+  gap: 3px;
+}
+
+.batPillBody {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  min-height: 46px;
+  max-height: 76px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgb(var(--md-on-surface) / 0.08);
+  border: 1.5px solid rgb(var(--md-on-surface) / 0.2);
+}
+
+.batPillCap {
+  width: 5px;
+  height: 22px;
+  border-radius: 0 4px 4px 0;
+  background: rgb(var(--md-on-surface) / 0.28);
+  flex: none;
+}
+
+.batPillContent {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.batPillMain {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.batPillPct {
+  font-family: var(--w-num-font);
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+  font-size: calc(22px * var(--w-scale));
+  line-height: 1;
+}
+
+.batPillSub {
+  font-size: calc(11px * var(--w-scale));
+  color: rgb(var(--md-on-surface-variant));
+}
+
+.fanSpinWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+}
+
+.fanSvg {
+  width: min(56px, 70%);
+  height: min(56px, 70%);
+  flex: none;
+}
+
+.fanBlade {
+  fill: rgb(var(--md-primary));
+  opacity: 0.85;
+}
+
+.fanHub {
+  fill: rgb(var(--md-on-surface));
+}
+
+.fanMeta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fanRpm {
+  font-family: var(--w-num-font);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: calc(18px * var(--w-scale));
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.fanGaugesWrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+  height: 100%;
+}
+
+.fanGaugeItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.fanGaugeSvg {
+  width: 52px;
+  height: 30px;
+}
+
+.fanGaugeVal {
+  font-family: var(--w-num-font);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.fanGaugeName {
+  font-size: 10px;
+  color: rgb(var(--md-on-surface-variant));
+}

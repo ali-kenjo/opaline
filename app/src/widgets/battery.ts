@@ -1,6 +1,8 @@
 // Battery & Power widget: charge, charging state and time, power draw, battery health, AC,
 // the power profile (switchable on the card) and wireless devices' batteries.
+import { defaultOptions } from "../compose/widget";
 import type { Value } from "../layer/protocol";
+import { batteryComposition } from "./battery.composition";
 import { fixed, map, missingReason, num, percent, text } from "./format";
 import type { CardStatus, ReadCtx, Reading, WidgetAction, WidgetDef } from "./types";
 
@@ -195,6 +197,22 @@ export const battery: WidgetDef = {
       },
     },
     {
+      id: "chargeLimit",
+      label: "Charge limit",
+      shortLabel: "Limit",
+      icon: "battery_full",
+      topics: [BATTERY],
+      hero: false,
+      read: (c) => {
+        const b = bat(c);
+        const enabled = b?.chargeThresholdEnabled;
+        if (enabled?.kind !== "bool") return null;
+        if (!enabled.v) return { text: "Off" };
+        const end = num(b?.chargeEndThreshold);
+        return { text: end !== null ? `${fixed(end, 0)} %` : "On" };
+      },
+    },
+    {
       id: "model",
       label: "Battery",
       icon: "info",
@@ -232,7 +250,11 @@ export const battery: WidgetDef = {
       active: id === active,
     }));
   },
-  extraTopics: (c) => (c.content.opt<boolean>("profileButtons") ? [PROFILE] : []),
+  extraTopics: (c) =>
+    c.content.opt<boolean>("profileButtons") ? [PROFILE, PERIPHERALS] : [PERIPHERALS],
+  composition: batteryComposition,
+  useClassicStat: true,
+  compositionOptions: (content) => defaultOptions(battery, content),
   status(c): CardStatus {
     const b = c.get(BATTERY);
     if (b === undefined) return { kind: "loading" };

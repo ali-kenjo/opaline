@@ -10,6 +10,15 @@ import {
   StackedBarVisual,
   ThermalBadgeVisual,
 } from "./monitorVisuals";
+import {
+  BatteryPillVisual,
+  DriveListVisual,
+  FanGaugesVisual,
+  FanSpinnerVisual,
+  NetWaveVisual,
+  PeripheralListVisual,
+  WifiShapeVisual,
+} from "./round2Visuals";
 
 export type { VisualProps };
 
@@ -22,4 +31,11 @@ export const VISUALS: Readonly<Record<string, (p: VisualProps) => ReactNode>> = 
   "core-bars": CoreBarsVisual,
   "app-list": AppListVisual,
   "gpu-engines": GpuEnginesVisual,
+  "drive-list": DriveListVisual,
+  "net-wave": NetWaveVisual,
+  "wifi-shape": WifiShapeVisual,
+  "battery-pill": BatteryPillVisual,
+  "peripheral-list": PeripheralListVisual,
+  "fan-spinner": FanSpinnerVisual,
+  "fan-gauges": FanGaugesVisual,
 };

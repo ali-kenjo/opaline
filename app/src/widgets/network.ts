@@ -1,7 +1,9 @@
 // Network widget: download and upload of one interface (or the primary connection), Wi-Fi,
 // latency, connectivity, VPN, public IP and data used today / this billing period.
+import { defaultOptions } from "../compose/widget";
 import type { Value } from "../layer/protocol";
 import { type ByteUnit, bytes, fixed, map, missingReason, num, text } from "./format";
+import { networkComposition } from "./network.composition";
 import { BYTE_UNIT, levels } from "./options";
 import type { CardStatus, Choice, ReadCtx, Reading, WidgetDef } from "./types";
 
@@ -154,10 +156,11 @@ export const network: WidgetDef = {
       read: (c) => {
         const l = map(c.get(LATENCY));
         const ms = num(l?.ms);
+        const jitter = num(l?.jitterMs);
         return ms === null
           ? null
           : ({
-              text: `${fixed(ms, ms < 10 ? 1 : 0)} ms`,
+              text: `${fixed(ms, ms < 10 ? 1 : 0)} ms${jitter !== null ? ` ± ${fixed(jitter, 1)}` : ""}`,
               value: ms,
               ratio: Math.min(1, ms / 200),
               ramp: "load",
@@ -282,9 +285,43 @@ export const network: WidgetDef = {
       help: "Off keeps the Wi-Fi name off screen recordings.",
       default: true,
     },
+    {
+      kind: "bool",
+      key: "showIp",
+      label: "Show public IP",
+      help: "Off hides the public IP address for privacy.",
+      default: true,
+    },
+    {
+      kind: "range",
+      key: "monthlyCapGb",
+      label: "Monthly data cap",
+      help: "0 hides the cap ring; set a limit in GB to track billing-period usage.",
+      min: 0,
+      max: 5000,
+      step: 10,
+      unit: "GB",
+      default: 0,
+    },
     BYTE_UNIT,
     levels([150, 300], "For the main value (ms for latency)."),
   ],
+  extraTopics: () => [RATES, LATENCY, VPN, USAGE, PUBLIC_IP],
+  composition: networkComposition,
+  useClassicStat: true,
+  compositionOptions: (content) => defaultOptions(network, content),
+  compositionTopics(values, content) {
+    const ctx: ReadCtx = { get: (k) => values[k], content };
+    const name = iface(ctx);
+    const r = rates(ctx);
+    const active: Record<string, Value> = {};
+    if (name) active.name = { kind: "text", v: name };
+    const rx = num(r?.rxBps);
+    const tx = num(r?.txBps);
+    if (rx !== null) active.rxBps = { kind: "num", v: rx };
+    if (tx !== null) active.txBps = { kind: "num", v: tx };
+    return { ...values, netActive: { kind: "map", v: active } };
+  },
   status(c): CardStatus {
     const i = c.get(IFACES);
     if (i === undefined) return { kind: "loading" };
