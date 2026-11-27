@@ -810,7 +810,7 @@ e2e (incl. `builder.spec.ts` + all 14 Settings sections + Gallery/Inspector), `e
 owner availability; all core HTTP local-loopback, ETag, JSONPath, keyring, and MQTT broker paths are covered by
 automated integration tests.
 
-**Sign-off:** ⏳ Awaiting owner sign-off. Next: Phase 7 (New widgets: Quick controls, Notes, To-do, Timers,
+**Sign-off:** ✅ 2026-11-27. Phase 6 complete. Next: Phase 7 (New widgets: Quick controls, Notes, To-do, Timers,
 Countdowns, World clock, Photo frame, Sun & moon, Quote, Aura, Decorations, GitHub, HA, MQTT, Feeds, n8n).
 
 
