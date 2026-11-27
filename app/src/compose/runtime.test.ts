@@ -133,6 +133,38 @@ describe("composition runtime", () => {
     expect(rt.nextWake()).toBe(60_000);
   });
 
+  it("settles on what the last pass read, not on results nothing reads any more", () => {
+    const c: Composition = {
+      version: 1,
+      layouts: [
+        {
+          root: {
+            id: "col",
+            type: "column",
+            children: [
+              { id: "s", type: "text", text: "{date(now(), 'Hms')}" },
+              { id: "m", type: "text", text: "{date(now(), 'Hm')}" },
+            ],
+          },
+        },
+      ],
+    };
+    const seconds = "/layouts/0/root/children/0/text";
+    const minutes = "/layouts/0/root/children/1/text";
+    const rt = new Runtime(c, env({}, 1500));
+    rt.read(seconds);
+    rt.read(minutes);
+    expect(rt.settle()).toBe(2000);
+    // The seconds line is hidden now: only the minute line is read, so the next wake is the
+    // minute, although the seconds result stays remembered (and stale) from 2 s on.
+    rt.setEnv(env({}, 2500));
+    rt.read(minutes);
+    expect(rt.settle()).toBe(60_000);
+    expect(rt.nextWake()).toBe(2000);
+    // Nothing read since: nothing to wake for.
+    expect(rt.settle()).toBeNull();
+  });
+
   it("remembers list items per index", () => {
     const list = (names: string[]): Wire => ({
       kind: "list",

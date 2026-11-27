@@ -119,6 +119,8 @@ export class Runtime {
   private readonly sources = new Map<string, Program | Diagnostic>();
   private readonly memo = new Map<string, Memo>();
   private readonly evaluating = new Set<string>();
+  /** Memo keys read since the last `settle()` (what the view drew in its latest pass). */
+  private readonly touched = new Set<string>();
   private readonly topicNames: readonly string[];
   /** Evaluations so far (spike S10: zero while idle). */
   evaluations = 0;
@@ -220,6 +222,24 @@ export class Runtime {
     return Number.isFinite(next) ? next : null;
   }
 
+  /** Ends a render pass: the earliest time (ms) a result read since the last call goes stale, if
+   * any. Unlike `nextWake`, results nothing reads any more (another size's layout, a hidden face)
+   * don't count: they stay stale, and waking for them would never make them fresh. */
+  settle(): number | null {
+    let next = Infinity;
+    for (const key of this.touched) {
+      const m = this.memo.get(key);
+      if (m) next = Math.min(next, m.nextAt);
+    }
+    this.touched.clear();
+    return Number.isFinite(next) ? next : null;
+  }
+
+  /** The time (ms) on the clock the expressions read. */
+  now(): number {
+    return this.env.now();
+  }
+
   /** Forgets remembered list items from `count` on for every field under `prefix` (the list's
    * item, `/layouts/0/root/item`): the list got shorter. */
   trimItems(prefix: string, count: number): void {
@@ -280,7 +300,10 @@ export class Runtime {
     const key = scope?.index !== undefined ? `${source}#${String(scope.index)}` : source;
     const memoize = scope?.value === undefined;
     const m = memoize ? this.memo.get(key) : undefined;
-    if (m && this.fresh(m, scope)) return m.outcome;
+    if (m && this.fresh(m, scope)) {
+      this.touched.add(key);
+      return m.outcome;
+    }
     // A binding that reaches itself (validation rejects it; guard anyway) is "no value".
     if (this.evaluating.has(key)) return NONE;
     this.evaluating.add(key);
@@ -329,6 +352,7 @@ export class Runtime {
           nextAt = (Math.floor(now / step) + 1) * step;
         }
         this.memo.set(key, { outcome, deps, nextAt });
+        this.touched.add(key);
       }
       return outcome;
     } finally {

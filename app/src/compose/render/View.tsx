@@ -54,24 +54,39 @@ export interface CompositionViewProps {
   services?: Services | undefined;
 }
 
+/** The longest a view sleeps before it looks at the clock again. Timers run on the monotonic
+ * clock, which stops while the machine sleeps; the wall clock doesn't, so a minute clock that
+ * slept through a suspend is right again within this long. */
+const MAX_SLEEP_MS = 5000;
+
 /** Renders a composition and re-renders itself when a clock-reading value goes stale. */
 export function CompositionView({ runtime, size, animate, services }: CompositionViewProps) {
   const [, setTick] = useState(0);
   const index = pickLayout(runtime.composition, size);
   const layout = runtime.composition.layouts[index];
-  const wake = runtime.nextWake();
+  // After every commit: by now the children have read their fields, so the runtime knows when
+  // the first of them goes stale (asked in the render body it would be a pass behind, or empty).
+  // The wait is measured on the runtime's own clock and re-checked when the timer fires, so a
+  // timer that fires early, or late after a covered window or a suspend, never stops the chain.
   useEffect(() => {
+    const wake = runtime.settle();
     if (wake === null) return;
-    const t = setTimeout(
-      () => {
-        setTick((n) => n + 1);
-      },
-      Math.max(0, wake - Date.now()) + 5,
-    );
-    return () => {
-      clearTimeout(t);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const arm = () => {
+      const left = Math.max(0, wake - runtime.now());
+      timer = setTimeout(
+        () => {
+          if (runtime.now() >= wake) setTick((n) => n + 1);
+          else arm();
+        },
+        Math.min(left + 5, MAX_SLEEP_MS),
+      );
     };
-  }, [wake]);
+    arm();
+    return () => {
+      if (timer !== undefined) clearTimeout(timer);
+    };
+  });
   if (!layout) return null;
   return (
     <Ctx.Provider value={{ rt: runtime, scope: undefined, animate, services }}>
