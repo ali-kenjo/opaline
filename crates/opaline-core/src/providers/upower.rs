@@ -134,6 +134,19 @@ pub fn battery_value(dev: &Props) -> Value {
                     .map(str::to_owned),
             ),
         ),
+        (
+            "chargeThresholdEnabled",
+            dev.flag("ChargeThresholdEnabled")
+                .map_or_else(|| Value::unavailable("not-supported"), Value::Bool),
+        ),
+        (
+            "chargeStartThreshold",
+            Value::from(dev.num("ChargeStartThreshold").filter(|v| *v > 0.0)),
+        ),
+        (
+            "chargeEndThreshold",
+            Value::from(dev.num("ChargeEndThreshold").filter(|v| *v > 0.0)),
+        ),
     ])
 }
 

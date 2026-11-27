@@ -69,8 +69,51 @@ async fn tcp(target: IpAddr) -> std::io::Result<Duration> {
     Ok(started.elapsed())
 }
 
+/// Tracks running latency jitter (RFC 3550-style EWMA of consecutive RTT differences, in ms).
+#[derive(Debug, Default, Clone)]
+pub struct JitterTracker {
+    prev_ms: Option<f64>,
+    jitter_ms: f64,
+    samples: u32,
+}
+
+impl JitterTracker {
+    /// Records one RTT measurement (ms) and returns the current jitter (ms), or `None` on the
+    /// first reading.
+    pub fn record(&mut self, rtt_ms: f64) -> Option<f64> {
+        let out = if let Some(prev) = self.prev_ms {
+            let diff = (rtt_ms - prev).abs();
+            self.jitter_ms = if self.samples == 0 {
+                diff
+            } else {
+                self.jitter_ms + (diff - self.jitter_ms) / 4.0
+            };
+            self.samples = self.samples.saturating_add(1);
+            Some(self.jitter_ms)
+        } else {
+            None
+        };
+        self.prev_ms = Some(rtt_ms);
+        out
+    }
+
+    pub fn reset(&mut self) {
+        self.prev_ms = None;
+        self.jitter_ms = 0.0;
+        self.samples = 0;
+    }
+}
+
 /// One measurement, as the `network.latency` value.
 pub async fn measure(target: IpAddr, seq: u16) -> Value {
+    measure_with_jitter(target, seq, None).await
+}
+
+async fn measure_with_jitter(
+    target: IpAddr,
+    seq: u16,
+    tracker: Option<&mut JitterTracker>,
+) -> Value {
     let (result, method) = match icmp(target, seq).await {
         Ok(d) => (Ok(d), "icmp"),
         Err(icmp_error) => {
@@ -79,25 +122,39 @@ pub async fn measure(target: IpAddr, seq: u16) -> Value {
         }
     };
     match result {
-        Ok(d) => Value::map([
-            ("ms", Value::Num(d.as_secs_f64() * 1000.0)),
-            ("target", Value::from(target.to_string())),
-            ("method", Value::from(method)),
-        ]),
-        Err(_) => Value::unavailable("unreachable"),
+        Ok(d) => {
+            let ms = d.as_secs_f64() * 1000.0;
+            let jitter = tracker.and_then(|t| t.record(ms));
+            let mut entries = vec![
+                ("ms", Value::Num(ms)),
+                ("target", Value::from(target.to_string())),
+                ("method", Value::from(method)),
+            ];
+            if let Some(j) = jitter {
+                entries.push(("jitterMs", Value::Num(j)));
+            }
+            Value::map(entries)
+        }
+        Err(_) => {
+            if let Some(t) = tracker {
+                t.reset();
+            }
+            Value::unavailable("unreachable")
+        }
     }
 }
 
 pub async fn run(hub: Arc<Hub>) -> Result<(), String> {
     let mut seq = 0u16;
+    let tracker = Arc::new(tokio::sync::Mutex::new(JitterTracker::default()));
     while_subscribed(&hub, &[LATENCY], PERIOD, || {
         seq = seq.wrapping_add(1);
         let seq = seq;
+        let tracker = Arc::clone(&tracker);
         async move {
-            Ok::<Vec<TopicUpdate>, String>(vec![update(
-                LATENCY,
-                measure(DEFAULT_TARGET, seq).await,
-            )])
+            let mut guard = tracker.lock().await;
+            let val = measure_with_jitter(DEFAULT_TARGET, seq, Some(&mut guard)).await;
+            Ok::<Vec<TopicUpdate>, String>(vec![update(LATENCY, val)])
         }
     })
     .await
@@ -117,6 +174,18 @@ mod tests {
         assert!(is_reply(&reply, 0x0102));
         assert!(!is_reply(&reply, 0x0103));
         assert!(!is_reply(&p, 0x0102), "our own request isn't a reply");
+    }
+
+    #[test]
+    fn jitter_tracks_rtt_variation() {
+        let mut jt = JitterTracker::default();
+        assert_eq!(jt.record(20.0), None);
+        assert_eq!(jt.record(24.0), Some(4.0));
+        let j2 = jt.record(22.0).unwrap_or(-1.0);
+        // 4.0 + (2.0 - 4.0) / 4 = 3.5
+        assert!((j2 - 3.5).abs() < 1e-9, "{j2}");
+        jt.reset();
+        assert_eq!(jt.record(18.0), None);
     }
 
     #[tokio::test]
