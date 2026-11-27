@@ -94,7 +94,8 @@ Done by Claude Code from `FIX_PROMPT.md`; the full evidence log is `FIX_HANDOFF.
   size's layout can't keep it awake), waits on `runtime.now()`, re-arms when a timer fires early, and sleeps at most
   5 s so a suspend can't leave a minute clock behind. Tests: `View.clock.test.tsx` (7), `runtime.test.ts`, e2e
   `clock-ticks.spec.ts` (all 12 faces, Lab flag `?frozen`: moving mocks hid the bug). Real layer: two Clocks matched
-  the top bar for ~10 min, incl. after ~28 s and 65 s covered. Lock/unlock not checked by hand (same pause path).
+  the top bar for ~10 min, incl. after ~28 s and 65 s covered. Lock/unlock not checked by hand (same pause path;
+  the owner accepted the covered-window evidence on 2026-11-27).
 - **Timers lost time** (`fix(core)` eea5089): running entries persist `endsAtMs`/`startedAtMs` in `timers.json`
   (optional fields; `timers.state` unchanged) and every tick derives the values from the wall clock. Expired while
   asleep/down: finishes once, one notification "… (finished at HH:MM)"; Pomodoro moves one phase; daily count rolls
@@ -110,7 +111,7 @@ Done by Claude Code from `FIX_PROMPT.md`; the full evidence log is `FIX_HANDOFF.
   dropped at M, S/L break only before the slash. e2e `memory-tile.spec.ts` (de-DE).
 - Docs: automation `time.*` / `isNight` (06–21) / `Locale::En` in `docs/EXPRESSIONS.md` §5. Test for the 2.0.1 drive
   badge fix (`round2Visuals.test.tsx`).
-- Still open: hero numbers in small cards (needs DESIGN-2 §3.3 auto-fit), `apt purge` VM test, lock/unlock by hand.
+- Still open: hero numbers in small cards (needs DESIGN-2 §3.3 auto-fit), `apt purge` VM test.
 
 ---
 
