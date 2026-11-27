@@ -15,6 +15,7 @@ import { GlassDemo } from "./GlassDemo";
 import styles from "./Lab.module.css";
 import { Round1Demo } from "./Round1Demo";
 import { Round2Demo } from "./Round2Demo";
+import { Round3Demo } from "./Round3Demo";
 import { Specimen } from "./Specimen";
 import { WidgetsDemo } from "./WidgetsDemo";
 import type { LabWallpaper } from "./wallpapers";
@@ -38,6 +39,7 @@ const spike = params.get("spike");
 const directions = only === "directions";
 const round1 = only === "round1";
 const round2 = only === "round2";
+const round3 = only === "round3";
 // `motion=off`: live values but no animation (to measure what the animations cost).
 if (still || params.get("motion") === "off") setReducedMotion(true);
 runWebviewCheck();
@@ -169,6 +171,7 @@ export function LabApp() {
       {directions ? <DirectionsDemo /> : null}
       {round1 ? <Round1Demo value={value} still={still} /> : null}
       {round2 ? <Round2Demo value={value} still={still} /> : null}
+      {round3 ? <Round3Demo value={value} still={still} /> : null}
       {spike === "webkit" ? <SpikeWebkit /> : null}
       {spike === "glass" ? <SpikeGlass /> : null}
       {spike === "sandbox" ? <SpikeSandbox /> : null}

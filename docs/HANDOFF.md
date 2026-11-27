@@ -11,13 +11,14 @@ transparent WebKitGTK window per monitor, React 19 frontend) + a small GNOME She
 each ending with acceptance checks, a PROGRESS entry and the owner's sign-off.
 
 ## Status
-- **P0, P1, P2, P3, and P4 Round 1** (Clock, CPU, Memory, GPU) are signed off and pushed.
-- **P4 Round 2** (Storage, Network, Battery & Power, Fans + latency jitter and UPower charge-limit status) is
-  implemented and verified, awaiting owner sign-off.
+- **P0, P1, P2, P3, P4 Round 1** (Clock, CPU, Memory, GPU), and **P4 Round 2** (Storage, Network, Battery & Power,
+  Fans) are signed off and pushed.
+- **P4 Round 3** (Processes, Now Playing, Visualizer + stereo/waveform audio frames, MPRIS shuffle/loop/volume &
+  local `.lrc` lyrics, process disk I/O, WebGL2 spectrogram & particles) is implemented and verified, awaiting owner
+  sign-off.
 - **Next steps, in order:**
-  1. Owner sign-off on **P4 Round 2**, then push Round 2 commits.
-  2. Complete **P4 Rounds 3–5** (Round 3: Processes, Now Playing, Visualizer; Round 4: Weather, Calendar, Docker;
-     Round 5: the ten looks + Lab baselines).
+  1. Owner sign-off on **P4 Round 3**, then push Round 3 commits.
+  2. Complete **P4 Rounds 4–5** (Round 4: Weather, Calendar, Docker; Round 5: the ten looks + Lab baselines).
   3. Optional, if the owner allows: a real-layer budget run (`scripts/measure-budget.sh 60` with a 2.0 build on a
      settings copy) to confirm animation CPU and RAM on the desktop.
 - **Settings are version 2.** Run dev builds on a settings copy (`XDG_CONFIG_HOME=<copy>`), never on the owner's

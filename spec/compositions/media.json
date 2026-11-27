@@ -1,0 +1,135 @@
+{
+  "version": 1,
+  "layouts": [
+    {
+      "minW": 4,
+      "minH": 4,
+      "root": {
+        "id": "root",
+        "type": "column",
+        "children": [
+          {
+            "id": "player",
+            "type": "canvas",
+            "visual": "now-playing",
+            "label": "Now Playing",
+            "params": {
+              "player": "mediaActive",
+              "players": "media.players",
+              "look": "opt.look",
+              "artShape": "opt.artShape",
+              "artBackdrop": "opt.artBackdrop",
+              "showLyrics": "opt.showLyrics",
+              "showExtraControls": "opt.showExtraControls",
+              "showArt": "mediaMeta.showArt",
+              "showTitle": "mediaMeta.showTitle",
+              "showArtist": "mediaMeta.showArtist",
+              "showAlbum": "mediaMeta.showAlbum",
+              "showApp": "mediaMeta.showApp",
+              "showProgress": "mediaMeta.showProgress",
+              "showControls": "mediaMeta.showControls",
+              "size": "'L'"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "minW": 4,
+      "minH": 2,
+      "root": {
+        "id": "root",
+        "type": "column",
+        "children": [
+          {
+            "id": "player",
+            "type": "canvas",
+            "visual": "now-playing",
+            "label": "Now Playing",
+            "params": {
+              "player": "mediaActive",
+              "players": "media.players",
+              "look": "opt.look",
+              "artShape": "opt.artShape",
+              "artBackdrop": "opt.artBackdrop",
+              "showLyrics": "opt.showLyrics",
+              "showExtraControls": "opt.showExtraControls",
+              "showArt": "mediaMeta.showArt",
+              "showTitle": "mediaMeta.showTitle",
+              "showArtist": "mediaMeta.showArtist",
+              "showAlbum": "mediaMeta.showAlbum",
+              "showApp": "mediaMeta.showApp",
+              "showProgress": "mediaMeta.showProgress",
+              "showControls": "mediaMeta.showControls",
+              "size": "'M'"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "minW": 2,
+      "minH": 2,
+      "root": {
+        "id": "root",
+        "type": "column",
+        "children": [
+          {
+            "id": "player",
+            "type": "canvas",
+            "visual": "now-playing",
+            "label": "Now Playing",
+            "params": {
+              "player": "mediaActive",
+              "players": "media.players",
+              "look": "opt.look",
+              "artShape": "opt.artShape",
+              "artBackdrop": "opt.artBackdrop",
+              "showLyrics": "opt.showLyrics",
+              "showExtraControls": "opt.showExtraControls",
+              "showArt": "mediaMeta.showArt",
+              "showTitle": "mediaMeta.showTitle",
+              "showArtist": "mediaMeta.showArtist",
+              "showAlbum": "mediaMeta.showAlbum",
+              "showApp": "mediaMeta.showApp",
+              "showProgress": "mediaMeta.showProgress",
+              "showControls": "mediaMeta.showControls",
+              "size": "'S'"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "root": {
+        "id": "root",
+        "type": "column",
+        "children": [
+          {
+            "id": "player",
+            "type": "canvas",
+            "visual": "now-playing",
+            "label": "Now Playing",
+            "params": {
+              "player": "mediaActive",
+              "players": "media.players",
+              "look": "opt.look",
+              "artShape": "opt.artShape",
+              "artBackdrop": "opt.artBackdrop",
+              "showLyrics": "opt.showLyrics",
+              "showExtraControls": "opt.showExtraControls",
+              "showArt": "mediaMeta.showArt",
+              "showTitle": "mediaMeta.showTitle",
+              "showArtist": "mediaMeta.showArtist",
+              "showAlbum": "mediaMeta.showAlbum",
+              "showApp": "mediaMeta.showApp",
+              "showProgress": "mediaMeta.showProgress",
+              "showControls": "mediaMeta.showControls",
+              "size": "'2x1'"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

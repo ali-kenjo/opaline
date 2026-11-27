@@ -19,6 +19,7 @@ import {
   PeripheralListVisual,
   WifiShapeVisual,
 } from "./round2Visuals";
+import { NowPlayingVisual, ProcessTableVisual } from "./round3Visuals";
 
 export type { VisualProps };
 
@@ -38,4 +39,6 @@ export const VISUALS: Readonly<Record<string, (p: VisualProps) => ReactNode>> = 
   "peripheral-list": PeripheralListVisual,
   "fan-spinner": FanSpinnerVisual,
   "fan-gauges": FanGaugesVisual,
+  "process-table": ProcessTableVisual,
+  "now-playing": NowPlayingVisual,
 };

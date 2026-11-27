@@ -595,6 +595,49 @@ existing baselines/checks + new `themes.spec.ts`), `eslint`, `prettier`, `tsc`, 
 
 **Sign-off:** ✅ 2026-11-27. Next: Round 3 (4.9 Processes, 4.10 Now Playing, 4.11 Visualizer).
 
+## 2.0 · Phase 4 · Round 3: Processes, Now Playing, Visualizer (2026-11-27)
+
+**Done**
+- **Core provider & IPC upgrades (4.9–4.11):**
+  - Added binary `FrameKind::Waveform` (128 downsampled PCM bytes centered at 128) and `FrameKind::Stereo`
+    (`left_rms`, `right_rms`, 32 L bands, 32 R bands) in `opaline-ipc`, `opaline-core/providers/audio.rs`
+    (`waveform_bytes`, `StereoAnalyzer`, stereo capture ring), `opaline-core/ipc_server.rs`, Tauri `bridge.rs` /
+    `client.rs`, and frontend `protocol.ts` / `spectrum.ts` / `layerHost.ts` / `host.tsx`.
+  - Extended `opaline-core/providers/media.rs` to expose MPRIS `shuffle`, `loopStatus`, `volume`, and local sibling
+    `.lrc` synced lyrics (`parse_lrc`, capped at 128 KiB), and wired `Command::{MediaShuffle, MediaLoop, MediaVolume}`
+    through IPC, core command handler, and `opaline-compose` allowed commands.
+  - Extended `opaline-core/providers/processes.rs` to read `/proc/<pid>/io` (`parse_proc_io`) for user-owned
+    processes, compute delta `ioBps` per process and summed per app, and emit `iconUrl` on `processes.list` too.
+- **4.9 Processes (`processes.tsx`, `processes.composition.ts`, `spec/compositions/processes.json`, `round3Visuals.tsx`):**
+  - Real cached app icons (`iconUrl`, with crisp initial badge fallback — replacing the generic glyph), CPU / RAM /
+    Disk I/O columns, optional non-waking GPU load pill when available, inline search/filter bar, Apps / Processes
+    toggle, sortable column headers, and 2-step confirmed End task (`end-task`).
+- **4.10 Now Playing (`media.tsx`, `media.composition.ts`, `spec/compositions/media.json`, `round3Visuals.tsx`):**
+  - Three looks: **Glass card** (optional blurred album-art backdrop + Material shape mask `cookie`/`clover`/`pill`/
+    `softBurst`/`circle`/`rounded` gently breathing with bass via `scheduler`), **Spinning vinyl** (grooved disc with
+    center cover label), and **Retro cassette** (translucent shell with turning dual reels) — 0 frames when paused or
+    still.
+  - Local synced `.lrc` lyric line, seekable wavy progress bar (`WavyProgress`), shuffle / repeat / volume controls,
+    and inline multi-player switcher pills.
+- **4.11 Visualizer (`visualizer.tsx`, `visualizerGl.ts`):**
+  - Preserved all 10 Classic styles and added 7 new styles: **Circular around album art** (`album-ring`, reading
+    `media.player.art`), **Spectrogram waterfall** (`spectrogram`), **Analog VU needles** (`vu`), **LED segments**
+    (`led`), **Bass particles** (`particles`), **Oscilloscope** (`oscilloscope`), and **Stereo L/R split**
+    (`stereo-split`).
+  - Added lightweight WebGL2 renderer (`visualizerGl.ts`) for `spectrogram` and `particles` with seamless 2D canvas
+    fallback and strict `scheduler` gating (0 idle frames).
+- **Classic 1.1 preservation & Lab:** `processes` and `media` retain their Classic 1.1 renderers under `classic`
+  (`useClassicStat: true`), and `visualizer` keeps default `bars` identical; added `lab.html?only=round3&still`
+  (`Round3Demo.tsx`), `app/src/widgets/round3.test.ts`, and `app/e2e/round3.spec.ts`.
+
+**Checks:** 213 Rust workspace tests (all 10 `spec/compositions/*.json` validated by `opaline-compose`),
+`clippy -D warnings`, `rustfmt`; 289 Vitest, 60 Playwright WebKit e2e (all existing baselines/checks +
+`round3.spec.ts` verifying 0 idle frames), `eslint`, `prettier`, `tsc`.
+
+**Sign-off:** Pending owner review of Round 3. Next: Round 4 (4.12 Weather, 4.13 Calendar, 4.14 Docker) and Round 5
+(4.15 The ten looks + 4.16 Lab baselines).
+
+
 
 
 

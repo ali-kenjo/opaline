@@ -7,6 +7,7 @@ import type { Value } from "../layer/protocol";
 import { type ByteUnit, bytes, num, percent, text } from "./format";
 import { useHost } from "./host";
 import { BYTE_UNIT } from "./options";
+import { processesComposition } from "./processes.composition";
 import type { CardStatus, RenderCtx, WidgetDef } from "./types";
 import styles from "./lists.module.css";
 
@@ -146,7 +147,11 @@ function ProcessList({ ctx }: { ctx: RenderCtx }) {
   );
 }
 
-const column = (id: string, label: string, icon: "speed" | "memory" | "apps" | "bar_chart") => ({
+const column = (
+  id: string,
+  label: string,
+  icon: "speed" | "memory" | "apps" | "bar_chart" | "hard_drive",
+) => ({
   id,
   label,
   icon,
@@ -162,11 +167,12 @@ export const processes: WidgetDef = {
   category: "system",
   sizes: ["4x1", "S", "M", "L", "XL"],
   defaultSize: "M",
-  extraTopics: (c) => [c.content.opt<string>("group") === "apps" ? APPS : LIST],
+  extraTopics: () => [APPS, LIST],
   defaultFields: ["cpu", "memory", "bar"],
   fields: [
     column("cpu", "CPU", "speed"),
     column("memory", "Memory", "memory"),
+    column("io", "Disk I/O", "hard_drive"),
     column("count", "Process count", "apps"),
     column("bar", "Bar", "bar_chart"),
   ],
@@ -188,11 +194,14 @@ export const processes: WidgetDef = {
       options: [
         { value: "cpu", label: "CPU" },
         { value: "memory", label: "Memory" },
+        { value: "io", label: "Disk I/O" },
       ],
       default: "cpu",
     },
     { kind: "range", key: "count", label: "Rows", min: 1, max: 12, step: 1, default: 8 },
     { kind: "bool", key: "showSystem", label: "Include system", default: false },
+    { kind: "bool", key: "showSearch", label: "Search & filter bar", default: true },
+    { kind: "bool", key: "showIo", label: "Disk I/O column", default: true },
     {
       kind: "bool",
       key: "endTask",
@@ -210,4 +219,21 @@ export const processes: WidgetDef = {
       : { kind: "ready" };
   },
   render: (ctx) => <ProcessList ctx={ctx} />,
+  composition: processesComposition,
+  useClassicStat: true,
+  compositionTopics(values, content) {
+    const shown = new Set(content.fields);
+    const gpu0 = values["gpu.0.load"];
+    const meta: Record<string, Value> = {
+      showIo: { kind: "bool", v: content.opt<boolean>("showIo") || shown.has("io") },
+      showCount: { kind: "bool", v: shown.has("count") },
+      showBar: { kind: "bool", v: shown.has("bar") },
+      decimals: { kind: "num", v: content.decimals },
+    };
+    if (gpu0?.kind === "num") meta.gpuLoad = gpu0;
+    return {
+      ...values,
+      procMeta: { kind: "map", v: meta },
+    };
+  },
 };

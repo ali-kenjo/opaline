@@ -5,6 +5,7 @@ import { Icon } from "../design-system/icons";
 import type { Value } from "../layer/protocol";
 import { map, num, text } from "./format";
 import { useHost } from "./host";
+import { mediaComposition } from "./media.composition";
 import type { CardStatus, Choice, ReadCtx, RenderCtx, WidgetDef } from "./types";
 import styles from "./media.module.css";
 
@@ -206,13 +207,36 @@ export const media: WidgetDef = {
     },
     {
       kind: "enum",
+      key: "look",
+      label: "Look",
+      options: [
+        { value: "card", label: "Glass card" },
+        { value: "vinyl", label: "Spinning vinyl" },
+        { value: "cassette", label: "Retro cassette" },
+      ],
+      default: "card",
+    },
+    {
+      kind: "enum",
       key: "artShape",
       label: "Cover shape",
       options: [
         { value: "rounded", label: "Rounded" },
         { value: "circle", label: "Circle" },
+        { value: "cookie", label: "Cookie (Material)" },
+        { value: "clover", label: "Clover" },
+        { value: "pill", label: "Pill" },
+        { value: "softBurst", label: "Soft burst" },
       ],
       default: "rounded",
+    },
+    { kind: "bool", key: "artBackdrop", label: "Blurred album backdrop", default: true },
+    { kind: "bool", key: "showLyrics", label: "Synced local lyrics (.lrc)", default: true },
+    {
+      kind: "bool",
+      key: "showExtraControls",
+      label: "Shuffle, repeat & volume",
+      default: true,
     },
   ],
   status(c): CardStatus {
@@ -221,4 +245,32 @@ export const media: WidgetDef = {
       : { kind: "ready" };
   },
   render: (ctx) => <NowPlaying ctx={ctx} />,
+  composition: mediaComposition,
+  useClassicStat: true,
+  compositionTopics(values, content) {
+    const shown = new Set(content.fields);
+    const want = content.opt<string>("player");
+    const list = values[PLAYERS];
+    let active: Value | undefined = values[PLAYER];
+    if (want !== "auto" && list?.kind === "list") {
+      const match = list.v.find((x) => x.kind === "map" && text(x.v.identity) === want);
+      if (match) active = match;
+    }
+    return {
+      ...values,
+      mediaActive: active,
+      mediaMeta: {
+        kind: "map",
+        v: {
+          showArt: { kind: "bool", v: shown.has("art") },
+          showTitle: { kind: "bool", v: shown.has("title") },
+          showArtist: { kind: "bool", v: shown.has("artist") },
+          showAlbum: { kind: "bool", v: shown.has("album") },
+          showApp: { kind: "bool", v: shown.has("app") },
+          showProgress: { kind: "bool", v: shown.has("progress") },
+          showControls: { kind: "bool", v: shown.has("controls") },
+        },
+      },
+    };
+  },
 };
