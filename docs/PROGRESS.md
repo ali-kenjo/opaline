@@ -941,6 +941,42 @@ the owner; until configured, `GALLERY_MINISIGN_PUBKEY` fails closed by design.
 
 **Sign-off:** ✅ 2026-11-27. Phase 9 complete. Next: Phase 10 (Quality & release: en/de/ar i18n parity, a11y, `docs/SECURITY.md` threat model & security tests, budgets, release readiness).
 
+## 2.0 · Phase 10: Quality & release readiness (2026-11-27)
+
+**Done**
+- **i18n 2.0 (`app/src/i18n/{messages.ts,index.ts,i18n.test.ts}`, `Inspector.tsx`, `WidgetBuilder.tsx`):**
+  - Expanded English (`en`), German (`de`), and Arabic (`ar`) catalogs with full key & ICU placeholder parity for
+    every 2.0 Settings section, Gallery 2.0 category, all 16 new built-in widgets, Inspector, Widget Builder,
+    Profiles/Automation, and Plugins/Gallery.
+  - Added `resolvePackageString(locale, translations, key, fallback)` for package-bundled translations.
+  - Wired explicit RTL `dir="rtl"` mirroring on both the Inspector and Widget Builder dialogs while preserving
+    strictly LTR widget grid placement on `.surface`.
+- **Accessibility & RTL E2E (`app/e2e/p10-quality.spec.ts`):**
+  - Verified Arabic RTL mirroring on Settings, Inspector, and Widget Builder dialogs with LTR grid invariance,
+    ARIA landmarks, and full keyboard accessibility across all 16 Settings sections.
+- **Security Threat Model & Automated Security Suite (`docs/SECURITY.md`, `crates/opaline-core/tests/security.rs`):**
+  - Updated `docs/SECURITY.md` with the complete Opaline 2.0 threat model across all 9 trust boundaries
+    (layer webviews, ADR 0014 code plugins, imported packages, custom sources, GNOME Keyring, feeds, quick controls,
+    IPC/D-Bus v2, and signed updates/gallery).
+  - Added integrated security test suite `crates/opaline-core/tests/security.rs` verifying remote-CSS rejection,
+    command-injection resistance (`shell: false`), SSRF blocking (link-local, cloud metadata, CGNAT, IPv6 metadata),
+    zip-slip & oversized archive rejection, planted-secret redaction, and D-Bus v2 path validation.
+- **Release Docs (`README.md`, `docs/RELEASE.md`):**
+  - Updated `README.md` and `docs/RELEASE.md` for Opaline 2.0 (30 built-in widgets, 10 themes/looks, Glass 2.0,
+    Inspector, Free mode, Visual Builder, Custom sources, Profiles & Automation, `opaline ctl` + shell completions,
+    D-Bus v2, Sandboxed plugins & Gallery, 1.1 → 2.0 migration checklist, and minisign key setup).
+
+**Checks:** 261 Rust workspace tests (incl. 6 new integrated security tests in `tests/security.rs`, 2 migration tests
+on real 1.1 fixtures, 8 schema tests, 206 core tests, 9 binary tests), `clippy -D warnings`, `rustfmt`,
+`glib-compile-schemas --strict`, `lint:helper`; 318 Vitest (1 skipped), **90/90 Playwright WebKit E2E** (incl.
+`p10-quality.spec.ts` and all classic 1.1 Lab baselines), `eslint`, `prettier`, `tsc`, production `vite build`.
+
+**Owner release gates (remaining before tagging `v2.0.0`):**
+1. Mint minisign release key (`RELEASE_MINISIGN_PUBKEY` + GitHub Actions secrets) and gallery key (`ali-kenjo/opaline-gallery`).
+2. Bump versions to `2.0.0`, test `.deb` 1.1 → 2.0 upgrade & clean Ubuntu 26.04 VM checklist (`docs/RELEASE.md`), and tag `v2.0.0`.
+
+**Sign-off:** ⏳ Awaiting owner final sign-off for Opaline 2.0.
+
 
 
 

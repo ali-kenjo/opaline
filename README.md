@@ -1,61 +1,65 @@
-# Opaline
+# Opaline 2.0
 
 **Glass widgets for your Ubuntu desktop.**
 
-Opaline brings Android-style home-screen widgets to Ubuntu 26.04 LTS (GNOME 50): add, move, resize, stack, and customize live widgets right on your wallpaper — above desktop icons and below application windows, across every workspace and monitor.
+Opaline brings a deeply customizable, glass-and-Material-3 widget layer to Ubuntu 26.04 LTS (GNOME 50): place, stack, resize, style, build, script, and automate live widgets right on your wallpaper — above desktop icons and below application windows, across every workspace and monitor.
 
-## Highlights
+## Highlights in 2.0
 
-- **14 built-in widgets:** Clock, CPU, Memory, GPU (NVIDIA / AMD / Intel, respects dGPU runtime sleep), Storage (with NVMe/ATA health & eject), Network (rates, Wi-Fi, latency, VPN, monthly usage), Battery & Power (with power profile switching & peripheral batteries), Fans, Processes (app-grouped with End task), Now Playing (MPRIS + album-art palette), Audio Visualizer (PipeWire default-sink monitor, never microphone), Weather (Open-Meteo, no API key), Calendar (GNOME EDS + ICS/webcal), and Docker / Podman.
-- **Glass + Material 3 Expressive:** Single-pass WebGL2 wallpaper-sampled glass with refraction, specular rim, grain, adaptive 4.5:1 legibility, dynamic wallpaper/GNOME accent palettes, and M3 Expressive spatial/effects springs.
-- **Full Android-style Edit mode (`Super+Alt+E` or 450 ms long-press):** Drag with spring reflow, 4 pill resize handles, drag-to-stack with Smart Rotate, drag-to-remove + 5 s Undo snackbar, `Ctrl+Z`/`Ctrl+Shift+Z`, full keyboard control, cross-display moves, live Widget Picker, and 5 starter presets.
-- **What's new in 1.1:** clicks pass straight through to the desktop outside Edit and Peek, a transparent frameless surface mode, an in-app per-widget customizer, 10 audio visualizer styles (palettes, glow, peak caps), richer CPU / RAM / GPU / storage hardware info, and a visualizer capture that no longer lights GNOME's microphone indicator.
-- **Peek (`Super+Alt+W`):** Instantly raise all widgets over a blurred backdrop from any workspace.
-- **Fully customizable:** Every widget exposes Content + Style settings (colors, glass blur/transparency/refraction/rim, fonts including installed system fonts, density, thresholds, update rates).
-- **Languages & Accessibility:** English, German (`Deutsch`), and Arabic (`العربية`, full RTL chrome & widget internals while preserving your widget grid positions), plus GNOME High Contrast, Reduce Animation, and text scaling.
+- **30 built-in widgets** across 7 categories:
+  - **System:** Clock (6 expressive faces), CPU, Memory, GPU (respects dGPU runtime sleep), Storage (health & eject), Network, Battery & Power, Fans, Processes, Docker / Podman.
+  - **Controls:** Quick Controls (GNOME 50 Wi-Fi, Bluetooth, Airplane, DND, Night Light, Dark style, Keep awake, PipeWire volume, per-monitor brightness, validated launchers).
+  - **Time & Personal:** Notes (Markdown + interactive checkboxes), To-do (`todo.txt`), Timers / Stopwatch / Pomodoro (persisted in core), Countdowns, World Clock, Calendar (EDS + ICS).
+  - **Media, Photos & Ambient:** Now Playing (MPRIS), Audio Visualizer (10 styles, PipeWire sink monitor — never lights the mic indicator), Photo Frame (core-downscaled thumbnails + EXIF *"On this day"*), Weather (Open-Meteo), Sun & Moon, Quote of the Day, Aura, Decorations.
+  - **Developer & Online:** GitHub, Home Assistant, MQTT Topic, Feeds (sanitized RSS/Atom/JSON Feed), n8n Workflows.
+- **Glass 2.0 & 10 First-Party Looks:** Single-pass WebGL2 sharp/blurred wallpaper sampling, edge dispersion, inner glow, adaptive 4.5:1 legibility, Desktop look quick modes (*Glass · Clear · Tinted · Dark · Light · Dimmed*), and 10 themes (*Opaline, Crystal, Bloom, Instrument, Air, Terminal, Neon, Paper, Mono, Classic*).
+- **Live Inspector, Free Mode & Visual Widget Builder:** Code-split floating Inspector with scope cascade, eyedropper, contrast meter, and unified Edit undo/redo; Grid and work-area-anchored Free mode with z-order & multi-select align; Visual Widget Builder with live `opaline-expr` preview; custom data sources (Command, File, SSRF-pinned HTTP/JSON + JSONPath, D-Bus, MQTT + TLS, Variables) with GNOME Keyring secret storage.
+- **Profiles, Automation, `opaline ctl` & D-Bus API v2:** Named desktop profiles, `opaline-expr` automation rules with minimum duration, hysteresis, and manual override + **Resume automation**, GNOME Shell Helper API v2 (`ActiveWorkspaceChanged`, `FocusedAppChanged`, `FullscreenChanged`, N−1 compatible), `opaline ctl` CLI with `--json` and bash/zsh/fish completions ([`docs/DBUS.md`](docs/DBUS.md)).
+- **Sandboxed Code Plugins & Community Gallery:** ADR 0014 `opaline-plugin://` Web Worker sandbox with strict CSP, permission approval & SHA-256 re-approval on change, 2 s watchdog, `opaline validate` / `opaline pack`, signed Gallery verifier ([`docs/SDK.md`](docs/SDK.md)).
+- **Languages & Accessibility:** English, German (`Deutsch`), and Arabic (`العربية`, RTL chrome/Inspector/Builder while grid coordinates never mirror), package translations, High Contrast, Reduce Motion, and text scaling.
 
 ## Installation (Ubuntu 26.04 LTS)
 
 Download the latest `.deb` from [GitHub Releases](https://github.com/ali-kenjo/opaline/releases) and install it:
 
 ```bash
-sudo apt install ./opaline_<version>_amd64.deb
+sudo apt install ./Opaline_<version>_amd64.deb
 ```
 
-Launch **Opaline** from the app grid (or run `opaline`). On first launch, the guided onboarding lets you pick a starter layout over your real wallpaper and enables GNOME desktop integration (widgets work immediately in Instant mode and automatically switch to Native Wayland mode on your next login).
+Launch **Opaline** from the app grid (or run `opaline`). First-run onboarding previews looks & layouts directly over your real wallpaper and enables GNOME desktop integration (widgets work immediately in Instant mode and switch to Native Wayland mode on your next login).
 
-## Privacy
+## Privacy & Security
 
-Opaline collects **zero telemetry**. Outbound HTTPS requests happen only for features you use or opt into:
+Opaline collects **zero telemetry** and requires **no accounts**. Outbound network requests occur only for opt-in or explicitly triggered features, and secrets live strictly in GNOME Keyring (`org.freedesktop.secrets`):
 
 | Feature | Default | Notes |
 | - | - | - |
-| Weather (Open-Meteo) | Only after choosing a city or automatic location | No API key; cached 15–60 min |
-| Public IP lookup | **Off** | Opt-in in Settings → Privacy; cached 10 min |
-| Album art (`https://`) | Only when playing streamed media | Fetched and cached by core; webviews have no network access |
-| Update checks (GitHub Releases) | On (opt-out) | Daily check; `.deb` verified with SHA-256 + minisign before `pkexec apt install` |
+| Weather (Open-Meteo) | After choosing a city / location | No API key; cached 15–60 min |
+| Public IP lookup | **Off** | Opt-in in Settings → Privacy |
+| Album art (`https://`) | Only while playing streamed media | Fetched and cached by core |
+| Developer integrations (GitHub, HA, n8n, MQTT, Feeds, HTTP sources) | **Off** | Opt-in per source; SSRF-pinned; tokens in GNOME Keyring |
+| Community Gallery | Only when **Browse gallery** is clicked | Zero background traffic; SHA-256 + minisign verified |
+| Update checks (GitHub Releases) | On (opt-out) | Daily check; `.deb` verified with SHA-256 + minisign |
 
-Debug reports (`opaline --diagnose` and **Settings → Diagnostics → Copy debug report**) strip all topic values (SSIDs, IP addresses, hostnames, usernames, and monitor serials). See [`docs/SECURITY.md`](docs/SECURITY.md) for the full security review.
+See [`docs/SECURITY.md`](docs/SECURITY.md) for the complete 2.0 threat model and automated security suite.
 
-## Troubleshooting
-
-### Native mode vs. Instant mode
-- **Native mode (preferred):** Uses the bundled GNOME Shell desktop-integration helper (`opaline-desktop@ali-kenjo.github.io`) to run the widget layer as a trusted Wayland client behind normal windows and above Ubuntu's desktop icons (DING). GNOME Shell loads newly installed helpers on your next login — until then, Opaline runs seamlessly in Instant mode and switches to Native live once loaded.
-- **Instant mode (fallback):** Runs through Xwayland with zero setup. You can toggle Native mode anytime in **Settings → Desktop integration**.
-
-### Blank windows on NVIDIA-primary setups
-WebKitGTK 4.1 can occasionally render blank windows when an NVIDIA proprietary GPU is the primary desktop renderer. Opaline automatically selects Mesa on hybrid Intel/NVIDIA laptops; on NVIDIA-only systems, set:
+## CLI & Scripting (`opaline ctl`)
 
 ```bash
-WEBKIT_DISABLE_DMABUF_RENDERER=1 opaline
+opaline ctl status --json
+opaline ctl profile save coding "Coding Desk"
+opaline ctl profile use coding
+opaline ctl look clear
+opaline ctl var set focusMode true
+opaline validate examples/template-plugin
+opaline pack examples/template-plugin
 ```
 
-### Reporting a bug or hardware issue
-Run `opaline --diagnose` (or click **Copy debug report** in **Settings → Diagnostics**) and attach the redacted JSON using the **Hardware / Sensor Report** issue template.
+Full interface reference: [`docs/DBUS.md`](docs/DBUS.md) · Plugin SDK: [`docs/SDK.md`](docs/SDK.md).
 
-## Building from source
+## Building & Testing from Source
 
-Requirements on Ubuntu 26.04 LTS: Rust (stable), Node 24 with `pnpm` (`corepack enable`), and:
+Requirements on Ubuntu 26.04 LTS: Rust (stable ≥ 1.90), Node 24 with `pnpm`, and:
 
 ```bash
 sudo apt install build-essential pkg-config libglib2.0-bin desktop-file-utils appstream \
@@ -63,7 +67,7 @@ sudo apt install build-essential pkg-config libglib2.0-bin desktop-file-utils ap
   libpipewire-0.3-dev clang cmake
 ```
 
-Build and package the `.deb`:
+Build the `.deb`:
 
 ```bash
 pnpm install
@@ -71,7 +75,7 @@ pnpm install
 cd app && pnpm tauri build --bundles deb
 ```
 
-Run tests:
+Run the full test suite:
 
 ```bash
 cargo test --workspace && cargo clippy --workspace --all-targets -- -D warnings && cargo fmt --all --check

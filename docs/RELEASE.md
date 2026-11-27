@@ -1,4 +1,4 @@
-# Opaline Release Guide (Phase 8)
+# Opaline 2.0 Release Guide (Phase 10)
 
 ## 1. Building the `.deb` locally
 
@@ -10,7 +10,7 @@ dpkg-deb -I ../target/release/bundle/deb/Opaline_*_amd64.deb
 ```
 
 Verify that the `.deb` includes:
-- `/usr/bin/opaline`
+- `/usr/bin/opaline` (core, layer, `ctl`, `validate`, `pack`, `--diagnose`, `--dump`, `--safe-mode`)
 - `/usr/libexec/opaline/opaline-privileged`
 - `/usr/share/applications/io.github.ali_kenjo.Opaline.desktop`
 - `/usr/share/metainfo/io.github.ali_kenjo.Opaline.metainfo.xml`
@@ -18,35 +18,38 @@ Verify that the `.deb` includes:
 - `/usr/share/dbus-1/system-services/io.github.ali_kenjo.Opaline.Privileged.service`
 - `/usr/share/dbus-1/system.d/io.github.ali_kenjo.Opaline.Privileged.conf`
 - `/usr/share/polkit-1/actions/io.github.ali_kenjo.opaline.policy`
-- `/usr/share/gnome-shell/extensions/opaline-desktop@ali-kenjo.github.io/` (including `schemas/gschemas.compiled`)
+- `/usr/share/gnome-shell/extensions/opaline-desktop@ali-kenjo.github.io/` (API v2 + compiled `schemas/gschemas.compiled`)
+- `/usr/share/opaline/schemas/*.schema.json` & `/usr/share/opaline/themes/{opaline,classic}/theme.json`
+- `/usr/share/bash-completion/completions/opaline`
+- `/usr/share/zsh/vendor-completions/_opaline`
+- `/usr/share/fish/vendor_completions.d/opaline.fish`
 
-## 2. Setting up the minisign release signing key (one-time, owner)
+## 2. Setting up minisign keys (one-time, owner)
 
-1. Install `minisign` (`sudo apt install minisign`) and generate your release key pair offline (keep `opaline-release.key` private and backed up securely):
+1. **Release signing key:**
    ```bash
    minisign -G -p opaline-release.pub -s opaline-release.key
    ```
-2. Copy the single base64 public key line (starting with `RW...`) from `opaline-release.pub` into `RELEASE_MINISIGN_PUBKEY` in `crates/opaline-core/src/updates.rs`.
-3. Add two GitHub Actions repository secrets on `ali-kenjo/opaline`:
-   - `MINISIGN_SECRET_KEY`: full contents of `opaline-release.key`
-   - `MINISIGN_PASSWORD`: passphrase used to encrypt `opaline-release.key`
-
-## 3. Clean Ubuntu 26.04 VM verification checklist
-
-On a fresh Ubuntu 26.04 LTS desktop VM:
-1. **Install:** `sudo apt install ./Opaline_1.0.0_amd64.deb`
-2. **Instant mode first run:** Launch Opaline from the app grid → complete Onboarding → confirm widgets appear above desktop icons, below windows, click-through works, Peek (`Super+Alt+W`) and Edit (`Super+Alt+E`) work.
-3. **Native mode switch:** Log out and back in → confirm Opaline switches automatically to **Native** in **Settings → Desktop integration** and `opaline --diagnose` reports `helper_running: true`.
-4. **Upgrade:** Install a newer `.deb` over an older one (`sudo apt install ./Opaline_1.0.1_amd64.deb`) → verify settings and layouts stay intact.
-5. **Clean uninstall:** `sudo apt remove opaline` (and `sudo apt purge opaline`) → verify no stray system files or broken GNOME Shell state remain.
-
-## 4. Tagging `v1.0.0`
-
-1. Bump `version` to `"1.0.0"` in `Cargo.toml`, `app/package.json`, `app/src-tauri/tauri.conf.json`, and `packaging/metainfo/io.github.ali_kenjo.Opaline.metainfo.xml`.
-2. Commit `release: v1.0.0`, push `main`, and verify CI is green.
-3. Tag and push:
+   Copy the `RW...` public key line into `RELEASE_MINISIGN_PUBKEY` (`crates/opaline-core/src/updates.rs`) and configure GitHub Actions secrets `MINISIGN_SECRET_KEY` and `MINISIGN_PASSWORD`.
+2. **Community gallery signing key (`ali-kenjo/opaline-gallery`):**
    ```bash
-   git tag -a v1.0.0 -m "Opaline 1.0.0"
-   git push origin v1.0.0
+   minisign -G -p opaline-gallery.pub -s opaline-gallery.key
    ```
-   `.github/workflows/release.yml` will build the `.deb`, generate `SHA256SUMS` + `SHA256SUMS.minisig`, and publish the GitHub Release.
+   Copy its `RW...` public key line into `GALLERY_MINISIGN_PUBKEY` (`crates/opaline-core/src/gallery.rs`).
+
+## 3. Clean Ubuntu 26.04 VM & 1.1 → 2.0 migration checklist
+
+On a fresh Ubuntu 26.04 LTS desktop VM (and on the owner's laptop with a backup of `~/.config/opaline`):
+1. **Fresh install:** `sudo apt install ./Opaline_2.0.0_amd64.deb` → 7-step Onboarding over real wallpaper → Instant mode → re-login switches to Native Wayland (`Shell1` API v2).
+2. **1.1 → 2.0 upgrade:** Install 2.0 over 1.1 → verify existing `settings.json` migrates cleanly to `version: 2`, `theme: "classic"`, blur migrated to 2.0 scale, and layouts preserved (covered by `crates/opaline-core/tests/migrations.rs`).
+3. **Interactive features:** Edit mode + Inspector + Free mode + Widget Builder + Quick Controls + Profiles/Automation + `opaline ctl status --json` + Arabic RTL mode (grid never mirrors).
+4. **Clean uninstall:** `sudo apt purge opaline` → confirm clean removal.
+
+## 4. Tagging `v2.0.0`
+
+1. Bump `version` to `"2.0.0"` in `Cargo.toml`, `app/package.json`, `app/src-tauri/tauri.conf.json`, and `packaging/metainfo/io.github.ali_kenjo.Opaline.metainfo.xml`.
+2. Commit `release: v2.0.0`, push `main`, verify CI is green, then tag and push:
+   ```bash
+   git tag -a v2.0.0 -m "Opaline 2.0.0"
+   git push origin v2.0.0
+   ```
