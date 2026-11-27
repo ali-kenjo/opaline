@@ -457,3 +457,67 @@ pub async fn shell_set_extended_shortcuts(
     )
     .await
 }
+
+#[tauri::command]
+pub fn shell_list_plugins(
+    hub: State<'_, Arc<Hub>>,
+) -> Result<Vec<opaline_core::plugins::PluginStatus>, String> {
+    let mgr = hub
+        .plugins()
+        .ok_or_else(|| "plugins-unavailable".to_owned())?;
+    Ok(mgr.list(hub.safe_mode()))
+}
+
+#[tauri::command]
+pub fn shell_approve_plugin(
+    id: String,
+    hub: State<'_, Arc<Hub>>,
+) -> Result<opaline_core::plugins::PluginStatus, String> {
+    let mgr = hub
+        .plugins()
+        .ok_or_else(|| "plugins-unavailable".to_owned())?;
+    mgr.approve(&hub, &id)
+}
+
+#[tauri::command]
+pub fn shell_revoke_plugin(id: String, hub: State<'_, Arc<Hub>>) -> Result<(), String> {
+    let mgr = hub
+        .plugins()
+        .ok_or_else(|| "plugins-unavailable".to_owned())?;
+    mgr.revoke(&hub, &id)
+}
+
+#[tauri::command]
+pub fn shell_remove_plugin(id: String, hub: State<'_, Arc<Hub>>) -> Result<bool, String> {
+    let mgr = hub
+        .plugins()
+        .ok_or_else(|| "plugins-unavailable".to_owned())?;
+    mgr.remove(&hub, &id)
+}
+
+#[tauri::command]
+pub fn shell_install_plugin_file(
+    path: String,
+    hub: State<'_, Arc<Hub>>,
+) -> Result<opaline_core::plugins::PluginStatus, String> {
+    let bytes = std::fs::read(&path).map_err(|e| format!("could not read {path}: {e}"))?;
+    let mgr = hub
+        .plugins()
+        .ok_or_else(|| "plugins-unavailable".to_owned())?;
+    mgr.install_zip(&hub, &bytes)
+}
+
+#[tauri::command]
+pub async fn shell_gallery_fetch_index(
+    index_url: Option<String>,
+) -> Result<opaline_core::gallery::GalleryIndex, String> {
+    opaline_core::gallery::fetch_index(index_url.as_deref()).await
+}
+
+#[tauri::command]
+pub async fn shell_gallery_install(
+    pkg: opaline_core::gallery::GalleryPackage,
+    hub: State<'_, Arc<Hub>>,
+) -> Result<opaline_core::plugins::PluginStatus, String> {
+    opaline_core::gallery::install_package(&hub, &pkg, None).await
+}

@@ -414,7 +414,9 @@ fn create(
         // Shown after the position hint is set (see `show_at`).
         .visible(false)
         .position(position.x, position.y)
-        .inner_size(size.width, size.height);
+        .inner_size(size.width, size.height)
+        // Defense-in-depth main-frame navigation guard (ADR 0014 item 6).
+        .on_navigation(|url| super::plugin_scheme::is_allowed_layer_navigation(url.as_str()));
     let related_used = related.is_some();
     let builder = match related {
         Some(view) => builder.with_related_view(view),

@@ -107,7 +107,7 @@ struct Subscriptions {
 
 /// Essential UI state topics delivered even while covered or locked, so a layer that starts
 /// behind maximized windows still loads its widget list, layouts, wallpaper, palette, theme, and CSS.
-const ALWAYS_PUSH: [&str; 9] = [
+const ALWAYS_PUSH: [&str; 10] = [
     crate::store::TOPIC,
     crate::layouts::TOPIC,
     crate::themes::TOPIC,
@@ -115,6 +115,7 @@ const ALWAYS_PUSH: [&str; 9] = [
     crate::watcher::PROBLEMS_TOPIC,
     crate::profiles::TOPIC,
     crate::automation::TOPIC,
+    crate::plugins::TOPIC,
     "wallpaper.monitors",
     "appearance.settings",
 ];

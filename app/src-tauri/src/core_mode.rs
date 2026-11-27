@@ -100,9 +100,15 @@ pub fn run(request: Option<AppRequest>, safe_mode_flag: bool) -> ExitCode {
         profiles_mgr.publish_initial(&hub);
         hub.set_profiles(profiles_mgr);
 
-        let automation_mgr = opaline_core::automation::AutomationManager::new(cfg_dir);
+        let automation_mgr = opaline_core::automation::AutomationManager::new(cfg_dir.clone());
         hub.set_automation(automation_mgr.clone());
         rt.spawn(automation_mgr.run(hub.clone()));
+
+        if let Ok(data_dir) = opaline_core::paths::data_dir() {
+            let plugins_mgr = opaline_core::plugins::PluginsManager::new(data_dir, cfg_dir);
+            plugins_mgr.publish_state(&hub);
+            hub.set_plugins(plugins_mgr);
+        }
     }
     let _ = hub_slot.set(hub.clone());
     rt.spawn(app_service::forward_signals(bus.clone(), hub.clone()));
@@ -218,6 +224,13 @@ pub fn run(request: Option<AppRequest>, safe_mode_flag: bool) -> ExitCode {
             crate::shell::shell_delete_automation_rule,
             crate::shell::shell_resume_automation,
             crate::shell::shell_set_extended_shortcuts,
+            crate::shell::shell_list_plugins,
+            crate::shell::shell_approve_plugin,
+            crate::shell::shell_revoke_plugin,
+            crate::shell::shell_remove_plugin,
+            crate::shell::shell_install_plugin_file,
+            crate::shell::shell_gallery_fetch_index,
+            crate::shell::shell_gallery_install,
         ])
         .setup({
             let hub = hub.clone();

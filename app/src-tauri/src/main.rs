@@ -16,6 +16,19 @@ use opaline_core::app_service::AppRequest;
 enum TopCommand {
     /// Control a running Opaline instance over D-Bus (settings, widgets, profiles, automation).
     Ctl(ctl::CtlArgs),
+    /// Validate a plugin or package folder (manifest, entry, permissions, CSS, size limits).
+    Validate {
+        /// Path to the package folder containing `plugin.json`.
+        dir: std::path::PathBuf,
+    },
+    /// Validate and pack a plugin folder into a `.opaline-plugin` ZIP archive.
+    Pack {
+        /// Path to the package folder containing `plugin.json`.
+        dir: std::path::PathBuf,
+        /// Optional output archive path (defaults to `<id>-<version>.opaline-plugin`).
+        #[arg(long, short)]
+        out: Option<std::path::PathBuf>,
+    },
 }
 
 #[derive(Debug, Parser)]
@@ -95,8 +108,11 @@ impl Cli {
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
-    if let Some(TopCommand::Ctl(args)) = cli.command {
-        return ctl::run(args);
+    match cli.command {
+        Some(TopCommand::Ctl(args)) => return ctl::run(args),
+        Some(TopCommand::Validate { dir }) => return validate_pkg(&dir),
+        Some(TopCommand::Pack { dir, out }) => return pack_pkg(&dir, out.as_deref()),
+        None => {}
     }
     if cli.diagnose {
         return diagnose();
@@ -144,6 +160,43 @@ fn diagnose() -> ExitCode {
         }
         Err(error) => {
             eprintln!("could not serialise the report: {error}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+#[allow(clippy::print_stdout)]
+fn validate_pkg(dir: &std::path::Path) -> ExitCode {
+    match opaline_core::plugins::validate_dir(dir) {
+        Ok(manifest) => {
+            match serde_json::to_string_pretty(&manifest) {
+                Ok(json) => println!("{json}"),
+                Err(_) => println!(
+                    "Valid plugin: {} ({})",
+                    manifest.id, manifest.plugin_version
+                ),
+            }
+            ExitCode::SUCCESS
+        }
+        Err(error) => {
+            eprintln!("opaline validate: {error}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+#[allow(clippy::print_stdout)]
+fn pack_pkg(dir: &std::path::Path, out: Option<&std::path::Path>) -> ExitCode {
+    match opaline_core::plugins::pack_dir(dir, out) {
+        Ok(report) => {
+            match serde_json::to_string_pretty(&report) {
+                Ok(json) => println!("{json}"),
+                Err(_) => println!("Packed {} -> {}", report.id, report.output_path),
+            }
+            ExitCode::SUCCESS
+        }
+        Err(error) => {
+            eprintln!("opaline pack: {error}");
             ExitCode::FAILURE
         }
     }

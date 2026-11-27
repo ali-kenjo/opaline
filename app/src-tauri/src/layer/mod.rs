@@ -3,6 +3,7 @@
 pub(crate) mod assets;
 mod bridge;
 mod client;
+mod plugin_scheme;
 #[cfg(debug_assertions)]
 mod spike;
 mod windows;
@@ -26,11 +27,10 @@ pub fn run(backend: Backend) -> ExitCode {
     let bridge = Arc::new(Bridge::new(outgoing_tx));
 
     let builder = tauri::Builder::default()
-        .register_uri_scheme_protocol("opaline-asset", |_ctx, request| assets::handle(&request));
-    #[cfg(debug_assertions)]
-    let builder = builder.register_uri_scheme_protocol("opaline-plugin", |ctx, request| {
-        spike::plugin_scheme(ctx.app_handle(), &request)
-    });
+        .register_uri_scheme_protocol("opaline-asset", |_ctx, request| assets::handle(&request))
+        .register_uri_scheme_protocol("opaline-plugin", |ctx, request| {
+            plugin_scheme::handle(ctx.app_handle(), &request)
+        });
     let app = builder
         .manage(bridge.clone())
         .manage(windows::Pins::default())

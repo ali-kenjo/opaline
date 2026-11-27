@@ -98,6 +98,8 @@ pub struct Hub {
     profiles: Mutex<Option<Arc<crate::profiles::ProfilesManager>>>,
     /// Automation rules engine manager (Phase 8).
     automation: Mutex<Option<Arc<crate::automation::AutomationManager>>>,
+    /// Installed code plugins & permission trust manager (Phase 9).
+    plugins: Mutex<Option<Arc<crate::plugins::PluginsManager>>>,
 }
 
 impl Hub {
@@ -132,6 +134,7 @@ impl Hub {
             sources: Mutex::new(None),
             profiles: Mutex::new(None),
             automation: Mutex::new(None),
+            plugins: Mutex::new(None),
         })
     }
 
@@ -575,6 +578,14 @@ impl Hub {
 
     pub fn automation(&self) -> Option<Arc<crate::automation::AutomationManager>> {
         lock(&self.automation).clone()
+    }
+
+    pub fn set_plugins(&self, mgr: Arc<crate::plugins::PluginsManager>) {
+        *lock(&self.plugins) = Some(mgr);
+    }
+
+    pub fn plugins(&self) -> Option<Arc<crate::plugins::PluginsManager>> {
+        lock(&self.plugins).clone()
     }
 
     pub fn latest_snapshot(&self) -> HashMap<Topic, Value> {
