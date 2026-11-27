@@ -11,12 +11,8 @@ transparent WebKitGTK window per monitor, React 19 frontend) + a small GNOME She
 each ending with acceptance checks, a PROGRESS entry and the owner's sign-off.
 
 ## Status
-- **P0–P8** are signed off and pushed (`origin/main` `58c4407`).
-- **Phase 9: Plugins & gallery (Tasks 9.1–9.4)** is complete and verified locally (255 Rust tests, 317 Vitest incl.
-  hostile-plugin suite, 88 Playwright WebKit E2E), awaiting owner sign-off before pushing to `origin/main`.
-- **Next steps, in order:**
-  1. Sign off and push **Phase 9**.
-  2. Complete **Phase 10: Quality & release** (en/de/ar i18n parity, a11y, `docs/SECURITY.md` threat model & security tests, release readiness).
+- **P0–P9** are signed off and pushed (`origin/main`).
+- **Next step:** Complete **Phase 10: Quality & release** (en/de/ar i18n parity, a11y & RTL audit, `docs/SECURITY.md` 2.0 threat model & security tests, `README.md` / `docs/RELEASE.md` 2.0 updates, release readiness).
   3. Optional, if the owner allows: a real-layer budget run (`scripts/measure-budget.sh 60` with a 2.0 build on a
      settings copy) to confirm animation CPU and RAM on the desktop.
 - **Settings are version 2.** Run dev builds on a settings copy (`XDG_CONFIG_HOME=<copy>`), never on the owner's

@@ -939,7 +939,7 @@ production `vite build`.
 **Note (9.3):** Creating the public `ali-kenjo/opaline-gallery` repository and minting the gallery minisign key awaits
 the owner; until configured, `GALLERY_MINISIGN_PUBKEY` fails closed by design.
 
-**Sign-off:** ⏳ Awaiting owner sign-off. Next: Phase 10 (Quality & release: en/de/ar i18n parity, a11y, `docs/SECURITY.md` threat model & security tests, budgets, release readiness).
+**Sign-off:** ✅ 2026-11-27. Phase 9 complete. Next: Phase 10 (Quality & release: en/de/ar i18n parity, a11y, `docs/SECURITY.md` threat model & security tests, budgets, release readiness).
 
 
 
