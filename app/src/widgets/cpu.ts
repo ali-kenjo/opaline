@@ -1,5 +1,7 @@
 // CPU widget: load, temperature, frequency, power, pressure, throttling and facts about the chip.
 // Every field can be shown, hidden, reordered, renamed or made the hero.
+import { defaultOptions } from "../compose/widget";
+import { cpuComposition } from "./cpu.composition";
 import {
   frequency,
   type FreqUnit,
@@ -302,6 +304,39 @@ export const cpu: WidgetDef = {
   options: [
     {
       kind: "enum",
+      key: "heroVisual",
+      label: "Hero visual",
+      options: [
+        { value: "thermal", label: "Thermal badge" },
+        { value: "ring", label: "Load gauge" },
+        { value: "bars", label: "Per-core bars" },
+        { value: "heatmap", label: "Per-core heatmap" },
+        { value: "chart", label: "Load chart" },
+      ],
+      default: "thermal",
+    },
+    {
+      kind: "enum",
+      key: "tempSource",
+      label: "Temperature source",
+      options: [
+        { value: "package", label: "Package / Tdie" },
+        { value: "core-max", label: "Hottest core / Tccd" },
+      ],
+      default: "package",
+    },
+    {
+      kind: "enum",
+      key: "freqMode",
+      label: "Frequency mode",
+      options: [
+        { value: "avg", label: "Average" },
+        { value: "max", label: "Fastest core" },
+      ],
+      default: "avg",
+    },
+    {
+      kind: "enum",
       key: "tempUnit",
       label: "Temperature unit",
       options: [
@@ -332,6 +367,9 @@ export const cpu: WidgetDef = {
       default: [85, 95],
     },
   ],
+  composition: cpuComposition,
+  useClassicStat: true,
+  compositionOptions: (content) => defaultOptions(cpu, content),
   status(c): CardStatus {
     const load = c.get(LOAD);
     if (load === undefined) return { kind: "loading" };

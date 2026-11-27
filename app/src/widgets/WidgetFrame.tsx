@@ -158,13 +158,20 @@ export function WidgetFrame({
   onOpenSettings,
 }: WidgetFrameProps) {
   const host = useHost();
-  // A composed widget compiles its expressions once, for the frame's lifetime.
-  const [runtime] = useState(() =>
-    def.composition ? new Runtime(def.composition, EMPTY_ENV) : null,
-  );
   const stored = host.settings.widgets[id];
   const look = host.settings.look ?? DEFAULT_LOOK;
   const themeLayers = host.theme;
+  // Classic 1.1 theme (and unthemed Classic Lab) preserves StatLayout for monitor widgets;
+  // Opaline 2.0 and all other 2.0 themes render the redesigned widget compositions.
+  const useComposition = Boolean(
+    def.composition &&
+    (!def.useClassicStat || (themeLayers !== undefined && themeLayers.id !== "classic")),
+  );
+  // A composed widget compiles its expressions once for its active composition.
+  const runtime = useMemo(
+    () => (useComposition && def.composition ? new Runtime(def.composition, EMPTY_ENV) : null),
+    [useComposition, def.composition],
+  );
   const baseStyle = useMemo(
     () =>
       applyDesktopLook(

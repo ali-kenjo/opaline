@@ -1,7 +1,9 @@
 // GPU widget: one GPU (chosen, or the discrete one when there is one). Load, VRAM, temperature,
 // clocks, power, fan, video engines and what uses it. A sleeping dGPU is shown asleep and never
 // woken up (ADR 0003): core doesn't touch it, and neither do we.
+import { defaultOptions } from "../compose/widget";
 import type { Value } from "../layer/protocol";
+import { gpuComposition } from "./gpu.composition";
 import {
   type ByteUnit,
   bytes,
@@ -86,7 +88,25 @@ export const gpu: WidgetDef = {
   defaultSize: "S",
   heroStyles: ["ring", "number", "bar", "sparkline"],
   topics: [LIST],
-  extraTopics: (c) => t(c, "state"),
+  extraTopics: (c) => {
+    const list = gpus(c.get(LIST));
+    const metrics = [
+      "state",
+      "load",
+      "temp",
+      "vram",
+      "power",
+      "clocks",
+      "fan",
+      "engines",
+      "processes",
+    ];
+    const out = new Set<string>(t(c, "state"));
+    for (const info of list.slice(0, 2)) {
+      for (const m of metrics) out.add(`gpu.${String(info.index)}.${m}`);
+    }
+    return [...out];
+  },
   defaultFields: ["load", "temp", "vram", "power"],
   fields: [
     {
@@ -311,19 +331,54 @@ export const gpu: WidgetDef = {
   ],
   options: [
     { kind: "source", key: "gpu", label: "GPU", topic: LIST, choices, default: "auto" },
+    {
+      kind: "enum",
+      key: "multiGpu",
+      label: "Dual-GPU layout",
+      options: [
+        { value: "auto", label: "Side by side (M and larger)" },
+        { value: "single", label: "Selected GPU only" },
+      ],
+      default: "auto",
+    },
     TEMP_UNIT,
     BYTE_UNIT,
     levels([90, 98], "For the main value (% for load, °C for temperature)."),
   ],
+  composition: gpuComposition,
+  useClassicStat: true,
+  compositionTopics(values) {
+    const out: Record<string, Value | undefined> = { ...values };
+    for (const [k, v] of Object.entries(values)) {
+      if (k.startsWith("gpu.0.")) out[`gpu0.${k.slice(6)}`] = v;
+      else if (k.startsWith("gpu.1.")) out[`gpu1.${k.slice(6)}`] = v;
+    }
+    return out;
+  },
+  compositionOptions(content) {
+    const choice = content.opt<string>("gpu");
+    const primaryIndex = choice === "auto" ? 1 : Number(choice) || 0;
+    return {
+      ...defaultOptions(gpu, content),
+      primaryIndex,
+    };
+  },
   status(c): CardStatus {
     const list = c.get(LIST);
     if (list === undefined) return { kind: "loading" };
-    if (gpus(list).length === 0) return { kind: "unavailable", reason: "No GPU found" };
-    const state = g(c, "state");
-    const s = map(state);
-    if (s?.awake?.kind === "bool" && !s.awake.v) return { kind: "asleep", reason: "GPU asleep" };
-    if (state?.kind === "missing" && state.v.state === "asleep")
-      return { kind: "asleep", reason: "GPU asleep" };
+    const all = gpus(list);
+    if (all.length === 0) return { kind: "unavailable", reason: "No GPU found" };
+    // When showing multi-GPU side by side, a sleeping dGPU renders its own moon/"Asleep · 0 W"
+    // pane beside the awake iGPU instead of replacing the entire card.
+    const multi = all.length > 1 && c.content.opt<string>("multiGpu") !== "single";
+    if (!multi) {
+      const state = g(c, "state");
+      const s = map(state);
+      if (s?.awake?.kind === "bool" && !s.awake.v)
+        return { kind: "asleep", reason: "Asleep · 0 W" };
+      if (state?.kind === "missing" && state.v.state === "asleep")
+        return { kind: "asleep", reason: "Asleep · 0 W" };
+    }
     return { kind: "ready" };
   },
 };

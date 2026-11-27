@@ -37,6 +37,13 @@ export function moreMocks(load: number): Record<string, Value> {
     }),
     "memory.swap": m({ totalB: n(4.29 * GB), usedB: n(0.8 * GB), percent: n(18.6) }),
     "memory.zswap": missing("zswap-disabled"),
+    "memory.zram": m({
+      origDataB: n(1.2 * GB),
+      comprDataB: n(0.32 * GB),
+      memUsedB: n(0.35 * GB),
+      ratio: n(3.75),
+      devices: n(1),
+    }),
     "memory.pressure": m({ some10: n(0.4), some60: n(0.2), some300: n(0.1) }),
     "memory.info": m({
       slotsUsed: n(2),
@@ -68,7 +75,8 @@ export function moreMocks(load: number): Record<string, Value> {
     "gpu.1.power": m({ watts: n(24.6), limitW: n(60) }),
     "gpu.1.fan": m({ rpm: n(2150), percent: n(38) }),
     "gpu.1.encdec": m({ encoder: n(0), decoder: n(12) }),
-    "gpu.1.processes": l([m({ name: t("blender"), pid: n(4242) })]),
+    "gpu.1.engines": m({ render3d: n(Math.min(100, load * 1.2)), video: n(12), copy: n(4) }),
+    "gpu.1.processes": l([m({ name: t("blender"), pid: n(4242), vramB: n(1.4 * 1024 ** 3) })]),
 
     "storage.drives": l([
       m({

@@ -162,8 +162,14 @@ export interface WidgetDef {
   render?: (ctx: RenderCtx) => ReactNode;
   /** The widget as a composition (docs/COMPOSITION.md), drawn by the engine; wins over `render`. */
   composition?: Composition;
+  /** When true, the Classic 1.1 theme (and unthemed Classic Lab) renders `StatLayout` instead of `composition`. */
+  useClassicStat?: boolean;
   /** The composition's `opt.*` names. Default: every option, plus `fields` (the shown field ids). */
   compositionOptions?: (content: ResolvedContent) => Record<string, ExprValue>;
+  /** Optional topic aliasing for compositions (e.g. `gpu.0.*` → `gpu0.*`). Preserves object identity. */
+  compositionTopics?: (
+    values: Readonly<Record<string, Value | undefined>>,
+  ) => Readonly<Record<string, Value | undefined>>;
   /** The activity class its topics are subscribed at while visible. */
   activity?: ActivityClass;
 }

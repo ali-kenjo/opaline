@@ -1,11 +1,14 @@
-// Memory widget: RAM use, hardware specs (slots, speed, type, sticks, vendor), swap, zswap and pressure.
+// Memory widget: RAM use, hardware specs (slots, speed, type, sticks, vendor), swap, zram, zswap and pressure.
+import { defaultOptions } from "../compose/widget";
 import { type ByteUnit, bytes, fixed, map, missingReason, num, percent, text } from "./format";
+import { memoryComposition } from "./memory.composition";
 import { BYTE_UNIT, levels } from "./options";
 import type { CardStatus, ReadCtx, Reading, WidgetDef } from "./types";
 
 const USAGE = "memory.usage";
 const SWAP = "memory.swap";
 const ZSWAP = "memory.zswap";
+const ZRAM = "memory.zram";
 const PRESSURE = "memory.pressure";
 const INFO = "memory.info";
 
@@ -106,6 +109,22 @@ export const memory: WidgetDef = {
         const pool = num(z.poolB) ?? num(z.compressedB);
         return stored !== null && pool !== null
           ? { text: `${bytes(stored, unit(c), 1)} → ${bytes(pool, unit(c), 1)}` }
+          : { text: "On" };
+      },
+    },
+    {
+      id: "zram",
+      label: "Zram",
+      icon: "layers",
+      topics: [ZRAM],
+      hero: false,
+      read: (c) => {
+        const z = map(c.get(ZRAM));
+        if (!z) return missingReason(c.get(ZRAM)) === "no-zram" ? { text: "Off" } : null;
+        const orig = num(z.origDataB);
+        const compr = num(z.comprDataB);
+        return orig !== null && compr !== null
+          ? { text: `${bytes(orig, unit(c), 1)} → ${bytes(compr, unit(c), 1)}` }
           : { text: "On" };
       },
     },
@@ -218,7 +237,24 @@ export const memory: WidgetDef = {
       },
     },
   ],
-  options: [BYTE_UNIT, levels([85, 95], "For the main value. The card turns amber, then red.")],
+  options: [
+    {
+      kind: "enum",
+      key: "heroVisual",
+      label: "Hero visual",
+      options: [
+        { value: "liquid", label: "Liquid fill" },
+        { value: "ring", label: "Ring" },
+        { value: "number", label: "Number" },
+      ],
+      default: "liquid",
+    },
+    BYTE_UNIT,
+    levels([85, 95], "For the main value. The card turns amber, then red."),
+  ],
+  composition: memoryComposition,
+  useClassicStat: true,
+  compositionOptions: (content) => defaultOptions(memory, content),
   status(c): CardStatus {
     const u = c.get(USAGE);
     if (u === undefined) return { kind: "loading" };
