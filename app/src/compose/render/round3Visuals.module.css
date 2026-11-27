@@ -3,6 +3,8 @@
 /* ── 4.9 Processes table ─────────────────────────────────────────────────────── */
 
 .procWrap {
+  /* Fonts' default line height (Roboto Flex ~1.9×) made small rows 20 px tall and overflowed M cards. */
+  line-height: 1.25;
   flex: 1;
   min-height: 0;
   display: flex;

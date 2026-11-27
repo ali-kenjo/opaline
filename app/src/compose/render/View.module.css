@@ -99,9 +99,14 @@
   font-variant-numeric: var(--w-nums);
 }
 
+/* Vertically centred while the content fits; when it doesn't (a look with a header leaves an M
+   card 30 px less), `safe` anchors it to the top so only the last line is cut, never the first.
+   Plain `center` stays as the fallback for engines without `safe`. Horizontally it stays plain
+   `center`: `safe` there narrowed text that should fill the width. */
 .fill {
   display: flex;
   align-items: center;
+  align-items: safe center;
   justify-content: center;
 }
 

@@ -308,11 +308,19 @@ export function WeatherSceneVisual({ params, animate, label }: VisualProps) {
   }, [params.hourly, curHourIso, isLarge]);
 
   const daysList = useMemo(() => daily.slice(0, isLarge ? 6 : 4), [daily, isLarge]);
+  const hourlyShown = !isCompact && showHourly && nextHours.length > 0;
+  // A 4×2 card fits the hero and one more row: the hourly strip wins, the detail pills (wind,
+  // UV, AQI, humidity) come back when hourly is off. Both rows overflowed the card by ~23 px.
+  const pillsShown = !isTiny && !(size === "M" && hourlyShown);
   const weekMin = Math.min(...daysList.map((d) => num(d.minC) ?? 0), 0);
   const weekMax = Math.max(...daysList.map((d) => num(d.maxC) ?? 1), weekMin + 1);
 
   return (
-    <div className={styles.wxRoot} data-testid="weather-scene" aria-label={label ?? "Weather"}>
+    <div
+      className={`${styles.wxRoot} ${size === "M" ? styles.wxRootM : ""}`}
+      data-testid="weather-scene"
+      aria-label={label ?? "Weather"}
+    >
       {skyScene ? <SkyAtmosphere code={code} isDay={isDay} animate={animate ?? false} /> : null}
 
       <div className={styles.wxHero}>
@@ -339,7 +347,7 @@ export function WeatherSceneVisual({ params, animate, label }: VisualProps) {
         ) : null}
       </div>
 
-      {!isTiny ? (
+      {pillsShown ? (
         <div className={styles.wxPills}>
           {isCompact && hiToday !== null && loToday !== null ? (
             <span className={styles.wxPill}>
@@ -380,7 +388,7 @@ export function WeatherSceneVisual({ params, animate, label }: VisualProps) {
         </div>
       ) : null}
 
-      {!isCompact && showHourly && nextHours.length > 0 ? (
+      {hourlyShown ? (
         <div className={styles.wxHourly} aria-label="Hourly forecast">
           {nextHours.map((h, i) => {
             const hc = condition(num(h.code), num(h.isDay) !== 0);
