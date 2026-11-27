@@ -70,7 +70,39 @@ export type Command =
   | { cmd: "run-source-now"; id: string }
   | { cmd: "set-variable"; name: string; value: Value }
   | { cmd: "save-custom-widget"; widget: Value }
-  | { cmd: "delete-custom-widget"; id: string };
+  | { cmd: "delete-custom-widget"; id: string }
+  | { cmd: "control-toggle"; control: string; enabled: boolean }
+  | { cmd: "control-set-slider"; control: string; percent: number; target?: string }
+  | { cmd: "launch-target"; kind: "app" | "url" | "path"; target: string }
+  | { cmd: "note-save"; id: string; body: string; expected_sha256?: string }
+  | { cmd: "note-toggle-checkbox"; id: string; line: number }
+  | { cmd: "todo-add"; text: string; priority?: string; due?: string }
+  | { cmd: "todo-toggle"; index: number }
+  | { cmd: "todo-delete"; index: number }
+  | {
+      cmd: "timer-action";
+      action: "start" | "pause" | "reset" | "lap" | "add" | "delete" | "next-phase";
+      id: string;
+      label?: string;
+      duration_s?: number;
+      kind?: "timer" | "stopwatch" | "pomodoro";
+    }
+  | {
+      cmd: "ha-toggle-entity";
+      base_url: string;
+      entity_id: string;
+      secret_name: string;
+      allow_local_http?: boolean;
+    }
+  | {
+      cmd: "n8n-set-workflow-active";
+      base_url: string;
+      workflow_id: string;
+      active: boolean;
+      secret_name: string;
+      allow_local_http?: boolean;
+    }
+  | { cmd: "fetch-feed"; url: string };
 
 export type MediaAction = "play" | "pause" | "play-pause" | "next" | "previous";
 

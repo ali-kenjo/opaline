@@ -1,0 +1,266 @@
+/* Shared compact layout styling for Phase 7 widgets (Quick controls, Personal & Time,
+ * Photos & Ambient, Developer & Online). Uses theme CSS tokens so every look works cleanly. */
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  height: 100%;
+  padding: 10px 12px;
+  box-sizing: border-box;
+  overflow: hidden;
+  color: var(--md-on-surface, #f2f5fb);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--md-on-surface, #f2f5fb);
+  min-width: 0;
+}
+
+.sub {
+  font-size: 0.72rem;
+  color: var(--md-on-surface-variant, #b8c2d4);
+  white-space: nowrap;
+}
+
+.pillGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  gap: 5px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  align-content: start;
+}
+
+.ctrlPill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 8px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--md-on-surface, #fff) 16%, transparent);
+  background: color-mix(in srgb, var(--md-on-surface, #fff) 8%, transparent);
+  color: var(--md-on-surface, #f2f5fb);
+  font-size: 0.74rem;
+  font-weight: 500;
+  line-height: 1.15;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition:
+    transform 120ms ease,
+    background 150ms ease;
+}
+
+.ctrlPill:active {
+  transform: scale(0.97);
+}
+
+.ctrlPillOn {
+  background: color-mix(in srgb, var(--md-primary, #7dc4ff) 28%, transparent);
+  border-color: color-mix(in srgb, var(--md-primary, #7dc4ff) 65%, transparent);
+}
+
+.sliders {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.sliderRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  line-height: 1.1;
+}
+
+.range {
+  flex: 1;
+  margin: 0;
+  height: 16px;
+  accent-color: var(--md-primary, #7dc4ff);
+  cursor: pointer;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.listItem {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.78rem;
+  line-height: 1.3;
+  padding: 4px 6px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--md-on-surface, #fff) 5%, transparent);
+}
+
+.itemText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doneText {
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+
+.iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 9px;
+  border: 1px solid color-mix(in srgb, var(--md-on-surface, #fff) 18%, transparent);
+  background: color-mix(in srgb, var(--md-on-surface, #fff) 9%, transparent);
+  color: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.iconBtnPrimary {
+  background: color-mix(in srgb, var(--md-primary, #7dc4ff) 30%, transparent);
+  border-color: color-mix(in srgb, var(--md-primary, #7dc4ff) 65%, transparent);
+}
+
+.inlineInput {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px;
+  border-radius: 9px;
+  border: 1px solid color-mix(in srgb, var(--md-on-surface, #fff) 24%, transparent);
+  background: color-mix(in srgb, #000 32%, transparent);
+  color: var(--md-on-surface, #f2f5fb);
+  font-size: 0.78rem;
+  font-family: inherit;
+}
+
+.textarea {
+  flex: 1;
+  width: 100%;
+  box-sizing: border-box;
+  resize: none;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--md-on-surface, #fff) 24%, transparent);
+  background: color-mix(in srgb, #000 30%, transparent);
+  color: var(--md-on-surface, #f2f5fb);
+  font-size: 0.78rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.heroNum {
+  font-size: clamp(1.4rem, 4vw, 2.3rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+}
+
+.badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--md-primary, #7dc4ff) 24%, transparent);
+}
+
+.barTrack {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--md-on-surface, #fff) 16%, transparent);
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--md-primary, #7dc4ff);
+}
+
+.photoBox {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.photoImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.photoCaption {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 8px;
+  padding: 4px 9px;
+  border-radius: 10px;
+  background: rgba(8, 12, 20, 0.62);
+  color: #f4f7fc;
+  font-size: 0.74rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.auraFill {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 14px;
+  box-sizing: border-box;
+  border-radius: inherit;
+}
+
+.quoteText {
+  font-size: 0.88rem;
+  font-style: italic;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.quoteAuthor {
+  font-size: 0.74rem;
+  color: var(--md-on-surface-variant, #b8c2d4);
+  margin-top: auto;
+}

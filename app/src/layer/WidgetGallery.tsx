@@ -44,10 +44,41 @@ const CATEGORIES: readonly { id: GalleryCategory; label: string }[] = [
 ];
 
 function categoryOf(def: WidgetDef): GalleryCategory {
-  if (def.kind === "docker" || def.kind === "processes") return "developer-online";
-  if (def.kind === "weather") return "weather-ambient";
-  if (def.kind === "clock" || def.kind === "calendar") return "time-personal";
-  if (def.kind === "media" || def.kind === "visualizer") return "media-photos";
+  if (def.kind === "controls") return "controls";
+  if (
+    def.kind === "docker" ||
+    def.kind === "processes" ||
+    def.kind === "github" ||
+    def.kind === "home-assistant" ||
+    def.kind === "mqtt" ||
+    def.kind === "feeds" ||
+    def.kind === "n8n"
+  ) {
+    return "developer-online";
+  }
+  if (
+    def.kind === "weather" ||
+    def.kind === "sun-moon" ||
+    def.kind === "aura" ||
+    def.kind === "quote" ||
+    def.kind === "decoration"
+  ) {
+    return "weather-ambient";
+  }
+  if (
+    def.kind === "clock" ||
+    def.kind === "calendar" ||
+    def.kind === "notes" ||
+    def.kind === "todo" ||
+    def.kind === "timers" ||
+    def.kind === "countdown" ||
+    def.kind === "world-clock"
+  ) {
+    return "time-personal";
+  }
+  if (def.kind === "media" || def.kind === "visualizer" || def.kind === "photo-frame") {
+    return "media-photos";
+  }
   return "system";
 }
 
