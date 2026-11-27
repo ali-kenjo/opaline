@@ -12,11 +12,13 @@ each ending with acceptance checks, a PROGRESS entry and the owner's sign-off.
 
 ## Status
 - **P0, P1, P2, P3, P4 (Rounds 1–5), P5 (Editing experience & placement), and P6 (Custom sources & Widget Builder)**
-  are signed off and pushed.
+  are signed off and pushed (`origin/main` `a5c4df0`).
+- **Phase 7: New widgets (Tasks 7.1–7.5 — 16 new widgets + 6 core providers)** is complete and verified locally
+  (240 Rust tests, 311 Vitest, 85 Playwright WebKit E2E), awaiting owner sign-off before pushing to `origin/main`.
 - **Next steps, in order:**
-  1. Complete **Phase 7: New widgets** (Quick controls, typing in widgets, Notes, To-do, Timers, Countdowns, World
-     clock, Photo frame, Sun & moon, Quote, Aura, Decorations, GitHub, Home Assistant, MQTT, Feeds, n8n).
-  2. Optional, if the owner allows: a real-layer budget run (`scripts/measure-budget.sh 60` with a 2.0 build on a
+  1. Sign off and push **Phase 7**.
+  2. Begin **Phase 8: Profiles, automation, CLI `opaline ctl`, D-Bus v2, helper v2**.
+  3. Optional, if the owner allows: a real-layer budget run (`scripts/measure-budget.sh 60` with a 2.0 build on a
      settings copy) to confirm animation CPU and RAM on the desktop.
 - **Settings are version 2.** Run dev builds on a settings copy (`XDG_CONFIG_HOME=<copy>`), never on the owner's
   `~/.config/opaline` (the installed 1.1.0 then treats it as read-only).

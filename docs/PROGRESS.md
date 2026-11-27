@@ -813,6 +813,58 @@ automated integration tests.
 **Sign-off:** ✅ 2026-11-27. Phase 6 complete. Next: Phase 7 (New widgets: Quick controls, Notes, To-do, Timers,
 Countdowns, World clock, Photo frame, Sun & moon, Quote, Aura, Decorations, GitHub, HA, MQTT, Feeds, n8n).
 
+## 2.0 · Phase 7: New widgets (2026-11-27)
+
+**Done**
+- **7.1 Quick Controls (`providers/controls.rs`, `app/src/widgets/controls.tsx`):**
+  - Implements every GNOME 50 Quick Settings interface verified in ADR 0016 (Spike S4): Wi-Fi (NetworkManager
+    `WirelessEnabled`), Bluetooth (`Rfkill` + `org.bluez.Adapter1`), Airplane mode (`Rfkill`), Do Not Disturb /
+    Night Light / Dark style (`gsettings`), Keep awake (`org.gnome.SessionManager.Inhibit`/`Uninhibit`),
+    Output/Input volume & mute (`wpctl`), per-monitor Display brightness (`Mutter.DisplayConfig.SetBacklight`),
+    Keyboard backlight (`gsd.Power.Keyboard`, hidden when unsupported), plus validated launchers (`gtk-launch` /
+    `xdg-open` for `.desktop` apps, `http(s)` URLs, and existing paths).
+  - Optimistic UI with automatic rollback on core command error, throttled sliders (≤ 150 ms), and ADR 0015
+    `[data-interactive="true"]` input regions with `release-focus`.
+- **7.2 Typing in widgets (ADR 0015) & 7.3 Personal & Time (`providers/{notes,todos,timers}.rs`, `widgets/{notes,todo,timers,countdown,worldClock}.tsx`):**
+  - **Notes**: Markdown files in `~/.local/share/opaline/notes/`, interactive checkboxes toggled in place,
+    inline Markdown editor with `Escape` → `release-focus`, and SHA-256 external-edit conflict detection.
+  - **To-do**: `todo.txt` list (`~/.local/share/opaline/todos.txt`) with priorities, due dates, project chips,
+    completion toggle, delete, and inline quick-add input.
+  - **Timers & Pomodoro**: Core-owned state persisted in `~/.local/share/opaline/timers.json` surviving layer
+    restarts; countdown timers, stopwatch with laps, Pomodoro work/break cycles & daily count; desktop
+    notification + lightweight freedesktop event sound (`canberra-gtk-play`) on completion.
+  - **Countdowns**: Event countdowns (`YYYY-MM-DD`) and Year/Month/Day live progress bars.
+  - **World Clock**: Up to 6 IANA time zones with local time and day/night indicators.
+- **7.4 Photos & Ambient (`providers/photos.rs`, `widgets/{photoFrame,sunMoon,quote,aura,decoration}.tsx`):**
+  - **Photo Frame**: Core scans user photo folders, decodes & downscales thumbnails (≤ 640 px) into
+    `~/.cache/opaline/photos/` served via `opaline-asset://photos/<name>` (full-res photos never reach the
+    webview), extracts JPEG EXIF dates, flags `"On this day"`, supports fit/fill & favorites, 0 idle frames.
+  - **Sun & Moon**: Pure offline solar/lunar astronomy (horizon sun path arc, sunrise/sunset, golden hour,
+    moon phase & illumination %).
+  - **Quote of the Day**: Curated public-domain daily rotation or custom source topic.
+  - **Aura**: Data-driven ambient gradient reacting to time of day, weather condition, and wallpaper seed (0
+    idle frames).
+  - **Decoration**: Lightweight text banners, expressive Material shapes, and desktop separator lines.
+- **7.5 Developer & Online (`providers/integrations.rs`, `widgets/devWidgets.tsx`):**
+  - **GitHub** (opt-in summary with keyring PAT), **Home Assistant** (entity states + validated `ha-toggle-entity`
+    command with keyring token), **MQTT Topic** (live `source.*` hero display), **Feeds** (pure-Rust RSS 2.0,
+    Atom 1.0 & JSON Feed 1.1 parser strictly stripped to plain text — zero feed HTML in webviews), and **n8n
+    Workflows** (workflow list + validated `n8n-set-workflow-active` with local loopback HTTP opt-in & keyring
+    API key).
+- **Widget Gallery & Registry (`registry.ts`, `WidgetGallery.tsx`):**
+  - Registered all 16 new Phase 7 widgets (30 built-in widgets total) across their exact 2.0 categories
+    (`Controls`, `Time & Personal`, `Media & Photos`, `Weather & Ambient`, `Developer & Online`).
+
+**Checks:** 240 Rust workspace tests (incl. `controls`, `notes` conflict detection, `todos`, `timers` Pomodoro
+cycle, `photos` downscale + EXIF, `integrations` RSS/Atom/JSON Feed HTML stripping), `clippy -D warnings`,
+`rustfmt`; 311 Vitest (1 skipped), 85 Playwright WebKit e2e (incl. `p7-widgets.spec.ts`), `eslint`, `prettier`,
+`tsc`, `lint:helper`, production `vite build`.
+
+**Note (7.6):** Real-desktop checks against live Wi-Fi/Bluetooth/volume/brightness, notes/photos folders, and
+local n8n/GitHub/HA can be exercised whenever the owner wants.
+
+**Sign-off:** ⏳ Awaiting owner sign-off. Next: Phase 8 (Profiles, automation, CLI `opaline ctl`, D-Bus v2, helper v2).
+
 
 
 
