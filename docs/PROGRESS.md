@@ -637,6 +637,40 @@ existing baselines/checks + new `themes.spec.ts`), `eslint`, `prettier`, `tsc`, 
 **Sign-off:** ✅ 2026-11-27. Next: Round 4 (4.12 Weather, 4.13 Calendar, 4.14 Docker) and Round 5
 (4.15 The ten looks + 4.16 Lab baselines).
 
+## 2.0 · Phase 4 · Round 4: Weather, Calendar, Docker (2026-11-27)
+
+**Done**
+- **Core provider upgrades (4.13–4.14):**
+  - Expanded `calendar.rs` look-ahead window (`DAYS_AHEAD = 35`) so mini-month grids display accurate event dots
+    across the full visible month while keeping the existing `MAX_EVENTS = 200` / `MAX_OCCURRENCES = 100` bounds.
+  - Added sorted, deduplicated published port mappings (`ports`: `["8080:80", …]`) to `docker.rs`'s
+    `container_value`, with unit test coverage.
+- **4.12 Weather (`weather.tsx`, `weather.composition.ts`, `spec/compositions/weather.json`, `round4Visuals.tsx`):**
+  - Illustrated sky atmosphere scene (`skyScene`: sun halo, night moon + stars, clouds, rain streaks, snow, storm
+    bolt, fog — gently animated via `scheduler`, 0 frames when still / reduced motion), current hero + feels-like +
+    H/L, hourly strip with precipitation bars, 5–7 day low-to-high temperature range bars, wind compass arrow +
+    speed, UV index, humidity, European AQI badge, sunrise/sunset daylight arc, and Open-Meteo attribution.
+- **4.13 Calendar (`calendar.tsx`, `calendar.composition.ts`, `spec/compositions/calendar.json`, `round4Visuals.tsx`):**
+  - Mini month grid (`view: "auto" | "month" | "agenda"`, `weekStart: "mon" | "sun"`) with colored event indicator
+    dots and interactive day selection, agenda with live countdown pill (`"In 35 min"` / `"Happening now"`),
+    current-time rule, all-day event chips, and click-to-expand event details.
+- **4.14 Docker / Podman (`docker.tsx`, `docker.composition.ts`, `spec/compositions/docker.json`, `round4Visuals.tsx`):**
+  - Compose-project grouping (`groupByProject`, with standalone fallback), engine + running/total header pill,
+    inline status filter pills (`All` / `Run` / `Stop`), glowing status dots, published port chips, live CPU & RAM
+    mini bars, Start / Restart / Stop actions (2-step confirm on Stop & Restart), and honest `"Docker Desktop is
+    stopped"` card with `"Start Docker Desktop"` button.
+- **Classic 1.1 preservation & Lab:** All three widgets keep their Classic 1.1 renderers under `classic`
+  (`useClassicStat: true`, 1.1 Lab baselines pixel-identical); added `lab.html?only=round4&still`
+  (`Round4Demo.tsx`), `app/src/widgets/round4.test.ts`, and `app/e2e/round4.spec.ts`.
+
+**Checks:** 213 Rust workspace tests (all 13 `spec/compositions/*.json` validated by `opaline-compose`),
+`clippy -D warnings`, `rustfmt`; 293 Vitest, 61 Playwright WebKit e2e (all existing baselines/checks +
+`round4.spec.ts` verifying 0 idle frames), `eslint`, `prettier`, `tsc`.
+
+**Sign-off:** Pending owner review of Round 4. Next: Round 5 (4.15 The ten built-in looks + starter layouts +
+lazy fonts, and 4.16 Lab baselines per theme with zero-truncation & contrast checks).
+
+
 
 
 

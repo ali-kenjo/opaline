@@ -7,6 +7,7 @@ import type { Value } from "../layer/protocol";
 import { fixed, map, missingReason, num, temperature, type TempUnit, text } from "./format";
 import { TEMP_UNIT } from "./options";
 import type { CardStatus, ReadCtx, Reading, RenderCtx, WidgetDef } from "./types";
+import { weatherComposition } from "./weather.composition";
 import styles from "./weather.module.css";
 import frame from "./WidgetFrame.module.css";
 
@@ -208,6 +209,7 @@ export const weather: WidgetDef = {
   sizes: ["1x1", "2x1", "4x1", "S", "M", "L", "XL"],
   defaultSize: "M",
   topics: [CURRENT],
+  extraTopics: () => [HOURLY, DAILY, AIR],
   defaultFields: ["temp", "condition", "highLow", "feels", "rain", "wind", "hourly", "daily"],
   fields: [
     field(
@@ -327,6 +329,8 @@ export const weather: WidgetDef = {
       ],
       default: "mm",
     },
+    { kind: "bool", key: "skyScene", label: "Illustrated sky scene", default: true },
+    { kind: "bool", key: "showSunArc", label: "Sunrise / sunset arc", default: true },
   ],
   status(c): CardStatus {
     const v = c.get(CURRENT);
@@ -339,4 +343,20 @@ export const weather: WidgetDef = {
       : { kind: "ready" };
   },
   render: (ctx) => <Weather ctx={ctx} />,
+  composition: weatherComposition,
+  useClassicStat: true,
+  compositionTopics(values, content) {
+    const shown = new Set(content.fields);
+    return {
+      ...values,
+      wxMeta: {
+        kind: "map",
+        v: {
+          decimals: { kind: "num", v: content.decimals },
+          showHourly: { kind: "bool", v: shown.has("hourly") },
+          showDaily: { kind: "bool", v: shown.has("daily") },
+        },
+      },
+    };
+  },
 };

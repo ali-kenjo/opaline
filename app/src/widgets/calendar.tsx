@@ -2,6 +2,7 @@
 // subscriptions, grouped by day, with calendar colors.
 import { useState } from "react";
 import type { Value } from "../layer/protocol";
+import { calendarComposition } from "./calendar.composition";
 import { missingReason, num, text } from "./format";
 import { useHost } from "./host";
 import type { CardStatus, RenderCtx, WidgetDef } from "./types";
@@ -192,6 +193,27 @@ export const calendar: WidgetDef = {
     { kind: "range", key: "max", label: "Most events", min: 1, max: 12, step: 1, default: 8 },
     {
       kind: "enum",
+      key: "view",
+      label: "Layout",
+      options: [
+        { value: "auto", label: "Auto (month grid on L/XL)" },
+        { value: "month", label: "Mini month grid + agenda" },
+        { value: "agenda", label: "Agenda only" },
+      ],
+      default: "auto",
+    },
+    {
+      kind: "enum",
+      key: "weekStart",
+      label: "Week starts on",
+      options: [
+        { value: "mon", label: "Monday" },
+        { value: "sun", label: "Sunday" },
+      ],
+      default: "mon",
+    },
+    {
+      kind: "enum",
       key: "timeFormat",
       label: "Time format",
       options: [
@@ -211,4 +233,23 @@ export const calendar: WidgetDef = {
       : { kind: "ready" };
   },
   render: (ctx) => <CalendarList ctx={ctx} />,
+  composition: calendarComposition,
+  useClassicStat: true,
+  compositionTopics(values, content) {
+    const shown = new Set(content.fields);
+    return {
+      ...values,
+      calMeta: {
+        kind: "map",
+        v: {
+          showAllDay: { kind: "bool", v: shown.has("allDay") },
+          showColor: { kind: "bool", v: shown.has("color") },
+          showLocation: { kind: "bool", v: shown.has("location") },
+          showCalendar: { kind: "bool", v: shown.has("calendar") },
+          showTime: { kind: "bool", v: shown.has("time") },
+          showEnd: { kind: "bool", v: shown.has("end") },
+        },
+      },
+    };
+  },
 };

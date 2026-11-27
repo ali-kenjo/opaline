@@ -20,6 +20,7 @@ import {
   WifiShapeVisual,
 } from "./round2Visuals";
 import { NowPlayingVisual, ProcessTableVisual } from "./round3Visuals";
+import { CalendarViewVisual, DockerPanelVisual, WeatherSceneVisual } from "./round4Visuals";
 
 export type { VisualProps };
 
@@ -41,4 +42,7 @@ export const VISUALS: Readonly<Record<string, (p: VisualProps) => ReactNode>> = 
   "fan-gauges": FanGaugesVisual,
   "process-table": ProcessTableVisual,
   "now-playing": NowPlayingVisual,
+  "weather-scene": WeatherSceneVisual,
+  "calendar-view": CalendarViewVisual,
+  "docker-panel": DockerPanelVisual,
 };

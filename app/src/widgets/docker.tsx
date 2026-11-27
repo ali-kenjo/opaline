@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Icon } from "../design-system/icons";
 import type { Value } from "../layer/protocol";
+import { dockerComposition } from "./docker.composition";
 import { type ByteUnit, bytes, map, num, percent, text } from "./format";
 import { useHost } from "./host";
 import { BYTE_UNIT } from "./options";
@@ -227,6 +228,7 @@ export const docker: WidgetDef = {
   ],
   options: [
     { kind: "bool", key: "showStopped", label: "Show stopped containers", default: true },
+    { kind: "bool", key: "groupByProject", label: "Group by Compose project", default: true },
     {
       kind: "bool",
       key: "controls",
@@ -248,4 +250,22 @@ export const docker: WidgetDef = {
     return { kind: "ready" };
   },
   render: (ctx) => <DockerList ctx={ctx} />,
+  composition: dockerComposition,
+  useClassicStat: true,
+  compositionTopics(values, content) {
+    const shown = new Set(content.fields);
+    return {
+      ...values,
+      dkMeta: {
+        kind: "map",
+        v: {
+          decimals: { kind: "num", v: content.decimals },
+          showImage: { kind: "bool", v: shown.has("image") },
+          showCpu: { kind: "bool", v: shown.has("cpu") },
+          showMemory: { kind: "bool", v: shown.has("memory") },
+          showStatus: { kind: "bool", v: shown.has("status") },
+        },
+      },
+    };
+  },
 };

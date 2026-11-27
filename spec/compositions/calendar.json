@@ -1,0 +1,127 @@
+{
+  "version": 1,
+  "layouts": [
+    {
+      "minW": 4,
+      "minH": 4,
+      "root": {
+        "id": "root",
+        "type": "column",
+        "children": [
+          {
+            "id": "calendar",
+            "type": "canvas",
+            "visual": "calendar-view",
+            "label": "Calendar",
+            "params": {
+              "events": "calendar.events",
+              "view": "opt.view",
+              "weekStart": "opt.weekStart",
+              "days": "opt.days",
+              "max": "opt.max",
+              "timeFormat": "opt.timeFormat",
+              "showAllDay": "calMeta.showAllDay",
+              "showColor": "calMeta.showColor",
+              "showLocation": "calMeta.showLocation",
+              "showCalendar": "calMeta.showCalendar",
+              "showTime": "calMeta.showTime",
+              "showEnd": "calMeta.showEnd",
+              "size": "'L'"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "minW": 4,
+      "minH": 2,
+      "root": {
+        "id": "root",
+        "type": "column",
+        "children": [
+          {
+            "id": "calendar",
+            "type": "canvas",
+            "visual": "calendar-view",
+            "label": "Calendar",
+            "params": {
+              "events": "calendar.events",
+              "view": "opt.view",
+              "weekStart": "opt.weekStart",
+              "days": "opt.days",
+              "max": "opt.max",
+              "timeFormat": "opt.timeFormat",
+              "showAllDay": "calMeta.showAllDay",
+              "showColor": "calMeta.showColor",
+              "showLocation": "calMeta.showLocation",
+              "showCalendar": "calMeta.showCalendar",
+              "showTime": "calMeta.showTime",
+              "showEnd": "calMeta.showEnd",
+              "size": "'M'"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "minW": 2,
+      "minH": 2,
+      "root": {
+        "id": "root",
+        "type": "column",
+        "children": [
+          {
+            "id": "calendar",
+            "type": "canvas",
+            "visual": "calendar-view",
+            "label": "Calendar",
+            "params": {
+              "events": "calendar.events",
+              "view": "opt.view",
+              "weekStart": "opt.weekStart",
+              "days": "opt.days",
+              "max": "opt.max",
+              "timeFormat": "opt.timeFormat",
+              "showAllDay": "calMeta.showAllDay",
+              "showColor": "calMeta.showColor",
+              "showLocation": "calMeta.showLocation",
+              "showCalendar": "calMeta.showCalendar",
+              "showTime": "calMeta.showTime",
+              "showEnd": "calMeta.showEnd",
+              "size": "'S'"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "root": {
+        "id": "root",
+        "type": "column",
+        "children": [
+          {
+            "id": "calendar",
+            "type": "canvas",
+            "visual": "calendar-view",
+            "label": "Calendar",
+            "params": {
+              "events": "calendar.events",
+              "view": "opt.view",
+              "weekStart": "opt.weekStart",
+              "days": "opt.days",
+              "max": "opt.max",
+              "timeFormat": "opt.timeFormat",
+              "showAllDay": "calMeta.showAllDay",
+              "showColor": "calMeta.showColor",
+              "showLocation": "calMeta.showLocation",
+              "showCalendar": "calMeta.showCalendar",
+              "showTime": "calMeta.showTime",
+              "showEnd": "calMeta.showEnd",
+              "size": "'2x1'"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

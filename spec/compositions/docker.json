@@ -1,0 +1,123 @@
+{
+  "version": 1,
+  "layouts": [
+    {
+      "minW": 4,
+      "minH": 4,
+      "root": {
+        "id": "root",
+        "type": "column",
+        "children": [
+          {
+            "id": "panel",
+            "type": "canvas",
+            "visual": "docker-panel",
+            "label": "Docker",
+            "params": {
+              "state": "docker.state",
+              "containers": "docker.containers",
+              "showStopped": "opt.showStopped",
+              "controls": "opt.controls",
+              "groupByProject": "opt.groupByProject",
+              "binary": "opt.byteUnit == 'binary'",
+              "decimals": "dkMeta.decimals",
+              "showImage": "dkMeta.showImage",
+              "showCpu": "dkMeta.showCpu",
+              "showMemory": "dkMeta.showMemory",
+              "showStatus": "dkMeta.showStatus",
+              "size": "'L'"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "minW": 4,
+      "minH": 2,
+      "root": {
+        "id": "root",
+        "type": "column",
+        "children": [
+          {
+            "id": "panel",
+            "type": "canvas",
+            "visual": "docker-panel",
+            "label": "Docker",
+            "params": {
+              "state": "docker.state",
+              "containers": "docker.containers",
+              "showStopped": "opt.showStopped",
+              "controls": "opt.controls",
+              "groupByProject": "opt.groupByProject",
+              "binary": "opt.byteUnit == 'binary'",
+              "decimals": "dkMeta.decimals",
+              "showImage": "dkMeta.showImage",
+              "showCpu": "dkMeta.showCpu",
+              "showMemory": "dkMeta.showMemory",
+              "showStatus": "dkMeta.showStatus",
+              "size": "'M'"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "minW": 2,
+      "minH": 2,
+      "root": {
+        "id": "root",
+        "type": "column",
+        "children": [
+          {
+            "id": "panel",
+            "type": "canvas",
+            "visual": "docker-panel",
+            "label": "Docker",
+            "params": {
+              "state": "docker.state",
+              "containers": "docker.containers",
+              "showStopped": "opt.showStopped",
+              "controls": "opt.controls",
+              "groupByProject": "opt.groupByProject",
+              "binary": "opt.byteUnit == 'binary'",
+              "decimals": "dkMeta.decimals",
+              "showImage": "dkMeta.showImage",
+              "showCpu": "dkMeta.showCpu",
+              "showMemory": "dkMeta.showMemory",
+              "showStatus": "dkMeta.showStatus",
+              "size": "'S'"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "root": {
+        "id": "root",
+        "type": "column",
+        "children": [
+          {
+            "id": "panel",
+            "type": "canvas",
+            "visual": "docker-panel",
+            "label": "Docker",
+            "params": {
+              "state": "docker.state",
+              "containers": "docker.containers",
+              "showStopped": "opt.showStopped",
+              "controls": "opt.controls",
+              "groupByProject": "opt.groupByProject",
+              "binary": "opt.byteUnit == 'binary'",
+              "decimals": "dkMeta.decimals",
+              "showImage": "dkMeta.showImage",
+              "showCpu": "dkMeta.showCpu",
+              "showMemory": "dkMeta.showMemory",
+              "showStatus": "dkMeta.showStatus",
+              "size": "'4x1'"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

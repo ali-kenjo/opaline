@@ -1,0 +1,153 @@
+{
+  "version": 1,
+  "layouts": [
+    {
+      "minW": 4,
+      "minH": 4,
+      "root": {
+        "id": "root",
+        "type": "column",
+        "children": [
+          {
+            "id": "scene",
+            "type": "canvas",
+            "visual": "weather-scene",
+            "label": "Weather",
+            "params": {
+              "current": "weather.current",
+              "hourly": "weather.hourly",
+              "daily": "weather.daily",
+              "air": "weather.air",
+              "tempUnit": "opt.tempUnit",
+              "windUnit": "opt.windUnit",
+              "skyScene": "opt.skyScene",
+              "showSunArc": "opt.showSunArc",
+              "decimals": "wxMeta.decimals",
+              "showHourly": "wxMeta.showHourly",
+              "showDaily": "wxMeta.showDaily",
+              "size": "'L'"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "minW": 4,
+      "minH": 2,
+      "root": {
+        "id": "root",
+        "type": "column",
+        "children": [
+          {
+            "id": "scene",
+            "type": "canvas",
+            "visual": "weather-scene",
+            "label": "Weather",
+            "params": {
+              "current": "weather.current",
+              "hourly": "weather.hourly",
+              "daily": "weather.daily",
+              "air": "weather.air",
+              "tempUnit": "opt.tempUnit",
+              "windUnit": "opt.windUnit",
+              "skyScene": "opt.skyScene",
+              "showSunArc": "opt.showSunArc",
+              "decimals": "wxMeta.decimals",
+              "showHourly": "wxMeta.showHourly",
+              "showDaily": "wxMeta.showDaily",
+              "size": "'M'"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "minW": 2,
+      "minH": 2,
+      "root": {
+        "id": "root",
+        "type": "column",
+        "children": [
+          {
+            "id": "scene",
+            "type": "canvas",
+            "visual": "weather-scene",
+            "label": "Weather",
+            "params": {
+              "current": "weather.current",
+              "hourly": "weather.hourly",
+              "daily": "weather.daily",
+              "air": "weather.air",
+              "tempUnit": "opt.tempUnit",
+              "windUnit": "opt.windUnit",
+              "skyScene": "opt.skyScene",
+              "showSunArc": "opt.showSunArc",
+              "decimals": "wxMeta.decimals",
+              "showHourly": "wxMeta.showHourly",
+              "showDaily": "wxMeta.showDaily",
+              "size": "'S'"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "minW": 2,
+      "minH": 1,
+      "root": {
+        "id": "root",
+        "type": "column",
+        "children": [
+          {
+            "id": "scene",
+            "type": "canvas",
+            "visual": "weather-scene",
+            "label": "Weather",
+            "params": {
+              "current": "weather.current",
+              "hourly": "weather.hourly",
+              "daily": "weather.daily",
+              "air": "weather.air",
+              "tempUnit": "opt.tempUnit",
+              "windUnit": "opt.windUnit",
+              "skyScene": "opt.skyScene",
+              "showSunArc": "opt.showSunArc",
+              "decimals": "wxMeta.decimals",
+              "showHourly": "wxMeta.showHourly",
+              "showDaily": "wxMeta.showDaily",
+              "size": "'2x1'"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "root": {
+        "id": "root",
+        "type": "column",
+        "children": [
+          {
+            "id": "scene",
+            "type": "canvas",
+            "visual": "weather-scene",
+            "label": "Weather",
+            "params": {
+              "current": "weather.current",
+              "hourly": "weather.hourly",
+              "daily": "weather.daily",
+              "air": "weather.air",
+              "tempUnit": "opt.tempUnit",
+              "windUnit": "opt.windUnit",
+              "skyScene": "opt.skyScene",
+              "showSunArc": "opt.showSunArc",
+              "decimals": "wxMeta.decimals",
+              "showHourly": "wxMeta.showHourly",
+              "showDaily": "wxMeta.showDaily",
+              "size": "'1x1'"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

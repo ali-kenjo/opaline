@@ -1,0 +1,703 @@
+/* Styles for Phase 4 Round 4 visuals: Weather (4.12), Calendar (4.13), Docker (4.14). */
+
+/* ── 4.12 Weather 2.0 ───────────────────────────────────────────────────────── */
+
+.wxRoot {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  isolation: isolate;
+}
+
+.wxSky {
+  position: absolute;
+  inset: -14px;
+  pointer-events: none;
+  z-index: -1;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.wxSkySvg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.wxHero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.wxHeroLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.wxTemp {
+  font-family: var(--w-num-font);
+  font-variant-numeric: var(--w-nums);
+  font-size: calc(34px * var(--w-scale));
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.wxTempSmall {
+  font-size: calc(24px * var(--w-scale));
+}
+
+.wxMeta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wxCond {
+  font-size: calc(14px * var(--w-scale));
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wxLoc {
+  font-size: calc(11.5px * var(--w-scale));
+  color: rgb(var(--md-on-surface-variant));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wxHiLo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  font-family: var(--w-num-font);
+  font-variant-numeric: var(--w-nums);
+  font-size: calc(11.5px * var(--w-scale));
+  color: rgb(var(--md-on-surface-variant));
+  white-space: nowrap;
+}
+
+.wxPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.wxPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgb(var(--md-on-surface) / 0.08);
+  font-size: calc(11px * var(--w-scale));
+  font-family: var(--w-num-font);
+  font-variant-numeric: var(--w-nums);
+  white-space: nowrap;
+}
+
+.wxHourly {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 4px;
+  padding: 6px 4px;
+  border-radius: 12px;
+  background: rgb(var(--md-on-surface) / 0.06);
+}
+
+.wxHourCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  font-size: calc(10.5px * var(--w-scale));
+  font-family: var(--w-num-font);
+  font-variant-numeric: var(--w-nums);
+}
+
+.wxHourTime {
+  color: rgb(var(--md-on-surface-variant));
+}
+
+.wxHourTemp {
+  font-weight: 600;
+}
+
+.wxPrecipBar {
+  width: 18px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgb(var(--md-on-surface) / 0.12);
+  overflow: hidden;
+}
+
+.wxPrecipFill {
+  display: block;
+  height: 100%;
+  background: rgb(96 178 255);
+}
+
+.wxDaily {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wxDayRow {
+  display: grid;
+  grid-template-columns: 36px 20px 30px 1fr 30px;
+  align-items: center;
+  gap: 6px;
+  font-size: calc(11.5px * var(--w-scale));
+  font-family: var(--w-num-font);
+  font-variant-numeric: var(--w-nums);
+}
+
+.wxDayName {
+  font-family: inherit;
+  font-weight: 500;
+}
+
+.wxRangeTrack {
+  position: relative;
+  height: 5px;
+  border-radius: 999px;
+  background: rgb(var(--md-on-surface) / 0.12);
+  overflow: hidden;
+}
+
+.wxRangeFill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgb(92 176 255), rgb(252 178 72));
+}
+
+.wxFooterRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.wxSunArc {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: calc(10.5px * var(--w-scale));
+  font-family: var(--w-num-font);
+  font-variant-numeric: var(--w-nums);
+  color: rgb(var(--md-on-surface-variant));
+}
+
+.wxAttr {
+  font-size: calc(10px * var(--w-scale));
+  color: rgb(var(--md-on-surface-variant) / 0.72);
+}
+
+/* ── 4.13 Calendar 2.0 ──────────────────────────────────────────────────────── */
+
+.calRoot {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.calTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.calDateTitle {
+  font-size: calc(13.5px * var(--w-scale));
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calCountdown {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgb(var(--md-primary) / 0.2);
+  color: rgb(var(--md-on-surface));
+  font-size: calc(10.5px * var(--w-scale));
+  font-weight: 600;
+  font-family: var(--w-num-font);
+  font-variant-numeric: var(--w-nums);
+  white-space: nowrap;
+}
+
+.calSplit {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.calSplitWide {
+  grid-template-columns: 170px 1fr;
+}
+
+.calGridWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.calWeekHead {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: calc(9.5px * var(--w-scale));
+  font-weight: 600;
+  color: rgb(var(--md-on-surface-variant) / 0.8);
+}
+
+.calGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.calCell {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: calc(10.5px * var(--w-scale));
+  font-family: var(--w-num-font);
+  font-variant-numeric: var(--w-nums);
+  padding: 3px 0 2px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+}
+
+.calCell:hover {
+  background: rgb(var(--md-on-surface) / 0.08);
+}
+
+.calCellOutside {
+  opacity: 0.36;
+}
+
+.calCellToday {
+  background: rgb(var(--md-primary));
+  color: rgb(var(--md-on-primary));
+  font-weight: 700;
+}
+
+.calCellSelected:not(.calCellToday) {
+  background: rgb(var(--md-primary) / 0.24);
+  font-weight: 600;
+}
+
+.calDots {
+  display: flex;
+  gap: 2px;
+  height: 4px;
+}
+
+.calDot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+}
+
+.calAgenda {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  overflow: hidden;
+}
+
+.calDayHeading {
+  font-size: calc(10.5px * var(--w-scale));
+  font-weight: 600;
+  color: rgb(var(--md-primary));
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+
+.calNowLine {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 1px 0;
+}
+
+.calNowDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgb(var(--md-error));
+  flex: none;
+}
+
+.calNowRule {
+  flex: 1;
+  height: 1.5px;
+  background: rgb(var(--md-error) / 0.65);
+}
+
+.calEventBtn {
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: rgb(var(--md-on-surface) / 0.05);
+  color: inherit;
+  font: inherit;
+  padding: 5px 8px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+}
+
+.calEventBtn:hover {
+  background: rgb(var(--md-on-surface) / 0.1);
+}
+
+.calEventMain {
+  display: grid;
+  grid-template-columns: 8px 1fr auto;
+  align-items: center;
+  gap: 7px;
+  font-size: calc(12px * var(--w-scale));
+}
+
+.calEventColor {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.calEventTitle {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calEventTime {
+  font-size: calc(11px * var(--w-scale));
+  font-family: var(--w-num-font);
+  font-variant-numeric: var(--w-nums);
+  color: rgb(var(--md-on-surface-variant));
+  white-space: nowrap;
+}
+
+.calAllDayChip {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgb(var(--md-secondary-container) / 0.72);
+  color: rgb(var(--md-on-secondary-container));
+  font-size: calc(10px * var(--w-scale));
+  font-weight: 600;
+}
+
+.calEventDetail {
+  padding-left: 15px;
+  font-size: calc(10.5px * var(--w-scale));
+  color: rgb(var(--md-on-surface-variant));
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.calEmpty {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  color: rgb(var(--md-on-surface-variant));
+  font-size: calc(12.5px * var(--w-scale));
+}
+
+/* ── 4.14 Docker / Podman 2.0 ───────────────────────────────────────────────── */
+
+.dkRoot {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.dkToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.dkSummary {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: calc(11.5px * var(--w-scale));
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dkCountPill {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgb(var(--md-primary) / 0.2);
+  font-family: var(--w-num-font);
+  font-variant-numeric: var(--w-nums);
+  font-size: calc(10.5px * var(--w-scale));
+}
+
+.dkFilters {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 999px;
+  background: rgb(var(--md-on-surface) / 0.07);
+}
+
+.dkFilterBtn {
+  border: none;
+  background: transparent;
+  color: rgb(var(--md-on-surface-variant));
+  font: inherit;
+  font-size: calc(10px * var(--w-scale));
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.dkFilterActive {
+  background: rgb(var(--md-primary) / 0.22);
+  color: rgb(var(--md-on-surface));
+}
+
+.dkGroups {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.dkGroupHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: calc(10.5px * var(--w-scale));
+  font-weight: 600;
+  color: rgb(var(--md-primary));
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.dkGroupLeft {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dkList {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dkRow {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 10px;
+  background: rgb(var(--md-on-surface) / 0.05);
+}
+
+.dkStatePill {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.dkStateRunning {
+  background: rgb(74 214 128);
+  box-shadow: 0 0 6px rgb(74 214 128 / 0.55);
+}
+
+.dkStatePaused {
+  background: rgb(247 192 64);
+}
+
+.dkStateExited {
+  background: rgb(var(--md-outline));
+}
+
+.dkInfo {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dkNameLine {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.dkName {
+  font-size: calc(12.5px * var(--w-scale));
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dkPortChip {
+  flex: none;
+  padding: 0 5px;
+  border-radius: 6px;
+  background: rgb(var(--md-secondary-container) / 0.65);
+  color: rgb(var(--md-on-secondary-container));
+  font-family: var(--w-num-font);
+  font-size: calc(9.5px * var(--w-scale));
+}
+
+.dkSubLine {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: calc(10.5px * var(--w-scale));
+  color: rgb(var(--md-on-surface-variant));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dkMiniBars {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--w-num-font);
+  font-variant-numeric: var(--w-nums);
+  font-size: calc(10.5px * var(--w-scale));
+}
+
+.dkBarWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dkBarTrack {
+  width: 34px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgb(var(--md-on-surface) / 0.14);
+  overflow: hidden;
+}
+
+.dkBarFill {
+  display: block;
+  height: 100%;
+  background: rgb(var(--md-primary));
+}
+
+.dkActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dkBtn {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 999px;
+  background: rgb(var(--md-on-surface) / 0.08);
+  color: inherit;
+  font: inherit;
+  font-size: calc(10.5px * var(--w-scale));
+  cursor: pointer;
+}
+
+.dkBtn:hover {
+  background: rgb(var(--md-on-surface) / 0.16);
+}
+
+.dkBtnAsk {
+  background: rgb(var(--md-error-container));
+  color: rgb(var(--md-on-error-container));
+  font-weight: 600;
+}
+
+.dkStoppedCard {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  color: rgb(var(--md-on-surface-variant));
+  font-size: calc(12.5px * var(--w-scale));
+}
+
+.dkStartDesktopBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: none;
+  border-radius: 999px;
+  background: rgb(var(--md-primary));
+  color: rgb(var(--md-on-primary));
+  font: inherit;
+  font-size: calc(12px * var(--w-scale));
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dkStartDesktopBtn:hover {
+  filter: brightness(1.06);
+}
