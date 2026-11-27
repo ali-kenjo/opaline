@@ -200,6 +200,9 @@ export function LayerApp() {
 
   const root = useRef<HTMLDivElement>(null);
   const migrated = useRef(false);
+  // The seed patch is sent once: until core echoes the new settings this effect runs again, and
+  // repeating the patch only caused overlapping saves on the very first start.
+  const seeded = useRef(false);
   const suppressBackdropClick = useRef(false);
   const justSelectedOnDown = useRef<string | null>(null);
 
@@ -311,7 +314,10 @@ export function LayerApp() {
   useEffect(() => {
     if (!connected || !isHome || !settingsLoaded || !layoutsLoaded || !monitor) return;
     if (Object.keys(widgets).length === 0) {
-      void baseHost.updateSettings({ widgets: DEFAULT_WIDGETS });
+      if (!seeded.current) {
+        seeded.current = true;
+        void baseHost.updateSettings({ widgets: DEFAULT_WIDGETS });
+      }
       return;
     }
     if (Object.keys(layouts.monitors).length === 0 && !migrated.current) {

@@ -349,8 +349,13 @@ fn save(layouts: &Layouts) -> Result<(), String> {
     crate::watcher::write_atomic_tracked(&path, &bytes).map_err(|e| e.to_string())
 }
 
+/// Serializes layout changes so the saved file and the published topic always end on the same
+/// version (two overlapping saves could otherwise finish in the opposite order).
+static UPDATE_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
 /// Replaces and saves layouts from a validated layer command, then publishes `layouts`.
 pub async fn update(hub: &Arc<Hub>, raw: serde_json::Value) -> Result<(), String> {
+    let _serial = UPDATE_LOCK.lock().await;
     let mut next: Layouts =
         serde_json::from_value(raw).map_err(|e| format!("invalid-layouts: {e}"))?;
     if next.version == 0 {

@@ -44,23 +44,38 @@ pub fn state_dir() -> Result<PathBuf, NoHomeError> {
     xdg("XDG_STATE_HOME", ".local/state")
 }
 
-/// Writes a file atomically: `<name>.tmp`, fsync, rename over the target, fsync the directory
-/// (ARCHITECTURE §3.6). Creates the parent directory if needed.
+/// Writes a file atomically: a temp file next to it, fsync, rename over the target, fsync the
+/// directory (ARCHITECTURE §3.6). Creates the parent directory if needed.
+///
+/// Every call gets its own temp file (`<name>.<pid>.<n>.tmp`), so overlapping writes of the same
+/// file can't truncate or steal each other's temp file: each rename installs one complete version
+/// and the last rename wins. The file watcher ignores `*.tmp`.
 pub fn write_atomic(path: &std::path::Path, bytes: &[u8]) -> std::io::Result<()> {
     use std::io::Write;
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static NEXT: AtomicU64 = AtomicU64::new(0);
+
     let dir = path
         .parent()
         .ok_or_else(|| std::io::Error::other("path has no parent directory"))?;
     std::fs::create_dir_all(dir)?;
     let mut tmp_name = path.as_os_str().to_owned();
-    tmp_name.push(".tmp");
+    tmp_name.push(format!(
+        ".{}.{}.tmp",
+        std::process::id(),
+        NEXT.fetch_add(1, Ordering::Relaxed)
+    ));
     let tmp = PathBuf::from(tmp_name);
-    {
+    let written = (|| {
         let mut file = std::fs::File::create(&tmp)?;
         file.write_all(bytes)?;
         file.sync_all()?;
+        std::fs::rename(&tmp, path)
+    })();
+    if written.is_err() {
+        let _ = std::fs::remove_file(&tmp);
     }
-    std::fs::rename(&tmp, path)?;
+    written?;
     std::fs::File::open(dir)?.sync_all()
 }
 
@@ -77,6 +92,37 @@ mod tests {
         write_atomic(&path, b"one").unwrap();
         write_atomic(&path, b"two").unwrap();
         assert_eq!(std::fs::read(&path).unwrap(), b"two");
-        assert!(!dir.path().join("sub/settings.json.tmp").exists());
+        let leftovers: Vec<_> = std::fs::read_dir(dir.path().join("sub"))
+            .unwrap()
+            .map(|e| e.unwrap().file_name())
+            .filter(|n| n != "settings.json")
+            .collect();
+        assert!(
+            leftovers.is_empty(),
+            "temp files left behind: {leftovers:?}"
+        );
+    }
+
+    /// Overlapping writes of one file (the first-start seeding did three at once) all succeed,
+    /// and the file always holds one complete version, never a mix or a truncated one.
+    #[test]
+    fn overlapping_writes_never_fail_or_tear() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.json");
+        let versions: Vec<Vec<u8>> = (0..8u8).map(|i| vec![b'a' + i; 64 * 1024]).collect();
+        std::thread::scope(|scope| {
+            for v in &versions {
+                let path = &path;
+                scope.spawn(move || {
+                    for _ in 0..25 {
+                        write_atomic(path, v).unwrap();
+                        let now = std::fs::read(path).unwrap();
+                        assert_eq!(now.len(), 64 * 1024, "torn write");
+                        assert!(now.iter().all(|b| *b == now[0]), "mixed write");
+                    }
+                });
+            }
+        });
+        assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 1);
     }
 }

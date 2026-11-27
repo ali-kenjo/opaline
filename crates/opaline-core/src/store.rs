@@ -449,8 +449,13 @@ fn save(settings: &Settings) -> Result<(), String> {
     crate::watcher::write_atomic_tracked(&path, &bytes).map_err(|e| e.to_string())
 }
 
+/// Serializes settings changes: each one reads the current settings, saves, and publishes as one
+/// step, so two overlapping patches can't both start from the same old state and lose one.
+static UPDATE_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
 /// Applies a patch from a command: validates, saves, and publishes the new settings.
 pub async fn update(hub: &Arc<Hub>, patch: serde_json::Value) -> Result<(), String> {
+    let _serial = UPDATE_LOCK.lock().await;
     let prev_theme = hub.settings().theme.clone();
     let next = patched(&hub.settings(), &patch)?;
     if !hub.settings_writable() {
@@ -474,6 +479,7 @@ pub async fn update(hub: &Arc<Hub>, patch: serde_json::Value) -> Result<(), Stri
 
 /// Replaces the entire settings object (used by backup import and reset-to-defaults).
 pub async fn replace(hub: &Arc<Hub>, raw: serde_json::Value) -> Result<(), String> {
+    let _serial = UPDATE_LOCK.lock().await;
     let prev_theme = hub.settings().theme.clone();
     let next: Settings =
         serde_json::from_value(raw).map_err(|e| format!("invalid-settings: {e}"))?;
