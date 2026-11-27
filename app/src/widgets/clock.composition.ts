@@ -1,9 +1,10 @@
-// The Clock as a composition (PLAN-2 2.8). Kept equal to spec/compositions/clock.json, which the
-// Rust validator checks (clock.test.ts compares them; OPALINE_UPDATE_FIXTURES=1 rewrites it).
+// The Clock as a composition (PLAN-2 2.8 & 4.1). Kept equal to spec/compositions/clock.json,
+// which the Rust validator checks (clock.test.ts compares them; OPALINE_UPDATE_FIXTURES=1 rewrites it).
 //
-// Names it reads besides clock.settings: opt.face, opt.format, opt.seconds, opt.zone (validated),
-// opt.zone2 (validated), opt.zone2Name, opt.dateSkeleton, opt.weekLabel, opt.systemZone and
-// opt.lines (the shown fields other than the time, in the user's order).
+// Supports all 11 faces (digital inline/stacked, expressive, analog ×6 dials, flip, word,
+// typographic, segment, binary, terminal, day-ring, big-date), per-element colors, second hand
+// modes (tick/sweep/hide), custom ICU date skeleton, second time zone, and optional next-event
+// subline.
 import type { Composition, Node } from "../compose/model.gen";
 
 /** One line per shown field, in the user's order. */
@@ -32,6 +33,14 @@ const lines = (id: string, max: number): Node => ({
   },
 });
 
+const subline = (id: string): Node => ({
+  id,
+  type: "text",
+  role: "caption",
+  text: "{bind.sublineText}",
+  visible: "opt.subline == 'next-event' && len(bind.sublineText) > 0",
+});
+
 const time = (id: string, value: string): Node => ({
   id,
   type: "number",
@@ -46,7 +55,32 @@ const analog = (id: string): Node => ({
   type: "canvas",
   visual: "analog-clock",
   label: "{bind.timeSeconds}",
-  params: { ms: "now()", zone: "bind.zone", seconds: "bind.seconds" },
+  params: {
+    ms: "now()",
+    zone: "bind.zone",
+    seconds: "bind.seconds",
+    dialStyle: "opt.dialStyle",
+    secondHand: "opt.secondHand",
+    handColor: "opt.handColor",
+    tickColor: "opt.tickColor",
+    numeralColor: "opt.numeralColor",
+  },
+});
+
+const customFace = (id: string): Node => ({
+  id,
+  type: "canvas",
+  visual: "clock-face",
+  label: "{bind.timeSeconds}",
+  params: {
+    ms: "now()",
+    face: "bind.faceKey",
+    zone: "bind.zone",
+    h24: "bind.h24",
+    seconds: "bind.seconds",
+    dateText: "bind.dateText",
+    numeralColor: "opt.numeralColor",
+  },
 });
 
 export const clockComposition: Composition = {
@@ -59,6 +93,12 @@ export const clockComposition: Composition = {
     time: "date(now(), if(bind.h24, 'Hm', 'hm'), bind.zone)",
     // Only a clock that shows seconds reads them, so a minute clock wakes once a minute.
     timeSeconds: "if(bind.seconds, date(now(), if(bind.h24, 'Hms', 'hms'), bind.zone), bind.time)",
+    customFace:
+      "(opt.face != 'digital' && opt.face != 'analog') || (opt.face == 'digital' && opt.digitalLayout == 'stacked')",
+    faceKey: "if(opt.face == 'digital', 'stacked', opt.face)",
+    dateText: "date(now(), opt.dateSkeleton, bind.zone)",
+    sublineText:
+      "if(opt.subline == 'next-event' && len(calendar.events) > 0, (calendar.events[0].title ?? '') + ' · ' + date(calendar.events[0].startMs, if(bind.h24, 'Hm', 'hm'), bind.zone), '')",
   },
   layouts: [
     {
@@ -68,7 +108,15 @@ export const clockComposition: Composition = {
         type: "column",
         align: "center",
         justify: "center",
-        children: [time("time", "bind.time")],
+        children: [
+          { ...analog("analog"), visible: "opt.face == 'analog'" },
+          { ...customFace("custom"), visible: "bind.customFace" },
+          {
+            ...time("time", "bind.time"),
+            visible:
+              "has(opt.fields, 'time') && opt.face == 'digital' && opt.digitalLayout != 'stacked'",
+          },
+        ],
       },
     },
     {
@@ -78,7 +126,15 @@ export const clockComposition: Composition = {
         type: "column",
         justify: "center",
         gap: 2,
-        children: [time("time", "bind.timeSeconds"), lines("lines", 2)],
+        children: [
+          { ...customFace("custom"), visible: "bind.customFace" },
+          {
+            ...time("time", "bind.timeSeconds"),
+            visible: "has(opt.fields, 'time') && !bind.customFace",
+          },
+          { ...lines("lines", 2), visible: "!bind.customFace" },
+          subline("subline"),
+        ],
       },
     },
     {
@@ -90,11 +146,14 @@ export const clockComposition: Composition = {
         gap: 2,
         children: [
           { ...analog("analog"), visible: "opt.face == 'analog'" },
+          { ...customFace("custom"), visible: "bind.customFace" },
           {
             ...time("time", "bind.timeSeconds"),
-            visible: "has(opt.fields, 'time') && opt.face != 'analog'",
+            visible:
+              "has(opt.fields, 'time') && opt.face == 'digital' && opt.digitalLayout != 'stacked'",
           },
-          lines("lines", 2),
+          { ...lines("lines", 2), visible: "!bind.customFace" },
+          subline("subline"),
         ],
       },
     },
@@ -120,8 +179,27 @@ export const clockComposition: Composition = {
             justify: "center",
             gap: 2,
             grow: 1,
-            visible: "opt.face != 'analog'",
-            children: [time("time", "bind.timeSeconds"), lines("lines", 6)],
+            visible: "opt.face == 'digital' && opt.digitalLayout != 'stacked'",
+            children: [time("time", "bind.timeSeconds"), lines("lines", 6), subline("subline")],
+          },
+          {
+            id: "custom-face",
+            type: "row",
+            align: "center",
+            gap: 4,
+            grow: 1,
+            visible: "bind.customFace",
+            children: [
+              customFace("custom"),
+              {
+                id: "custom-meta",
+                type: "column",
+                justify: "center",
+                gap: 1,
+                visible: "opt.face != 'terminal' && opt.face != 'big-date'",
+                children: [lines("custom-lines", 4), subline("custom-subline")],
+              },
+            ],
           },
         ],
       },

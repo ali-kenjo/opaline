@@ -5,7 +5,11 @@
     "seconds": "if(opt.seconds == 'system', clock.settings.showSeconds ?? false, opt.seconds == 'on')",
     "zone": "if(len(opt.zone) > 0, opt.zone, clock.settings.timezone)",
     "time": "date(now(), if(bind.h24, 'Hm', 'hm'), bind.zone)",
-    "timeSeconds": "if(bind.seconds, date(now(), if(bind.h24, 'Hms', 'hms'), bind.zone), bind.time)"
+    "timeSeconds": "if(bind.seconds, date(now(), if(bind.h24, 'Hms', 'hms'), bind.zone), bind.time)",
+    "customFace": "(opt.face != 'digital' && opt.face != 'analog') || (opt.face == 'digital' && opt.digitalLayout == 'stacked')",
+    "faceKey": "if(opt.face == 'digital', 'stacked', opt.face)",
+    "dateText": "date(now(), opt.dateSkeleton, bind.zone)",
+    "sublineText": "if(opt.subline == 'next-event' && len(calendar.events) > 0, (calendar.events[0].title ?? '') + ' · ' + date(calendar.events[0].startMs, if(bind.h24, 'Hm', 'hm'), bind.zone), '')"
   },
   "layouts": [
     {
@@ -19,12 +23,45 @@
         "justify": "center",
         "children": [
           {
+            "id": "analog",
+            "type": "canvas",
+            "visual": "analog-clock",
+            "label": "{bind.timeSeconds}",
+            "params": {
+              "ms": "now()",
+              "zone": "bind.zone",
+              "seconds": "bind.seconds",
+              "dialStyle": "opt.dialStyle",
+              "secondHand": "opt.secondHand",
+              "handColor": "opt.handColor",
+              "tickColor": "opt.tickColor",
+              "numeralColor": "opt.numeralColor"
+            },
+            "visible": "opt.face == 'analog'"
+          },
+          {
+            "id": "custom",
+            "type": "canvas",
+            "visual": "clock-face",
+            "label": "{bind.timeSeconds}",
+            "params": {
+              "ms": "now()",
+              "face": "bind.faceKey",
+              "zone": "bind.zone",
+              "h24": "bind.h24",
+              "seconds": "bind.seconds",
+              "dateText": "bind.dateText",
+              "numeralColor": "opt.numeralColor"
+            },
+            "visible": "bind.customFace"
+          },
+          {
             "id": "time",
             "type": "number",
             "role": "hero",
             "value": "bind.time",
             "motion": "odometer",
-            "visible": "has(opt.fields, 'time')"
+            "visible": "has(opt.fields, 'time') && opt.face == 'digital' && opt.digitalLayout != 'stacked'"
           }
         ]
       }
@@ -41,12 +78,28 @@
         "gap": 2,
         "children": [
           {
+            "id": "custom",
+            "type": "canvas",
+            "visual": "clock-face",
+            "label": "{bind.timeSeconds}",
+            "params": {
+              "ms": "now()",
+              "face": "bind.faceKey",
+              "zone": "bind.zone",
+              "h24": "bind.h24",
+              "seconds": "bind.seconds",
+              "dateText": "bind.dateText",
+              "numeralColor": "opt.numeralColor"
+            },
+            "visible": "bind.customFace"
+          },
+          {
             "id": "time",
             "type": "number",
             "role": "hero",
             "value": "bind.timeSeconds",
             "motion": "odometer",
-            "visible": "has(opt.fields, 'time')"
+            "visible": "has(opt.fields, 'time') && !bind.customFace"
           },
           {
             "id": "lines",
@@ -63,7 +116,15 @@
                 "{if($item == 'date', date(now(), 'MMMEd', bind.zone), '')}",
                 "{if($item == 'date', date(now(), 'MMMd', bind.zone), '')}"
               ]
-            }
+            },
+            "visible": "!bind.customFace"
+          },
+          {
+            "id": "subline",
+            "type": "text",
+            "role": "caption",
+            "text": "{bind.sublineText}",
+            "visible": "opt.subline == 'next-event' && len(bind.sublineText) > 0"
           }
         ]
       }
@@ -86,9 +147,30 @@
             "params": {
               "ms": "now()",
               "zone": "bind.zone",
-              "seconds": "bind.seconds"
+              "seconds": "bind.seconds",
+              "dialStyle": "opt.dialStyle",
+              "secondHand": "opt.secondHand",
+              "handColor": "opt.handColor",
+              "tickColor": "opt.tickColor",
+              "numeralColor": "opt.numeralColor"
             },
             "visible": "opt.face == 'analog'"
+          },
+          {
+            "id": "custom",
+            "type": "canvas",
+            "visual": "clock-face",
+            "label": "{bind.timeSeconds}",
+            "params": {
+              "ms": "now()",
+              "face": "bind.faceKey",
+              "zone": "bind.zone",
+              "h24": "bind.h24",
+              "seconds": "bind.seconds",
+              "dateText": "bind.dateText",
+              "numeralColor": "opt.numeralColor"
+            },
+            "visible": "bind.customFace"
           },
           {
             "id": "time",
@@ -96,7 +178,7 @@
             "role": "hero",
             "value": "bind.timeSeconds",
             "motion": "odometer",
-            "visible": "has(opt.fields, 'time') && opt.face != 'analog'"
+            "visible": "has(opt.fields, 'time') && opt.face == 'digital' && opt.digitalLayout != 'stacked'"
           },
           {
             "id": "lines",
@@ -113,7 +195,15 @@
                 "{if($item == 'date', date(now(), 'MMMEd', bind.zone), '')}",
                 "{if($item == 'date', date(now(), 'MMMd', bind.zone), '')}"
               ]
-            }
+            },
+            "visible": "!bind.customFace"
+          },
+          {
+            "id": "subline",
+            "type": "text",
+            "role": "caption",
+            "text": "{bind.sublineText}",
+            "visible": "opt.subline == 'next-event' && len(bind.sublineText) > 0"
           }
         ]
       }
@@ -144,7 +234,12 @@
                 "params": {
                   "ms": "now()",
                   "zone": "bind.zone",
-                  "seconds": "bind.seconds"
+                  "seconds": "bind.seconds",
+                  "dialStyle": "opt.dialStyle",
+                  "secondHand": "opt.secondHand",
+                  "handColor": "opt.handColor",
+                  "tickColor": "opt.tickColor",
+                  "numeralColor": "opt.numeralColor"
                 }
               },
               {
@@ -172,7 +267,7 @@
             "justify": "center",
             "gap": 2,
             "grow": 1,
-            "visible": "opt.face != 'analog'",
+            "visible": "opt.face == 'digital' && opt.digitalLayout != 'stacked'",
             "children": [
               {
                 "id": "time",
@@ -198,6 +293,71 @@
                     "{if($item == 'date', date(now(), 'MMMd', bind.zone), '')}"
                   ]
                 }
+              },
+              {
+                "id": "subline",
+                "type": "text",
+                "role": "caption",
+                "text": "{bind.sublineText}",
+                "visible": "opt.subline == 'next-event' && len(bind.sublineText) > 0"
+              }
+            ]
+          },
+          {
+            "id": "custom-face",
+            "type": "row",
+            "align": "center",
+            "gap": 4,
+            "grow": 1,
+            "visible": "bind.customFace",
+            "children": [
+              {
+                "id": "custom",
+                "type": "canvas",
+                "visual": "clock-face",
+                "label": "{bind.timeSeconds}",
+                "params": {
+                  "ms": "now()",
+                  "face": "bind.faceKey",
+                  "zone": "bind.zone",
+                  "h24": "bind.h24",
+                  "seconds": "bind.seconds",
+                  "dateText": "bind.dateText",
+                  "numeralColor": "opt.numeralColor"
+                }
+              },
+              {
+                "id": "custom-meta",
+                "type": "column",
+                "justify": "center",
+                "gap": 1,
+                "visible": "opt.face != 'terminal' && opt.face != 'big-date'",
+                "children": [
+                  {
+                    "id": "custom-lines",
+                    "type": "list",
+                    "items": "opt.lines",
+                    "max": 4,
+                    "gap": 0,
+                    "item": {
+                      "id": "custom-lines-line",
+                      "type": "text",
+                      "role": "caption",
+                      "text": "{if($item == 'date', date(now(), opt.dateSkeleton, bind.zone), if($item == 'weekday', date(now(), 'EEEE', bind.zone), if($item == 'week', opt.weekLabel + ' ' + date(now(), 'w', bind.zone), if($item == 'zone', bind.zone ?? opt.systemZone, if($item == 'zone2', opt.zone2Name + ' ' + date(now(), if(bind.h24, 'Hm', 'hm'), opt.zone2), '')))))}",
+                      "shorter": [
+                        "{if($item == 'date', date(now(), 'MMMEd', bind.zone), '')}",
+                        "{if($item == 'date', date(now(), 'MMMd', bind.zone), '')}"
+                      ]
+                    }
+                  },
+                  {
+                    "id": "custom-subline",
+                    "type": "text",
+                    "role": "caption",
+                    "text": "{bind.sublineText}",
+                    "visible": "opt.subline == 'next-event' && len(bind.sublineText) > 0"
+                  }
+                ]
               }
             ]
           }

@@ -5,6 +5,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { formatDate } from "../compose/dates";
+import { timeToWords } from "../compose/render/clockVisuals";
 import { Runtime, type Env } from "../compose/runtime";
 import { clock } from "./clock";
 import { clockComposition } from "./clock.composition";
@@ -78,5 +79,29 @@ describe("clock composition", () => {
     const second = runtime({ zone: "UTC", seconds: "on" });
     second.read("/layouts/3/root/children/1/children/0/value");
     expect(second.nextWake()).toBe(Math.floor(T / 1000 + 1) * 1000);
+  });
+
+  it("supports all 11 faces, custom ICU skeletons, and word-clock phrasing", () => {
+    for (const face of [
+      "digital",
+      "expressive",
+      "analog",
+      "flip",
+      "word",
+      "typographic",
+      "segment",
+      "binary",
+      "terminal",
+      "day-ring",
+      "big-date",
+    ]) {
+      const rt = runtime({ zone: "UTC", face });
+      expect(rt.problems()).toEqual([]);
+    }
+    const customDate = runtime({ zone: "UTC", dateStyle: "custom", dateSkeleton: "MMMd" });
+    expect(customDate.read("/bindings/dateText").value).toBe("Nov 23");
+    expect(timeToWords(9, 10).main).toBe("ten past nine");
+    expect(timeToWords(14, 45).main).toBe("quarter to three");
+    expect(timeToWords(12, 0).main).toBe("twelve o'clock");
   });
 });

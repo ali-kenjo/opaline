@@ -1,4 +1,4 @@
-/* Fills its block; the viewBox keeps it round and centred in whatever box it gets. */
+/* Built-in canvas visuals (Clock faces + Round 1 monitor visuals). */
 .analog {
   display: block;
   width: 100%;
@@ -15,6 +15,45 @@
   fill: rgb(var(--md-on-surface-variant));
 }
 
+.tickLine {
+  stroke: rgb(var(--md-on-surface-variant));
+}
+
+.dialNum,
+.romanNum {
+  fill: rgb(var(--md-on-surface));
+  text-anchor: middle;
+  font-family: var(--w-num-font);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.romanNum {
+  font-family: Georgia, serif;
+  font-size: 8px;
+  font-weight: 600;
+}
+
+.dateWin {
+  fill: rgb(var(--md-on-surface) / 0.08);
+  stroke: rgb(var(--md-on-surface) / 0.24);
+  stroke-width: 0.9;
+}
+
+.dateWinText {
+  fill: rgb(var(--md-on-surface));
+  text-anchor: middle;
+  font-family: var(--w-num-font);
+  font-size: 7.5px;
+  font-weight: 600;
+}
+
+.subDial {
+  fill: rgb(var(--md-on-surface) / 0.05);
+  stroke: rgb(var(--md-on-surface) / 0.22);
+  stroke-width: 0.8;
+}
+
 .hourHand,
 .minuteHand {
   stroke: rgb(var(--md-on-surface));
@@ -24,6 +63,627 @@
   stroke: rgb(var(--md-primary));
 }
 
+.railwayDot {
+  fill: rgb(var(--md-primary));
+}
+
 .pin {
   fill: rgb(var(--md-primary));
+}
+
+/* Stacked digital */
+.stackedWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  gap: 2px;
+}
+
+.stackedDigits {
+  display: flex;
+  flex-direction: column;
+  line-height: 0.86;
+  font-family: var(--w-num-font);
+  font-variant-numeric: tabular-nums;
+  font-variation-settings:
+    "wdth" 35,
+    "wght" 780;
+  font-weight: 780;
+  font-size: clamp(24px, 34cqb, 64px);
+  letter-spacing: -0.02em;
+}
+
+.stackedRow {
+  display: block;
+}
+
+.faceMeta {
+  font-size: calc(12px * var(--w-scale));
+  color: rgb(var(--md-on-surface-variant));
+  white-space: nowrap;
+}
+
+/* Expressive Material shape clock */
+.expressiveWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+}
+
+.shapeTile {
+  position: relative;
+  width: min(46%, 110px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+}
+
+.shapeBg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.shapePrimary {
+  fill: rgb(var(--md-primary-container));
+}
+
+.shapeSecondary {
+  fill: rgb(var(--md-tertiary-container));
+}
+
+.shapeDigit,
+.shapeDigitAlt {
+  position: relative;
+  font-family: var(--w-num-font);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: clamp(22px, 28cqb, 42px);
+  line-height: 1;
+}
+
+.shapeDigit {
+  color: rgb(var(--md-on-primary-container));
+}
+
+.shapeDigitAlt {
+  color: rgb(var(--md-on-tertiary-container));
+}
+
+/* Flip clock */
+.flipWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 100%;
+}
+
+.flipTile {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 52px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgb(var(--md-surface-container-highest) / 0.85);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.14),
+    0 2px 6px rgb(0 0 0 / 0.25);
+  overflow: hidden;
+}
+
+.flipSmall {
+  min-width: 40px;
+  padding: 4px 8px;
+  opacity: 0.88;
+}
+
+.flipDigit {
+  font-family: var(--w-num-font);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: clamp(24px, 32cqb, 48px);
+  line-height: 1;
+}
+
+.flipSmall .flipDigit {
+  font-size: clamp(18px, 22cqb, 32px);
+}
+
+.flipHinge {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1.5px;
+  background: rgb(0 0 0 / 0.35);
+}
+
+/* Word clock */
+.wordWrap {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  width: 100%;
+  height: 100%;
+  gap: 2px;
+}
+
+.wordLead,
+.wordSub {
+  font-size: calc(13px * var(--w-scale));
+  color: rgb(var(--md-on-surface-variant));
+}
+
+.wordMain {
+  font-size: calc(24px * var(--w-scale));
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+/* Typographic clock */
+.typoWrap {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+}
+
+.typoHour {
+  font-family: var(--w-num-font);
+  font-variant-numeric: tabular-nums;
+  font-variation-settings:
+    "wdth" 35,
+    "wght" 800;
+  font-weight: 800;
+  font-size: clamp(42px, 54cqb, 88px);
+  line-height: 0.85;
+}
+
+.typoSide {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.typoMin {
+  font-family: var(--w-num-font);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: calc(22px * var(--w-scale));
+  line-height: 1;
+}
+
+/* 7-segment LCD */
+.segWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+}
+
+.segDigit {
+  height: min(76%, 64px);
+  width: auto;
+}
+
+.segOn {
+  fill: rgb(var(--md-primary));
+}
+
+.segOff {
+  fill: rgb(var(--md-on-surface) / 0.08);
+}
+
+.segColon {
+  font-family: var(--w-num-font);
+  font-weight: 700;
+  font-size: 28px;
+  color: rgb(var(--md-primary));
+  line-height: 1;
+}
+
+/* Binary BCD */
+.binWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+}
+
+.binCol {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.binOn,
+.binOff {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+}
+
+.binOn {
+  background: rgb(var(--md-primary));
+  box-shadow: 0 0 6px rgb(var(--md-primary) / 0.5);
+}
+
+.binOff {
+  background: rgb(var(--md-on-surface) / 0.14);
+}
+
+/* Terminal clock */
+.termWrap {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  width: 100%;
+  height: 100%;
+  gap: 2px;
+  font-family: "JetBrains Mono", "Ubuntu Mono", monospace;
+}
+
+.termPrompt {
+  font-size: calc(11px * var(--w-scale));
+  color: rgb(var(--md-primary));
+}
+
+.termLine {
+  font-size: calc(20px * var(--w-scale));
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.termSub {
+  font-size: calc(12px * var(--w-scale));
+  color: rgb(var(--md-on-surface-variant));
+}
+
+/* Day progress ring */
+.dayRingWrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.dayRingSvg {
+  width: min(100%, 132px);
+  height: min(100%, 132px);
+}
+
+.dayTrack {
+  fill: none;
+  stroke: rgb(var(--md-on-surface) / 0.12);
+  stroke-width: 7;
+}
+
+.dayValue {
+  fill: none;
+  stroke: rgb(var(--md-primary));
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+
+.dayRingText {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.dayRingTime {
+  font-family: var(--w-num-font);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: calc(20px * var(--w-scale));
+  line-height: 1;
+}
+
+.dayRingPct {
+  font-size: calc(10px * var(--w-scale));
+  color: rgb(var(--md-on-surface-variant));
+}
+
+/* Big date tile */
+.bigDateWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: 100%;
+  height: 100%;
+  gap: 2px;
+}
+
+.bigDateHead {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: calc(12px * var(--w-scale));
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.bigDateMonth {
+  color: rgb(var(--md-primary));
+  font-weight: 700;
+}
+
+.bigDateWeek {
+  color: rgb(var(--md-on-surface-variant));
+}
+
+.bigDateNum {
+  font-family: var(--w-num-font);
+  font-variant-numeric: tabular-nums;
+  font-variation-settings:
+    "wdth" 40,
+    "wght" 800;
+  font-weight: 800;
+  font-size: clamp(40px, 50cqb, 84px);
+  line-height: 0.88;
+}
+
+.bigDateTime {
+  font-family: var(--w-num-font);
+  font-variant-numeric: tabular-nums;
+  font-size: calc(13px * var(--w-scale));
+  color: rgb(var(--md-on-surface-variant));
+}
+
+/* Monitor visuals (CPU, Memory, GPU) --------------------------------------------------------- */
+
+.thermalWrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.thermalSvg {
+  width: min(100%, 72px);
+  height: min(100%, 72px);
+}
+
+.thermalText {
+  position: absolute;
+  font-family: var(--w-num-font);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: calc(16px * var(--w-scale));
+  line-height: 1;
+}
+
+.liquidWrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 52px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgb(var(--md-on-surface) / 0.08);
+  border: 1px solid rgb(var(--md-on-surface) / 0.14);
+}
+
+.liquidSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.liquidOverlay {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  gap: 1px;
+}
+
+.liquidPct {
+  font-family: var(--w-num-font);
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+  font-size: calc(24px * var(--w-scale));
+  line-height: 1;
+}
+
+.liquidSub {
+  font-size: calc(11px * var(--w-scale));
+  color: rgb(var(--md-on-surface-variant));
+}
+
+.stackedBarWrap {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 100%;
+}
+
+.stackedBarTrack {
+  display: flex;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgb(var(--md-on-surface) / 0.12);
+  gap: 1px;
+}
+
+.stackedSeg {
+  height: 100%;
+  min-width: 2px;
+}
+
+.stackedLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: calc(11px * var(--w-scale));
+  color: rgb(var(--md-on-surface-variant));
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.legendDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.coreBarsWrap {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+  min-height: 36px;
+}
+
+.coreBarCol {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  background: rgb(var(--md-on-surface) / 0.1);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.coreBarFill {
+  width: 100%;
+  border-radius: 999px;
+  background: rgb(var(--md-primary));
+  min-height: 3px;
+}
+
+.appListWrap {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+}
+
+.appRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: calc(12px * var(--w-scale));
+}
+
+.appIconImg {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  flex: none;
+  object-fit: contain;
+}
+
+.appIconFallback {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  background: rgb(var(--md-primary-container));
+  color: rgb(var(--md-on-primary-container));
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.appName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.appStat {
+  flex: none;
+  font-family: var(--w-num-font);
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--md-on-surface-variant));
+  white-space: nowrap;
+}
+
+.enginesWrap {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  height: 100%;
+}
+
+.engineRow {
+  display: grid;
+  grid-template-columns: 44px 1fr 34px;
+  align-items: center;
+  gap: 6px;
+  font-size: calc(11px * var(--w-scale));
+}
+
+.engineLabel {
+  color: rgb(var(--md-on-surface-variant));
+  white-space: nowrap;
+}
+
+.engineTrack {
+  height: 6px;
+  border-radius: 999px;
+  background: rgb(var(--md-on-surface) / 0.12);
+  overflow: hidden;
+}
+
+.engineFill {
+  height: 100%;
+  border-radius: 999px;
+  background: rgb(var(--md-primary));
+}
+
+.engineVal {
+  text-align: right;
+  font-family: var(--w-num-font);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }

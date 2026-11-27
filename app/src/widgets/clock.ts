@@ -1,7 +1,7 @@
-// Clock widget: digital or analog face, 12/24 h, seconds, date style, its own time zone and a
-// second zone. Follows GNOME's clock settings unless the user overrides them. Drawn by the
-// composition engine (clock.composition.ts); this file declares its fields and options and turns
-// them into the composition's `opt.*` names.
+// Clock widget (PLAN-2 4.1, brief §8.1): 11 faces (Digital inline/stacked, Expressive, Analog ×6
+// dials, Flip, Word, Typographic, Segment, Binary, Terminal, Day ring, Big date), per-element
+// colors, second hand modes, custom ICU skeleton date, second zone, and optional next-event
+// subline. Drawn by the composition engine (clock.composition.ts).
 import { defaultOptions } from "../compose/widget";
 import { clockComposition } from "./clock.composition";
 import type { CardStatus, WidgetDef } from "./types";
@@ -35,6 +35,8 @@ export const clock: WidgetDef = {
   sizes: ["1x1", "2x1", "4x1", "S", "M", "L"],
   defaultSize: "M",
   topics: [SETTINGS],
+  extraTopics: (c) =>
+    c.content.opt<string>("subline") === "next-event" ? ["calendar.events"] : [],
   defaultFields: ["time", "date"],
   fields: [
     {
@@ -93,9 +95,53 @@ export const clock: WidgetDef = {
       label: "Face",
       options: [
         { value: "digital", label: "Digital" },
+        { value: "expressive", label: "Expressive" },
         { value: "analog", label: "Analog" },
+        { value: "flip", label: "Flip" },
+        { value: "word", label: "Word clock" },
+        { value: "typographic", label: "Typographic" },
+        { value: "segment", label: "Segment / LCD" },
+        { value: "binary", label: "Binary" },
+        { value: "terminal", label: "Terminal" },
+        { value: "day-ring", label: "Day ring" },
+        { value: "big-date", label: "Big date" },
       ],
       default: "digital",
+    },
+    {
+      kind: "enum",
+      key: "digitalLayout",
+      label: "Digital layout",
+      options: [
+        { value: "inline", label: "Inline (10:09)" },
+        { value: "stacked", label: "Stacked" },
+      ],
+      default: "inline",
+    },
+    {
+      kind: "enum",
+      key: "dialStyle",
+      label: "Analog dial",
+      options: [
+        { value: "minimal", label: "Minimal" },
+        { value: "classic", label: "Classic" },
+        { value: "numerals", label: "Numerals" },
+        { value: "roman", label: "Roman" },
+        { value: "chronograph", label: "Chronograph" },
+        { value: "railway", label: "Railway" },
+      ],
+      default: "minimal",
+    },
+    {
+      kind: "enum",
+      key: "secondHand",
+      label: "Second hand",
+      options: [
+        { value: "tick", label: "Tick" },
+        { value: "sweep", label: "Sweep" },
+        { value: "hide", label: "Hide" },
+      ],
+      default: "tick",
     },
     {
       kind: "enum",
@@ -128,8 +174,55 @@ export const clock: WidgetDef = {
         { value: "long", label: "23 November 2026" },
         { value: "medium", label: "23 Nov 2026" },
         { value: "short", label: "23/11/2026" },
+        { value: "custom", label: "Custom ICU skeleton" },
       ],
       default: "full",
+    },
+    {
+      kind: "text",
+      key: "dateSkeleton",
+      label: "Custom date skeleton",
+      help: "ICU skeleton such as EEE d MMM or yMMMd (used when Date style is Custom).",
+      maxLength: 32,
+      placeholder: "EEE d MMM",
+      default: "",
+    },
+    {
+      kind: "enum",
+      key: "subline",
+      label: "Subline",
+      options: [
+        { value: "none", label: "None" },
+        { value: "next-event", label: "Next calendar event" },
+      ],
+      default: "none",
+    },
+    {
+      kind: "text",
+      key: "handColor",
+      label: "Hand color",
+      help: "Optional hex color for analog clock hands (empty uses theme ink).",
+      maxLength: 24,
+      placeholder: "Theme default",
+      default: "",
+    },
+    {
+      kind: "text",
+      key: "tickColor",
+      label: "Tick color",
+      help: "Optional hex color for dial ticks.",
+      maxLength: 24,
+      placeholder: "Theme default",
+      default: "",
+    },
+    {
+      kind: "text",
+      key: "numeralColor",
+      label: "Numeral color",
+      help: "Optional hex color for clock digits or dial numerals.",
+      maxLength: 24,
+      placeholder: "Theme default",
+      default: "",
     },
     {
       kind: "text",
@@ -166,12 +259,18 @@ export const clock: WidgetDef = {
   compositionOptions(content) {
     const zone2 = validZone(content.opt<string>("zone2"));
     const custom = content.opt<string>("zone2Label").trim();
+    const dateStyle = content.opt<string>("dateStyle");
+    const customSkel = content.opt<string>("dateSkeleton").trim();
+    const dateSkeleton =
+      dateStyle === "custom" && customSkel !== ""
+        ? customSkel
+        : (DATE_SKELETONS[dateStyle] ?? "yMMMMEEEEd");
     return {
       ...defaultOptions(clock, content),
       zone: validZone(content.opt<string>("zone")),
       zone2,
       zone2Name: custom !== "" ? custom : (zone2.split("/").pop()?.replace(/_/g, " ") ?? zone2),
-      dateSkeleton: DATE_SKELETONS[content.opt<string>("dateStyle")] ?? "yMMMMEEEEd",
+      dateSkeleton,
       weekLabel: content.label("week", "Week"),
       systemZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       // The lines under the time: the shown fields in the user's order (a second zone only

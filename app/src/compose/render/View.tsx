@@ -315,7 +315,9 @@ function BlockView({ node, at, attrs }: { node: Node; at: string; attrs: Attrs }
       const Visual = VISUALS[node.visual];
       const params: Record<string, Value> = {};
       for (const k of Object.keys(node.params ?? {})) params[k] = read(`params/${k}`);
-      content = Visual ? <Visual params={params} label={attrs["aria-label"]} /> : null;
+      content = Visual ? (
+        <Visual params={params} label={attrs["aria-label"]} animate={animate} />
+      ) : null;
       break;
     }
     default:
