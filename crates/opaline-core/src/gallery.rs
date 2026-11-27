@@ -15,9 +15,10 @@ use crate::plugins::{PluginKind, PluginPermissions, PluginStatus};
 pub const GALLERY_INDEX_URL: &str =
     "https://raw.githubusercontent.com/ali-kenjo/opaline-gallery/main/index.json";
 
-/// Official gallery minisign public key (empty until the owner mints the gallery key).
-/// Unconfigured key refuses unsigned gallery installs (same fail-closed rule as `updates.rs`).
-pub const GALLERY_MINISIGN_PUBKEY: &str = "";
+/// Official gallery signing key (minisign key id `876F67B4BCCC92FA`, minted 2026-11-27). Gallery
+/// packages must be signed with its secret half; anything else is refused (same rule as `updates.rs`).
+pub const GALLERY_MINISIGN_PUBKEY: &str =
+    "RWT6ksy8tGdvh5EOpAP3LdnWNm3Bj6CXUydzXgpovOatInQkEcMzBwbn";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -132,7 +133,7 @@ mod tests {
         let key_id = *b"OPALGAL1";
 
         let mut pub_raw = Vec::with_capacity(42);
-        pub_raw.extend_from_slice(b"RW");
+        pub_raw.extend_from_slice(b"Ed");
         pub_raw.extend_from_slice(&key_id);
         pub_raw.extend_from_slice(kp.public_key().as_ref());
         let pub_b64 = base64::engine::general_purpose::STANDARD.encode(&pub_raw);

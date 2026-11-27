@@ -24,18 +24,27 @@ Verify that the `.deb` includes:
 - `/usr/share/zsh/vendor-completions/_opaline`
 - `/usr/share/fish/vendor_completions.d/opaline.fish`
 
-## 2. Setting up minisign keys (one-time, owner)
+## 2. Minisign keys (minted 2026-11-27)
 
-1. **Release signing key:**
-   ```bash
-   minisign -G -p opaline-release.pub -s opaline-release.key
-   ```
-   Copy the `RW...` public key line into `RELEASE_MINISIGN_PUBKEY` (`crates/opaline-core/src/updates.rs`) and configure GitHub Actions secrets `MINISIGN_SECRET_KEY` and `MINISIGN_PASSWORD`.
-2. **Community gallery signing key (`ali-kenjo/opaline-gallery`):**
-   ```bash
-   minisign -G -p opaline-gallery.pub -s opaline-gallery.key
-   ```
-   Copy its `RW...` public key line into `GALLERY_MINISIGN_PUBKEY` (`crates/opaline-core/src/gallery.rs`).
+Both keys were made with `minisign -G` (minisign 0.12) and live only on the owner's laptop, in `~/.minisign/`
+(folder mode `700`), each with its own password. Keep an offline backup of both `.key` files: losing the release
+key means installed copies can no longer update themselves; a new key would have to ship in a hand-installed build.
+
+| Key | Key id | Public key (built in) | Secret key |
+| - | - | - | - |
+| Release | `5E9B385AC358AAD3` | `RELEASE_MINISIGN_PUBKEY` in `crates/opaline-core/src/updates.rs` | `~/.minisign/opaline-release.key` |
+| Gallery | `876F67B4BCCC92FA` | `GALLERY_MINISIGN_PUBKEY` in `crates/opaline-core/src/gallery.rs` | `~/.minisign/opaline-gallery.key` |
+
+The release workflow signs `SHA256SUMS` with the release key from two GitHub Actions secrets (the owner sets
+them; the password is read from stdin, which minisign 0.12 accepts):
+
+```bash
+gh secret set MINISIGN_SECRET_KEY -R ali-kenjo/opaline < ~/.minisign/opaline-release.key
+gh secret set MINISIGN_PASSWORD -R ali-kenjo/opaline   # prompts for the release key password
+```
+
+Sign a gallery package by hand with `minisign -Sm <package>.zip -s ~/.minisign/opaline-gallery.key`.
+`updates::tests::minisign_cli_signature_verifies` checks the verifier against real minisign CLI output.
 
 ## 3. Clean Ubuntu 26.04 VM & 1.1 → 2.0 migration checklist
 

@@ -20,10 +20,10 @@ const MAX_DEB_BYTES: usize = 128 << 20; // 128 MiB cap
 const MAX_META_BYTES: usize = 256 << 10; // 256 KiB cap
 const CHECK_INTERVAL: Duration = Duration::from_secs(24 * 3600);
 
-/// Official minisign public key (set in Phase 8 task 8.3 when the release signing key is minted).
-/// Empty until the v1.0.0 release key is published; verification refuses unsigned installs unless
-/// a matching trusted key is configured.
-pub const RELEASE_MINISIGN_PUBKEY: &str = "";
+/// Official release signing key (minisign key id `5E9B385AC358AAD3`, minted 2026-11-27). The
+/// release workflow signs `SHA256SUMS` with its secret half (`MINISIGN_SECRET_KEY`).
+pub const RELEASE_MINISIGN_PUBKEY: &str =
+    "RWTTqljDWjibXkrILQHoOvW88UigFMKaq0LkYU7BLGNkwAEqSsleUu9E";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -130,7 +130,8 @@ pub fn verify_sha256(checksums_text: &str, filename: &str, bytes: &[u8]) -> Resu
     Ok(())
 }
 
-/// Decodes a base64 minisign public key string (2-byte algorithm `"RW"` + 8-byte key id + 32-byte Ed25519 pubkey).
+/// Decodes a base64 minisign public key (2-byte algorithm `Ed` + 8-byte key id + 32-byte Ed25519
+/// key; the base64 text starts with `RW` because that is how `Ed` encodes).
 fn decode_minisign_pubkey(pubkey_b64: &str) -> Result<([u8; 8], [u8; 32]), String> {
     let line = pubkey_b64
         .lines()
@@ -140,7 +141,7 @@ fn decode_minisign_pubkey(pubkey_b64: &str) -> Result<([u8; 8], [u8; 32]), Strin
     let raw = base64::engine::general_purpose::STANDARD
         .decode(line)
         .map_err(|e| format!("invalid-pubkey-base64: {e}"))?;
-    if raw.len() != 42 || &raw[0..2] != b"RW" {
+    if raw.len() != 42 || &raw[0..2] != b"Ed" {
         return Err("invalid-minisign-pubkey-format".into());
     }
     let mut key_id = [0u8; 8];
@@ -511,7 +512,7 @@ mod tests {
         let key_id = [1u8, 2, 3, 4, 5, 6, 7, 8];
 
         let mut pub_raw = Vec::with_capacity(42);
-        pub_raw.extend_from_slice(b"RW");
+        pub_raw.extend_from_slice(b"Ed");
         pub_raw.extend_from_slice(&key_id);
         pub_raw.extend_from_slice(kp.public_key().as_ref());
         let pub_b64 = base64::engine::general_purpose::STANDARD.encode(&pub_raw);
@@ -539,5 +540,37 @@ mod tests {
         assert!(verify_minisign(&pub_b64, &minisig, msg).is_ok());
         assert!(verify_minisign(&pub_b64, &minisig, b"tampered").is_err());
         assert!(verify_minisign("", &minisig, msg).is_err());
+    }
+
+    /// A signature made by the real `minisign` 0.12 CLI (throwaway key, password piped on stdin
+    /// exactly as `.github/workflows/release.yml` does), so the verifier is checked against the
+    /// tool's actual output and not only against signatures built by this test module.
+    #[test]
+    fn minisign_cli_signature_verifies() {
+        let pubkey = "untrusted comment: minisign public key 0820600882522549\n\
+                      RWRJJVKCCGAgCOMo+8p1bu/E/E9VaUUSNHXkGwc4TqU+gmsMqiUmJ+Fw\n";
+        let minisig = "untrusted comment: signature from minisign secret key\n\
+             RURJJVKCCGAgCFw9puC+zKuDPE771uKjZvrbRMUVdr7pK9iqSEknwBqgR2HFZCVETOpQLOpEjbuiFDph3/z0Gv0AhyAEBaLO1Aw=\n\
+             trusted comment: timestamp:1795796357\tfile:SHA256SUMS\thashed\n\
+             bxpyNWh8Jr4tkmDzo0IH5odpZy1epHl3EsxM3zxI7y83lmlmDNwOyjstfViECBkPu5RQRk9ohB1jgx5O2RD8Bw==\n";
+        let sums = b"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  Opaline_2.0.0_amd64.deb\n";
+        assert_eq!(verify_minisign(pubkey, minisig, sums), Ok(()));
+        assert!(verify_minisign(pubkey, minisig, b"tampered").is_err());
+        assert_eq!(
+            verify_minisign(RELEASE_MINISIGN_PUBKEY, minisig, sums),
+            Err("minisign-key-id-mismatch".into())
+        );
+        let forged_comment = minisig.replace("file:SHA256SUMS", "file:OTHER");
+        assert!(verify_minisign(pubkey, &forged_comment, sums).is_err());
+    }
+
+    #[test]
+    fn built_in_signing_keys_are_well_formed() {
+        assert!(decode_minisign_pubkey(RELEASE_MINISIGN_PUBKEY).is_ok());
+        assert!(decode_minisign_pubkey(crate::gallery::GALLERY_MINISIGN_PUBKEY).is_ok());
+        assert_ne!(
+            RELEASE_MINISIGN_PUBKEY,
+            crate::gallery::GALLERY_MINISIGN_PUBKEY
+        );
     }
 }

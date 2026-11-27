@@ -61,7 +61,7 @@ All checks pass cleanly with zero warnings/errors:
 
 1. ~~Owner sign-off on Phase 10 and push~~ — done 2026-11-27.
 2. **Owner-gated release preparation (`docs/RELEASE.md`)** — ask the owner before doing any of these:
-   - **Minisign keys (Open Item #1):** Help the owner mint the release signing key (`RELEASE_MINISIGN_PUBKEY` in `crates/opaline-core/src/updates.rs` + GitHub Actions secrets `MINISIGN_SECRET_KEY`, `MINISIGN_PASSWORD`) and the gallery key (`GALLERY_MINISIGN_PUBKEY` in `crates/opaline-core/src/gallery.rs`, plus creating `ali-kenjo/opaline-gallery`). Both verifiers fail closed until configured.
+   - **Minisign keys (Open Item #1):** keys minted and built in (2026-11-27). Left: owner sets the two GitHub secrets (`docs/RELEASE.md` §2) and decides on creating `ali-kenjo/opaline-gallery`.
    - **Real-desktop live verification (optional, with owner OK only):**
      - Run a 2.0 debug/release build against a **copy** of config (`XDG_CONFIG_HOME=/tmp/opaline-2-test`), NEVER against `~/.config/opaline/` (1.1.0 is still installed and treats v2 settings as read-only).
      - Test Quick Controls (Wi-Fi/Bluetooth/volume/brightness), Notes/Photos folders, local Docker Desktop / n8n (`localhost:5678`), `opaline ctl status --json`, and record fresh RAM/CPU via `scripts/measure-budget.sh 60` (budget: ≤ 450 MB PSS, ≤ 0.5% idle CPU).
@@ -75,7 +75,7 @@ All checks pass cleanly with zero warnings/errors:
 
 ## 5. Open / Deferred Items (Known & Documented)
 
-1. **Minisign keys empty (`updates.rs`, `gallery.rs`):** Both fail closed by design until the owner mints keys.
+1. **Minisign keys:** minted 2026-11-27 and built in (`docs/RELEASE.md` §2). Still to do: the owner sets the GitHub secrets `MINISIGN_SECRET_KEY` / `MINISIGN_PASSWORD`, and `ali-kenjo/opaline-gallery` doesn't exist yet. A decoder bug (raw bytes compared with `RW` instead of `Ed`) had made every real key fail; fixed, with a test on real minisign output.
 2. **Memory levers documented but deferred (ADR 0009):** Recycle WebKit web process while hidden, size GTK windows to widget bounding box outside Edit/Peek, glibc tunables for core. Current budget is **450 MB PSS** (owner-approved in P0).
 3. **GNOME 51 readiness:** `desktop-integration/metadata.json` currently declares `shell-version: ["50"]`.
 4. **ADR 0015 focus hand-back:** Works in Native mode via `ReleaseFocus`; Instant mode (Xwayland) cannot refocus another app's window.
