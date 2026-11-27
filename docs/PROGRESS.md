@@ -560,7 +560,7 @@ existing baselines/checks + new `themes.spec.ts`), `eslint`, `prettier`, `tsc`, 
 `rustfmt`; 280 Vitest, 58 Playwright WebKit e2e (all 56 existing baselines/contrast/truncation/edit/themes + 2 new
 `round1.spec.ts`), `eslint`, `prettier`, `tsc`.
 
-**Sign-off:** Pending (Phase 4 · Round 1). Next: Round 2 (4.5 Storage, 4.6 Network, 4.7 Battery & Power, 4.8 Fans).
+**Sign-off:** ✅ 2026-11-27. Next: Round 2 (4.5 Storage, 4.6 Network, 4.7 Battery & Power, 4.8 Fans).
 
 
 
