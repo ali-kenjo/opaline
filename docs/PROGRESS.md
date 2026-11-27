@@ -905,6 +905,42 @@ all 15 Settings sections), `eslint`, `prettier`, `tsc`, production `vite build`.
 
 **Sign-off:** ✅ 2026-11-27. Phase 8 complete. Next: Phase 9 (Plugins & gallery: ADR 0014 sandbox, hostile-plugin suite, gallery verifier, author tools `opaline pack` / `opaline validate`, `docs/SDK.md`).
 
+## 2.0 · Phase 9: Plugins & the community gallery (2026-11-27)
+
+**Done**
+- **9.1 Production Sandbox, Manifest & Permission Trust (`crates/opaline-core/src/plugins.rs`, `app/src-tauri/src/layer/plugin_scheme.rs`, `windows.rs`):**
+  - Implemented the production `opaline-plugin://<plugin-id>/` URI scheme (ADR 0014) in both debug and release builds
+    (preserving debug `opaline-plugin://spike/` for Spike S5 re-verification), serving every response with
+    `Content-Security-Policy: default-src 'none'; script-src 'self'; worker-src 'self' blob:; connect-src 'self'; frame-ancestors tauri://localhost`
+    and `X-Content-Type-Options: nosniff`.
+  - Added defense-in-depth main-frame navigation guard on layer windows (`is_allowed_layer_navigation`, ADR 0014 item 6).
+  - Manifest validation (`plugin.json`), safe ZIP extraction (`zip_pkg`), strict action allowlisting, and SHA-256
+    fingerprinting over `(id, pluginVersion, permissions, entry script)` so any permission or code change automatically
+    revokes trust until re-approved; `--safe-mode` disables all code widgets.
+- **9.2 Frontend Plugin Host, Watchdog & Hostile-Plugin Suite (`app/src/plugins/{pluginSandbox.ts,PluginWidget.tsx,hostile.test.ts}`):**
+  - Enforces `<iframe sandbox="allow-scripts allow-same-origin">` (strictly excluding `allow-top-navigation`, popups,
+    forms, modals), strict `event.source` + `opaline-plugin://<id>` origin check, declared-topic filtering, command
+    allow-list enforcement, prototype-pollution & 256 KiB payload-cap sanitization, and a 2 s heartbeat watchdog with
+    exponential backoff that terminates hung/busy-loop workers without affecting healthy siblings.
+- **9.3 Community Gallery Client, Signature Verifier & Settings UI (`crates/opaline-core/src/gallery.rs`, `app/src/settings/GallerySection.tsx`, `docs/GALLERY_CONTRIBUTING.md`, `scripts/validate-gallery-pr.sh`):**
+  - Reuses `updates::verify_minisign` (Ed25519 + BLAKE2b-512) + SHA-256 verification fail-closed on every gallery
+    install; fetches `index.json` **only when explicitly clicked in Settings → Plugins & Gallery** (zero background
+    network traffic, zero accounts, zero telemetry), plus **Install from package file**.
+- **9.4 Author Tools & SDK (`app/src-tauri/src/main.rs`, `docs/SDK.md`, `examples/template-plugin/`):**
+  - Added `opaline validate <dir>` and `opaline pack <dir> [-o out.opaline-plugin]` CLI commands, complete `docs/SDK.md`,
+    and working reference `examples/template-plugin/` validated automatically in Rust unit tests.
+
+**Checks:** 255 Rust workspace tests (incl. `plugins` pack/validate/trust-invalidation/template-plugin, `gallery`
+Ed25519 minisign + SHA-256 acceptance & tamper rejection, `plugin_scheme` CSP/unapproved-block/path-traversal/nav-guard),
+`clippy -D warnings`, `rustfmt`; 317 Vitest (incl. 6 hostile-plugin security tests in `hostile.test.ts`), 88 Playwright
+WebKit e2e (incl. `p9-plugins.spec.ts` + all 16 Settings sections), `eslint`, `prettier`, `tsc`, `lint:helper`,
+production `vite build`.
+
+**Note (9.3):** Creating the public `ali-kenjo/opaline-gallery` repository and minting the gallery minisign key awaits
+the owner; until configured, `GALLERY_MINISIGN_PUBKEY` fails closed by design.
+
+**Sign-off:** ⏳ Awaiting owner sign-off. Next: Phase 10 (Quality & release: en/de/ar i18n parity, a11y, `docs/SECURITY.md` threat model & security tests, budgets, release readiness).
+
 
 
 

@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "id": "template-pulse",
+  "name": "System Pulse (Template)",
+  "pluginVersion": "1.0.0",
+  "author": "Opaline",
+  "license": "GPL-3.0-or-later",
+  "minOpalineVersion": "2.0.0",
+  "kind": "code-widget",
+  "entry": "worker.js",
+  "sizes": ["S", "M"],
+  "description": "Minimal reference code widget demonstrating the ADR 0014 Web Worker sandbox.",
+  "translations": {
+    "de": { "title": "Systempuls" },
+    "ar": { "title": "نبض النظام" }
+  },
+  "permissions": {
+    "topics": ["cpu.load"],
+    "sources": [],
+    "actions": []
+  }
+}
