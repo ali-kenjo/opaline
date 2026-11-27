@@ -4,6 +4,7 @@ export type SettingsSectionId =
   | "looks"
   | "appearance"
   | "layout"
+  | "profiles"
   | "widget-defaults"
   | "data-sources"
   | "accounts"
@@ -69,6 +70,14 @@ export const SETTINGS_SEARCH_INDEX: readonly SettingSearchEntry[] = [
     sectionLabel: "Layout",
     title: "Grid cell size (72 / 84 / 96 / 112 px) & safe margins",
     keywords: "grid cell size 72 84 96 112 margin work area disconnected monitor",
+  },
+  {
+    id: "profiles-list",
+    section: "profiles",
+    sectionLabel: "Profiles & automation",
+    title: "Desktop profiles, automation rules, hysteresis & manual override",
+    keywords:
+      "profile automation rule workspace focused app docked hysteresis override resume ctl dbus cli",
   },
   {
     id: "defaults-inspector",

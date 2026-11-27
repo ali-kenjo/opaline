@@ -41,6 +41,7 @@ export interface TopicUpdate {
 export type CoreEvent =
   | { event: "monitors-changed"; monitors: Monitor[] }
   | { event: "peek-requested" }
+  | { event: "peek-monitor-requested"; connector: string }
   | { event: "edit-requested" }
   | { event: "updates-paused"; paused: boolean }
   | { event: "alert-opened"; rule: string }

@@ -85,6 +85,9 @@ export interface ShortcutsState {
   editable: boolean;
   peek: string;
   edit: string;
+  nextProfile?: string;
+  cycleLook?: string;
+  peekPrimary?: string;
 }
 
 export interface UpdateInfo {
@@ -399,4 +402,125 @@ export async function setSecret(name: string, value: string): Promise<void> {
 
 export async function deleteSecret(name: string): Promise<boolean> {
   return await invoke<boolean>("shell_delete_secret", { name });
+}
+
+export interface Profile {
+  id: string;
+  name: string;
+  theme?: string | null;
+  look?: DesktopLook | null;
+  appearanceState?: AppearanceState | null;
+  performanceMode?: PerformanceMode | null;
+  layouts?: LayoutsDoc | null;
+  hiddenWidgets?: string[];
+}
+
+export interface ProfilesFile {
+  version: number;
+  activeId?: string | null;
+  profiles: Profile[];
+}
+
+export type RuleAction =
+  | { type: "activate-profile"; profileId: string }
+  | { type: "set-look"; look: DesktopLook }
+  | { type: "set-theme"; theme: string }
+  | { type: "set-variable"; name: string; value: unknown }
+  | { type: "notify"; title: string; body: string }
+  | { type: "widget-action"; widgetId: string; action: string };
+
+export interface AutomationRule {
+  id: string;
+  name: string;
+  enabled: boolean;
+  priority: number;
+  condition: string;
+  minDurationS: number;
+  hysteresisS: number;
+  action: RuleAction;
+}
+
+export interface RuleRuntime {
+  active: boolean;
+  conditionNow: boolean;
+  trueSinceMs: number | null;
+  falseSinceMs: number | null;
+  lastFiredMs: number | null;
+  compileError: string | null;
+}
+
+export interface DesktopContext {
+  workspace: number;
+  focusedApp: string;
+  fullscreen: boolean;
+  monitorCount: number;
+  docked: boolean;
+  locked: boolean;
+  idle: boolean;
+}
+
+export interface AutomationStatus {
+  enabled: boolean;
+  manualOverride: boolean;
+  manualOverrideReason: string | null;
+  activeRuleId: string | null;
+  rules: AutomationRule[];
+  runtime: Record<string, RuleRuntime>;
+  context: DesktopContext;
+}
+
+export async function listProfiles(): Promise<ProfilesFile> {
+  return await invoke<ProfilesFile>("shell_list_profiles");
+}
+
+export async function saveProfile(profile: Profile): Promise<Profile> {
+  return await invoke<Profile>("shell_save_profile", { profile });
+}
+
+export async function snapshotProfile(id: string, name: string): Promise<Profile> {
+  return await invoke<Profile>("shell_snapshot_profile", { id, name });
+}
+
+export async function deleteProfile(id: string): Promise<boolean> {
+  return await invoke<boolean>("shell_delete_profile", { id });
+}
+
+export async function activateProfile(id: string): Promise<Profile> {
+  return await invoke<Profile>("shell_activate_profile", { id });
+}
+
+export async function getAutomation(): Promise<AutomationStatus> {
+  return await invoke<AutomationStatus>("shell_get_automation");
+}
+
+export async function setAutomationEnabled(enabled: boolean): Promise<void> {
+  await invoke("shell_set_automation_enabled", { enabled });
+}
+
+export async function saveAutomationRule(rule: AutomationRule): Promise<AutomationRule> {
+  return await invoke<AutomationRule>("shell_save_automation_rule", { rule });
+}
+
+export async function deleteAutomationRule(id: string): Promise<boolean> {
+  return await invoke<boolean>("shell_delete_automation_rule", { id });
+}
+
+export async function resumeAutomation(): Promise<void> {
+  await invoke("shell_resume_automation");
+}
+
+export async function setExtendedShortcuts(
+  peek: string,
+  edit: string,
+  nextProfile: string,
+  cycleLook: string,
+  peekPrimary: string,
+): Promise<void> {
+  await invoke("shell_set_extended_shortcuts", {
+    peek,
+    edit,
+    nextProfile,
+    cycleLook,
+    peekPrimary,
+  });
 }

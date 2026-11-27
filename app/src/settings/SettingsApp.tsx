@@ -19,14 +19,15 @@ import {
   getShellState,
   patchSettings,
   saveLayouts,
+  setExtendedShortcuts,
   setHelperEnabled,
-  setNativeShortcuts,
   triggerAction,
 } from "../shell/api";
 import { useShellTheme } from "../shell/useShellTheme";
 import { AccountsSection } from "./AccountsSection";
 import { DataSourcesSection } from "./DataSourcesSection";
 import { LooksSection } from "./LooksSection";
+import { ProfilesSection } from "./ProfilesSection";
 import styles from "./Settings.module.css";
 import { AboutSection, AlertsSection, BackupSection, DiagnosticsSection } from "./SettingsSections";
 import { type SettingsSectionId, detectShortcutConflicts, searchSettings } from "./settingsIndex";
@@ -40,6 +41,7 @@ const NAV: readonly {
   { id: "looks", label: "Looks", icon: "palette" },
   { id: "appearance", labelKey: "settings.nav.appearance", icon: "tune" },
   { id: "layout", labelKey: "settings.nav.layout", icon: "grid_view" },
+  { id: "profiles", label: "Profiles & automation", icon: "layers" },
   { id: "widget-defaults", label: "Widget defaults", icon: "widgets" },
   { id: "data-sources", label: "Data sources", icon: "terminal" },
   { id: "accounts", label: "Accounts & integrations", icon: "lock" },
@@ -73,6 +75,9 @@ export function SettingsApp() {
   const [newSub, setNewSub] = useState("");
   const [peekKey, setPeekKey] = useState("<Super><Alt>w");
   const [editKey, setEditKey] = useState("<Super><Alt>e");
+  const [nextProfileKey, setNextProfileKey] = useState("");
+  const [cycleLookKey, setCycleLookKey] = useState("");
+  const [peekPrimaryKey, setPeekPrimaryKey] = useState("");
 
   const { locale } = useShellTheme(state);
   const searchResults = useMemo(() => searchSettings(searchQuery), [searchQuery]);
@@ -89,6 +94,9 @@ export function SettingsApp() {
     setState(s);
     setPeekKey(s.shortcuts.peek);
     setEditKey(s.shortcuts.edit);
+    setNextProfileKey(s.shortcuts.nextProfile ?? "");
+    setCycleLookKey(s.shortcuts.cycleLook ?? "");
+    setPeekPrimaryKey(s.shortcuts.peekPrimary ?? "");
     const primaryKey = (s.monitors.find((m) => m.primary) ?? s.monitors[0])?.key ?? "";
     setSelectedMonitor((cur) => (cur ? cur : primaryKey));
   }, []);
@@ -1325,6 +1333,48 @@ export function SettingsApp() {
                 />
               </div>
 
+              <div className={styles.row}>
+                <span className={styles.rowLabel}>Next profile</span>
+                <input
+                  aria-label="Next profile shortcut"
+                  className={styles.input}
+                  disabled={!shortcuts.editable}
+                  placeholder="Optional (e.g. <Super><Alt>p)"
+                  value={nextProfileKey}
+                  onChange={(e) => {
+                    setNextProfileKey(e.target.value);
+                  }}
+                />
+              </div>
+
+              <div className={styles.row}>
+                <span className={styles.rowLabel}>Cycle desktop look</span>
+                <input
+                  aria-label="Cycle desktop look shortcut"
+                  className={styles.input}
+                  disabled={!shortcuts.editable}
+                  placeholder="Optional (e.g. <Super><Alt>l)"
+                  value={cycleLookKey}
+                  onChange={(e) => {
+                    setCycleLookKey(e.target.value);
+                  }}
+                />
+              </div>
+
+              <div className={styles.row}>
+                <span className={styles.rowLabel}>Peek primary monitor</span>
+                <input
+                  aria-label="Peek primary monitor shortcut"
+                  className={styles.input}
+                  disabled={!shortcuts.editable}
+                  placeholder="Optional (e.g. <Super><Alt>1)"
+                  value={peekPrimaryKey}
+                  onChange={(e) => {
+                    setPeekPrimaryKey(e.target.value);
+                  }}
+                />
+              </div>
+
               {shortcutConflicts.length > 0 ? (
                 <div role="alert" style={{ color: "rgb(var(--md-error))", fontSize: 13 }}>
                   {shortcutConflicts.map((msg) => (
@@ -1342,7 +1392,13 @@ export function SettingsApp() {
                     icon="check"
                     disabled={shortcutConflicts.length > 0}
                     onClick={() => {
-                      setNativeShortcuts(peekKey, editKey)
+                      setExtendedShortcuts(
+                        peekKey,
+                        editKey,
+                        nextProfileKey,
+                        cycleLookKey,
+                        peekPrimaryKey,
+                      )
                         .then(async () => {
                           await refresh();
                           notify("Shortcuts saved");
@@ -1360,7 +1416,10 @@ export function SettingsApp() {
                     onClick={() => {
                       setPeekKey("<Super><Alt>w");
                       setEditKey("<Super><Alt>e");
-                      setNativeShortcuts("<Super><Alt>w", "<Super><Alt>e")
+                      setNextProfileKey("");
+                      setCycleLookKey("");
+                      setPeekPrimaryKey("");
+                      setExtendedShortcuts("<Super><Alt>w", "<Super><Alt>e", "", "", "")
                         .then(() => refresh())
                         .catch(() => undefined);
                     }}
@@ -1371,6 +1430,8 @@ export function SettingsApp() {
               ) : null}
             </div>
           ) : null}
+
+          {section === "profiles" ? <ProfilesSection notify={notify} refresh={refresh} /> : null}
 
           {section === "data-sources" ? <DataSourcesSection notify={notify} /> : null}
 

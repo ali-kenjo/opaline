@@ -75,6 +75,10 @@ export function reduce(state: LayerState, event: LayerEvent): Partial<LayerState
         }
         case "peek-requested":
           return { peekRequests: state.peekRequests + 1 };
+        case "peek-monitor-requested":
+          return !event.event.connector || state.monitor?.connector === event.event.connector
+            ? { peekRequests: state.peekRequests + 1 }
+            : {};
         case "edit-requested":
           return { editRequests: state.editRequests + 1 };
         case "desktop-focus-changed":

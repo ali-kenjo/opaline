@@ -12,9 +12,11 @@ each ending with acceptance checks, a PROGRESS entry and the owner's sign-off.
 
 ## Status
 - **P0, P1, P2, P3, P4 (Rounds 1–5), P5 (Editing experience & placement), P6 (Custom sources & Widget Builder), and P7 (New widgets)**
-  are signed off and pushed (`origin/main`).
+  are signed off and pushed (`origin/main` `e4fe1e2`).
+- **Phase 8: Profiles, automation, CLI `opaline ctl`, D-Bus v2, helper v2 (Tasks 8.1–8.6)** is complete and verified
+  locally (249 Rust tests, 311 Vitest, 87 Playwright WebKit E2E), awaiting owner sign-off before pushing to `origin/main`.
 - **Next steps, in order:**
-  1. Begin **Phase 8: Profiles, automation, CLI `opaline ctl`, D-Bus v2, helper v2**.
+  1. Sign off and push **Phase 8** (re-login activates Shell1 API v2 workspace/focused-app signals; v1 helper stays compatible via N−1).
   2. Proceed to **Phase 9: Plugins & gallery** and **Phase 10: Quality & release**.
   3. Optional, if the owner allows: a real-layer budget run (`scripts/measure-budget.sh 60` with a 2.0 build on a
      settings copy) to confirm animation CPU and RAM on the desktop.

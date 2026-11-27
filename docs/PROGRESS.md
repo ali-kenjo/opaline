@@ -865,6 +865,46 @@ local n8n/GitHub/HA can be exercised whenever the owner wants.
 
 **Sign-off:** ✅ 2026-11-27. Phase 7 complete. Next: Phase 8 (Profiles, automation, CLI `opaline ctl`, D-Bus v2, helper v2).
 
+## 2.0 · Phase 8: Profiles, automation, CLI `opaline ctl`, D-Bus v2, helper v2 (2026-11-27)
+
+**Done**
+- **8.1 Named Desktop Profiles (`crates/opaline-core/src/profiles.rs`):**
+  - Persisted atomically in `~/.config/opaline/profiles.json` and published live on `"profiles.state"`.
+  - Snapshots per-monitor layouts, theme, Desktop look, appearance state, performance mode, and per-profile
+    `hiddenWidgets`. Switching profiles applies settings and layouts atomically so widgets spring-animate to their
+    new places, emits `ProfileChanged` / `ThemeChanged` D-Bus signals, and engages manual override in automation.
+- **8.2 Automation Rules Engine (`crates/opaline-core/src/automation.rs`):**
+  - Compiled once and evaluated on `opaline-expr` against all live Hub topics plus synthesized `desktop.*`
+    (`workspace`, `focusedApp`, `fullscreen`, `monitorCount`, `docked`, `locked`, `idle`, `dnd`) and `time.*`
+    (`hour`, `minute`, `weekday`, `isNight`) context.
+  - Enforces per-rule `minDurationS`, `hysteresisS`, and descending `priority` so rules never flap; tracks manual
+    override with one-click/CLI `"Resume automation"`.
+- **8.3 GNOME Shell Helper API v2 + N−1 Compatibility + Instant EWMH (`desktop-integration/`, `crates/opaline-core/src/desktop.rs`):**
+  - Bumped `Shell1` `ApiVersion = 2`, `ApiRevision = 2`, adding `ActiveWorkspace`, `FocusedApp`, `Fullscreen`
+    properties & `ActiveWorkspaceChanged`, `FocusedAppChanged`, `FullscreenChanged` signals, `SetRaisedMonitor`,
+    and extended GSettings keybindings (`next-profile-shortcut`, `cycle-look-shortcut`, `peek-primary-shortcut`).
+  - Core supports `ApiVersion` N (`2`) and N−1 (`1`) cleanly without breaking existing v1 helpers (one GNOME Shell
+    re-login activates v2 signals); Instant mode polls `_NET_CURRENT_DESKTOP` via `xprop` only when rules are active.
+  - Fixed Open Item #4: `desktop::ensure_enabled` now runs once after install via `~/.local/state/opaline/helper-auto-enabled`.
+- **8.4 CLI `opaline ctl` & Completions (`crates/opaline-core/src/ctl.rs`, `app/src-tauri/src/ctl.rs`, `packaging/completions/`):**
+  - Full `opaline ctl` over session D-Bus with `--json` output: `status`, `get`/`set`, `widgets list|add|remove|move|toggle`,
+    `profile list|use|save|delete`, `theme`, `look`, `var set`, `action`, `peek [--monitor]`, `edit`, `export`/`import`,
+    `automation status|resume`, and `completions <bash|zsh|fish>` (bundled into `.deb` via `tauri.conf.json`).
+- **8.5 D-Bus API v2 (`crates/opaline-core/src/app_service.rs`, `docs/DBUS.md`):**
+  - Extended `io.github.ali_kenjo.Opaline1` (`ApiVersion = 2`) with all validated v2 methods and live signals
+    (`ProfileChanged`, `ThemeChanged`, `VariableChanged`, `WidgetAction`), keeping all v1 methods intact.
+- **8.6 Extended Shortcuts & Settings → Profiles & automation (`app/src/settings/ProfilesSection.tsx`, `SettingsApp.tsx`, `shortcuts.rs`):**
+  - Added **Profiles & automation** Settings section (profile snapshot/switch/delete, `opaline-expr` rule builder
+    with condition presets, hysteresis/min-duration/priority controls, live context readout, manual override banner
+    with **Resume automation**) and extended Native shortcuts in Settings → Shortcuts, all indexed in Settings search.
+
+**Checks:** 249 Rust workspace tests (incl. `profiles`, `automation` hysteresis/min-duration/priority/manual-override,
+`desktop` N & N−1 compat + `xprop` parser, `app_service` JSON path, `ctl` completions), `clippy -D warnings`, `rustfmt`,
+`glib-compile-schemas --strict`, `lint:helper`; 311 Vitest, 87 Playwright WebKit e2e (incl. `p8-automation.spec.ts` +
+all 15 Settings sections), `eslint`, `prettier`, `tsc`, production `vite build`.
+
+**Sign-off:** ⏳ Awaiting owner sign-off. Next: Phase 9 (Plugins & gallery: ADR 0014 sandbox, hostile-plugin suite, gallery verifier, author tools `opaline pack` / `opaline validate`, `docs/SDK.md`).
+
 
 
 

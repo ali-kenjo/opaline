@@ -29,6 +29,40 @@ export function installFakeShell(initial: Record<string, Json>): void {
   const state: Record<string, Json> = structuredClone(initial);
   const calls: { cmd: string; args: Json }[] = [];
   const secrets = new Map<string, string>();
+  const profilesState: {
+    version: number;
+    activeId: string | null;
+    profiles: Record<string, Json>[];
+  } = {
+    version: 1,
+    activeId: null,
+    profiles: [],
+  };
+  const automationState: {
+    enabled: boolean;
+    manualOverride: boolean;
+    manualOverrideReason: string | null;
+    activeRuleId: string | null;
+    rules: Record<string, Json>[];
+    runtime: Record<string, Json>;
+    context: Record<string, Json>;
+  } = {
+    enabled: true,
+    manualOverride: false,
+    manualOverrideReason: null,
+    activeRuleId: null,
+    rules: [],
+    runtime: {},
+    context: {
+      workspace: 0,
+      focusedApp: "code",
+      fullscreen: false,
+      monitorCount: 2,
+      docked: true,
+      locked: false,
+      idle: false,
+    },
+  };
   const sources: {
     specs: Record<string, Json>[];
     statuses: Record<string, Json>[];
@@ -179,6 +213,75 @@ export function installFakeShell(initial: Record<string, Json>): void {
       case "shell_delete_secret": {
         const sname = typeof args.name === "string" ? args.name : "";
         return secrets.delete(sname);
+      }
+      case "shell_list_profiles":
+        return structuredClone(profilesState);
+      case "shell_snapshot_profile": {
+        const pid = typeof args.id === "string" ? args.id : "profile";
+        const pname = typeof args.name === "string" ? args.name : pid;
+        const entry: Record<string, Json> = {
+          id: pid,
+          name: pname,
+          theme: "opaline",
+          look: "glass",
+          appearanceState: "automatic",
+          performanceMode: "balanced",
+          layouts: null,
+          hiddenWidgets: [],
+        };
+        profilesState.profiles = [...profilesState.profiles.filter((p) => p.id !== pid), entry];
+        return entry;
+      }
+      case "shell_save_profile": {
+        const prof = (args.profile ?? {}) as Record<string, Json>;
+        const pid = typeof prof.id === "string" ? prof.id : "profile";
+        profilesState.profiles = [...profilesState.profiles.filter((p) => p.id !== pid), prof];
+        return prof;
+      }
+      case "shell_delete_profile": {
+        const pid = typeof args.id === "string" ? args.id : "";
+        profilesState.profiles = profilesState.profiles.filter((p) => p.id !== pid);
+        if (profilesState.activeId === pid) profilesState.activeId = null;
+        return true;
+      }
+      case "shell_activate_profile": {
+        const pid = typeof args.id === "string" ? args.id : "";
+        profilesState.activeId = pid;
+        automationState.manualOverride = true;
+        automationState.manualOverrideReason = `Manual switch to '${pid}'`;
+        return profilesState.profiles.find((p) => p.id === pid) ?? { id: pid, name: pid };
+      }
+      case "shell_get_automation":
+        return structuredClone(automationState);
+      case "shell_set_automation_enabled":
+        automationState.enabled = Boolean(args.enabled);
+        return null;
+      case "shell_save_automation_rule": {
+        const rule = (args.rule ?? {}) as Record<string, Json>;
+        const rid = typeof rule.id === "string" ? rule.id : "rule";
+        automationState.rules = [...automationState.rules.filter((r) => r.id !== rid), rule];
+        return rule;
+      }
+      case "shell_delete_automation_rule": {
+        const rid = typeof args.id === "string" ? args.id : "";
+        automationState.rules = automationState.rules.filter((r) => r.id !== rid);
+        return true;
+      }
+      case "shell_resume_automation":
+        automationState.manualOverride = false;
+        automationState.manualOverrideReason = null;
+        return null;
+      case "shell_set_extended_shortcuts": {
+        const sc = (state.shortcuts ?? {}) as Record<string, Json>;
+        state.shortcuts = {
+          ...sc,
+          peek: args.peek ?? sc.peek ?? "<Super><Alt>w",
+          edit: args.edit ?? sc.edit ?? "<Super><Alt>e",
+          nextProfile: args.nextProfile ?? "",
+          cycleLook: args.cycleLook ?? "",
+          peekPrimary: args.peekPrimary ?? "",
+        };
+        return null;
       }
       case "shell_wallpaper_asset":
         throw new Error("no assets in tests");
