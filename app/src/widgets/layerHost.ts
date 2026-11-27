@@ -9,7 +9,7 @@ import type { ColorContext } from "../design-system/style";
 import { attach, command, inTauri, subscribe } from "../layer/bridge";
 import type { ActivityClass, Value } from "../layer/protocol";
 import { useLayer } from "../layer/store";
-import type { StoredSettings, StoredWidget } from "./host";
+import type { StoredSettings, StoredWidget, ThemeStyleLayers } from "./host";
 import { type Json, fromJson, toJson } from "./json";
 import { emitSpectrum, onSpectrum } from "./spectrum";
 
@@ -17,6 +17,9 @@ import type { LayoutItem, LayoutsDoc } from "../layer/grid";
 
 export const SETTINGS_TOPIC = "settings";
 export const LAYOUTS_TOPIC = "layouts";
+export const THEMES_TOPIC = "themes";
+export const CSS_TOPIC = "style.css";
+export const PROBLEMS_TOPIC = "config.problems";
 export const APPEARANCE_TOPIC = "appearance.settings";
 export const WALLPAPER_TOPIC = "wallpaper.monitors";
 
@@ -182,7 +185,18 @@ export function useCoreColors(monitorKey: string | null): ColorContext {
   const glass = typeof entry.glass === "string" ? entry.glass : null;
 
   useEffect(() => {
-    subscribeTopics([APPEARANCE_TOPIC, WALLPAPER_TOPIC, SETTINGS_TOPIC, LAYOUTS_TOPIC], "ambient");
+    subscribeTopics(
+      [
+        APPEARANCE_TOPIC,
+        WALLPAPER_TOPIC,
+        SETTINGS_TOPIC,
+        LAYOUTS_TOPIC,
+        THEMES_TOPIC,
+        CSS_TOPIC,
+        PROBLEMS_TOPIC,
+      ],
+      "ambient",
+    );
   }, []);
   useEffect(() => {
     if (!glass) return;
@@ -212,22 +226,101 @@ export async function attachLayer(): Promise<void> {
   });
 }
 
+/** Extracts the active theme's style layers from core's `themes` topic. */
+export function activeThemeLayers(v: Value | undefined): ThemeStyleLayers | undefined {
+  const catalog = record(toJson(v));
+  const active = record(catalog.active ?? null);
+  const pkg = record(active.package ?? null);
+  const id = typeof pkg.id === "string" ? pkg.id : null;
+  if (!id) return undefined;
+  const kinds: Record<string, Record<string, Json>> = {};
+  for (const [k, s] of Object.entries(record(pkg.kinds ?? null))) kinds[k] = record(s);
+  const elements: Record<string, Record<string, Json>> = {};
+  for (const [k, s] of Object.entries(record(pkg.elements ?? null))) elements[k] = record(s);
+  return {
+    id,
+    style: record(pkg.style ?? null),
+    ...(Object.keys(kinds).length ? { kinds } : {}),
+    ...(Object.keys(elements).length ? { elements } : {}),
+  };
+}
+
+export interface LiveConfigProblem {
+  file: string;
+  at: string;
+  message: string;
+}
+
+/** Reads non-blocking config/theme/CSS problems published by core. */
+export function storedProblems(v: Value | undefined): LiveConfigProblem[] {
+  const raw = toJson(v);
+  if (!Array.isArray(raw)) return [];
+  const out: LiveConfigProblem[] = [];
+  for (const item of raw) {
+    const r = record(item);
+    if (typeof r.file === "string" && typeof r.message === "string") {
+      out.push({
+        file: r.file,
+        at: typeof r.at === "string" ? r.at : "/",
+        message: r.message,
+      });
+    }
+  }
+  return out;
+}
+
+function upsertStyleTag(id: string, css: string) {
+  let tag = document.getElementById(id) as HTMLStyleElement | null;
+  if (!css.trim()) {
+    tag?.remove();
+    return;
+  }
+  if (!tag) {
+    tag = document.createElement("style");
+    tag.id = id;
+    document.head.appendChild(tag);
+  }
+  if (tag.textContent !== css) tag.textContent = css;
+}
+
+/**
+ * Live-injects active `theme.css` and `~/.config/opaline/user.css` after the design system
+ * stylesheets (brief §5.3). Safe mode sends empty CSS and removes both tags automatically.
+ */
+export function useLiveCss(themeId: string | undefined): void {
+  const cssVal = useLayer((s) => s.values[CSS_TOPIC]);
+  useEffect(() => {
+    if (themeId) document.documentElement.dataset.theme = themeId;
+    else delete document.documentElement.dataset.theme;
+  }, [themeId]);
+  useEffect(() => {
+    const bundle = record(toJson(cssVal));
+    const themeCss = typeof bundle.themeCss === "string" ? bundle.themeCss : "";
+    const userCss = typeof bundle.userCss === "string" ? bundle.userCss : "";
+    upsertStyleTag("opaline-theme-css", themeCss);
+    upsertStyleTag("opaline-user-css", userCss);
+  }, [cssVal]);
+}
+
 /** The widget host for a layer window: everything from core. */
 export function useCoreHost(monitorKey: string | null): import("./host").WidgetHost {
   const settingsValue = useLayer((s) => s.values[SETTINGS_TOPIC]);
+  const themesValue = useLayer((s) => s.values[THEMES_TOPIC]);
   const settings = useMemo(() => storedSettings(settingsValue), [settingsValue]);
+  const theme = useMemo(() => activeThemeLayers(themesValue), [themesValue]);
   const colors = useCoreColors(monitorKey);
   return useMemo(
     () => ({
       useValues: useLayerValues,
       subscribe: subscribeTopics,
       settings,
+      theme,
       updateSettings,
       listFonts,
       command: (cmd) => command(cmd),
       onSpectrum,
       colors,
     }),
-    [settings, colors],
+    [settings, theme, colors],
   );
 }

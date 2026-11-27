@@ -24,11 +24,14 @@ import { HostContext } from "../widgets/host";
 import { toJson } from "../widgets/json";
 import {
   LAYOUTS_TOPIC,
+  PROBLEMS_TOPIC,
   WALLPAPER_TOPIC,
   attachLayer,
   storedLayouts,
+  storedProblems,
   updateLayouts,
   useCoreHost,
+  useLiveCss,
 } from "../widgets/layerHost";
 import { widgetByKind } from "../widgets/registry";
 import { WidgetSettings } from "../widgets/settings/WidgetSettings";
@@ -114,7 +117,14 @@ export function LayerApp() {
   const edit = useLayer((s) => s.edit);
   const wallpapers = useLayer((s) => s.values[WALLPAPER_TOPIC]);
   const layoutsValue = useLayer((s) => s.values[LAYOUTS_TOPIC]);
+  const problemsValue = useLayer((s) => s.values[PROBLEMS_TOPIC]);
   const host = useCoreHost(monitor?.key ?? null);
+  useLiveCss(host.theme?.id);
+  const configProblems = useMemo(() => storedProblems(problemsValue), [problemsValue]);
+  const [dismissedProblemsKey, setDismissedProblemsKey] = useState("");
+  const problemsKey = configProblems.map((p) => `${p.file}:${p.at}:${p.message}`).join("|");
+  const visibleProblem =
+    configProblems.length > 0 && problemsKey !== dismissedProblemsKey ? configProblems[0] : null;
 
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -144,8 +154,18 @@ export function LayerApp() {
   // Global style → page palette (sheets, toolbar, context menu and backdrop use it).
   const lookSettings = host.settings.look ?? DEFAULT_LOOK;
   const globalStyle = useMemo(
-    () => applyDesktopLook(resolveStyle(sanitizeStyle(host.settings.style)).style, lookSettings),
-    [host.settings.style, lookSettings],
+    () =>
+      applyDesktopLook(
+        resolveStyle(
+          sanitizeStyle(host.settings.style),
+          {},
+          {
+            theme: host.theme?.style ? sanitizeStyle(host.theme.style) : undefined,
+          },
+        ).style,
+        lookSettings,
+      ),
+    [host.settings.style, host.theme, lookSettings],
   );
   const roles = rolesFor(globalStyle, host.colors);
   const inks = useMemo(() => inksFor(globalStyle, host.colors), [globalStyle, host.colors]);
@@ -865,6 +885,15 @@ export function LayerApp() {
                   }}
                   onDismiss={() => {
                     setUndoToast(null);
+                  }}
+                />
+              </div>
+            ) : visibleProblem ? (
+              <div className={`${styles.snackbarWrap} ${edit ? styles.snackbarWrapEdit : ""}`}>
+                <Snackbar
+                  message={`${visibleProblem.file} (${visibleProblem.at}): ${visibleProblem.message}`}
+                  onDismiss={() => {
+                    setDismissedProblemsKey(problemsKey);
                   }}
                 />
               </div>
