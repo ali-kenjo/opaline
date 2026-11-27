@@ -471,3 +471,53 @@ test; helper lint.
 **Not done / deferred:** a real-layer budget run (owner skipped it on 2026-11-27; the animation work is measured only
 headless); the `ensure_enabled` side finding; P7 control widgets.
 
+## 2.0 · Phase 3: Style model 2.0, themes and files (ready for sign-off 2026-11-27)
+
+**Built** (all local, not pushed):
+- **Mechanical style-key parity (3.1, S7, ADR 0017):** `crates/opaline-core/src/style.rs` is the single source of
+  truth (`schemars::JsonSchema`) → `spec/style.schema.json` → `app/src/design-system/style/style.gen.ts` +
+  `STYLE_KEYS` via `app/scripts/schema-to-ts.mjs`. Staleness checks fail both `cargo test -p opaline-core --test
+  schemas` and Vitest (`model.test.ts`), and `tsc` / `style.test.ts` enforce `BUILTIN_STYLE` and `STYLE_FIELDS`
+  completeness.
+- **6-layer cascade & Style Model 2.0 (3.2, 3.3):** cascade `default → theme → global → kind → widget → element`
+  with exact origins (`resolveCascade`), per-role typography merging, `kindStyles` in `settings.json`, and per-element
+  `elements` overrides on placed widgets. Added all §5.1 controls (89 total keys): 35 Material card shapes wired into
+  the WebGL2 glass compositor, corner smoothing & per-corner radii, 2–4 stop gradients, local/album-art backgrounds,
+  glass 2.0 parameters (`dispersion`, `specularAngle`, `specularWidth`, `innerGlow`, `refractionWidth`, `shadow*`,
+  `innerShadow`, `borderGlow`), overall opacity, per-role typography & OpenType features (`slashedZero`,
+  `stylisticSet`), all three Material Symbols sets (**Rounded, Outlined, Sharp**, subset to ~101–145 KB each),
+  hero visual options, layout/header style, hover/press/entrance/value/ambient effects, behavior actions,
+  `autoHideEmpty`, and ordered **conditional styles** validated by `opaline-expr` in core and evaluated live in
+  `WidgetFrame`.
+- **Theme packages & first-party themes (3.4, 3.9):** `crates/opaline-core/src/themes.rs` and `zip_pkg.rs` (safe
+  pure-Rust ZIP reader/writer on `flate2`/`crc32fast` with zip-slip, entry-count, size, compression-ratio, and CRC-32
+  checks). Supports folders and `.opaline-theme` archives across `/usr/share/opaline/themes/`,
+  `~/.local/share/opaline/themes/`, and `~/.config/opaline/themes/`, with embedded fallbacks, mandatory font license
+  checks, and key-by-key fallback reporting file + JSON pointer problems without blanking the desktop. Shipped
+  **Opaline** (DESIGN-2 §8.3 tuned blur 30 / transparency 80, Roboto Flex hero scale, kind accents) and **Classic**
+  (exact 1.1 baseline) packages in `spec/themes/` and packaged in `tauri.conf.json`.
+- **Config as files & live reload (3.5, S9):** `crates/opaline-core/src/watcher.rs` watches `~/.config/opaline/` and
+  theme directories with Linux `inotify` (`rustix::fs::inotify`, zero `unsafe`). `WriteLedger` suppresses self-writes
+  by SHA-256 hash so Opaline never loops; broken external edits preserve the last good state and surface a
+  non-blocking toast (`config.problems`) naming file and JSON path. Generated JSON Schemas for `settings`, `layouts`,
+  `style`, `theme`, `composition`, and `rice` in `spec/`, packaged to `/usr/share/opaline/schemas/`, with `$schema`
+  written into saved files. Documented in `docs/CONFIG.md`.
+- **User CSS & safe mode (3.6):** `crates/opaline-core/src/css.rs` validates `theme.css` and
+  `~/.config/opaline/user.css` (rejecting remote `url()`, `file://`, `@import`, `javascript:`, `expression()`) and
+  publishes them live on `style.css`; `LayerApp` injects `<style id="opaline-theme-css">` / `<style
+  id="opaline-user-css">` and exposes the `data-theme`/`data-kind`/`data-size`/`data-state`/`data-role`/`data-block`
+  contract (`docs/THEMING.md`). Added `opaline --safe-mode`, the `Start in safe mode` desktop action, and automatic
+  safe-mode activation after two consecutive startup crashes.
+- **Save this look, rices & 1.1 migrations (3.7, 3.8):** `crates/opaline-core/src/rice.rs` exports `.opaline-theme`
+  and `.opaline-rice` archives with work-area-anchored positions and stripped secrets, forcing imported sources to
+  `approved = false`. Added redacted 1.1 fixtures (`fixtures/v1.1/`) and `crates/opaline-core/tests/migrations.rs`
+  verifying zero-loss migration (`blur` rescaled, `theme` set to `"classic"` so 1.1 upgraders keep their look).
+
+**Checks:** 198 Rust workspace tests (159 core unit + 6 schema/theme + 2 migration + 8 compose + 7 binary + 11 IPC +
+7 expr + 3 privileged; 1 NVML ignored), `clippy -D warnings`, `rustfmt`; 275 Vitest, 56 Playwright WebKit e2e (all 55
+existing baselines/checks + new `themes.spec.ts`), `eslint`, `prettier`, `tsc`, helper lint, `desktop-file-validate`.
+
+**Needs you:** Phase 3 sign-off (and optional live desktop check editing a theme or `user.css` in VS Code), then Phase
+4 (redesign the 14 widgets and build the ten looks).
+
+

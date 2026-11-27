@@ -1,7 +1,7 @@
 # Handoff: where Opaline stands (2026-11-27)
 
 For whoever continues this work (person or AI tool). Read this first, then `CLAUDE.md`, `OPALINE_2_BRIEF.md` (the
-2.0 brief), `docs/PLAN-2.md`, `docs/DESIGN-2.md`, `docs/PROGRESS.md` and the ADRs in `docs/adr/` (0001–0016).
+2.0 brief), `docs/PLAN-2.md`, `docs/DESIGN-2.md`, `docs/PROGRESS.md` and the ADRs in `docs/adr/` (0001–0017).
 
 ## The project in one paragraph
 Opaline is a desktop-widgets app for Ubuntu 26.04 / GNOME 50: glass widgets on the wallpaper, above the desktop
@@ -11,12 +11,15 @@ transparent WebKitGTK window per monitor, React 19 frontend) + a small GNOME She
 each ending with acceptance checks, a PROGRESS entry and the owner's sign-off.
 
 ## Status
-- **P0 and P1** are signed off and pushed.
-- **P2 (composition engine) is signed off (2026-11-27) and pushed.** Details: PROGRESS "2.0 · Phase 2".
+- **P0, P1, and P2** are signed off and pushed.
+- **P3 (style model 2.0, themes and files) is built and verified locally (2026-11-27), ready for sign-off.** Details:
+  PROGRESS "2.0 · Phase 3".
 - **Next steps, in order:**
-  1. Start **P3 (style model 2.0, themes and files)** per PLAN-2 §3 P3 (P3/P4 were swapped on purpose).
-  2. Optional, if the owner allows: a real-layer budget run (`scripts/measure-budget.sh 60` with a 2.0 build on a
-     settings copy) to confirm the animation CPU work on the desktop; the owner skipped it on 2026-11-27.
+  1. Owner sign-off on **P3** (push local commits once approved).
+  2. Start **P4 (redesign the 14 widgets and the ten looks)** per PLAN-2 §3 P4 (in rounds of 3–4 widgets with visual
+     sign-off per round).
+  3. Optional, if the owner allows: a real-layer budget run (`scripts/measure-budget.sh 60` with a 2.0 build on a
+     settings copy) to confirm animation CPU and RAM on the desktop.
 - **Settings are version 2.** Run dev builds on a settings copy (`XDG_CONFIG_HOME=<copy>`), never on the owner's
   `~/.config/opaline` (the installed 1.1.0 then treats it as read-only).
 - RAM budget **450 MB PSS** (ADR 0009 update). Idle CPU budget ≤ 0.5 %.
