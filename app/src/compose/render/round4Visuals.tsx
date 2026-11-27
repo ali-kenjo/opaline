@@ -324,9 +324,9 @@ export function WeatherSceneVisual({ params, animate, label }: VisualProps) {
       {skyScene ? <SkyAtmosphere code={code} isDay={isDay} animate={animate ?? false} /> : null}
 
       <div className={styles.wxHero}>
-        <div className={styles.wxHeroLeft}>
+        <div className={`${styles.wxHeroLeft} ${size === "S" ? styles.wxHeroStacked : ""}`}>
           <Icon name={cnd.icon} size={isTiny ? 26 : 36} fill={1} />
-          <span className={`${styles.wxTemp} ${isTiny ? styles.wxTempSmall : ""}`}>
+          <span data-hero="" className={`${styles.wxTemp} ${isTiny ? styles.wxTempSmall : ""}`}>
             {tempC === null ? "—" : fmtTemp(tempC, tempUnit, decimals)}
           </span>
           {size !== "1x1" ? (

@@ -389,7 +389,9 @@ export function BatteryPillVisual({ params, label, animate = false }: VisualProp
         <div className={styles.batPillContent}>
           <div className={styles.batPillMain}>
             {charging ? <Icon name="bolt" size={18} fill={1} /> : null}
-            <span className={styles.batPillPct}>{Math.round(pct)}%</span>
+            <span data-hero="" className={styles.batPillPct}>
+              {Math.round(pct)}%
+            </span>
           </div>
           {sub ? <span className={styles.batPillSub}>{sub}</span> : null}
         </div>

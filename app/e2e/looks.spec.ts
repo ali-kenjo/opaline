@@ -61,7 +61,8 @@ for (const id of ALL_LOOKS) {
 }
 
 // Theme typography roles (style.roles) must reach the rendered widgets. They were written as CSS
-// variables that no rule read, so every look's hero numbers fell back to the widget-wide font.
+// variables that no rule read, so every look's hero numbers fell back to the widget-wide font;
+// custom visuals (weather, battery, memory, clock faces) drew their own big numbers outside it.
 interface RoleSpec {
   fontWeight?: number;
   fontWidth?: number;
@@ -82,18 +83,20 @@ for (const id of ALL_LOOKS) {
     await page.evaluate(() => document.fonts.ready);
     const stage = page.getByTestId("looks-stage");
     await expect(stage).toHaveAttribute("data-look-id", id);
-    const heroes = stage.locator('[data-role="hero"]');
-    test.skip(
-      (await heroes.count()) === 0,
-      "this look's starter widgets don't render composition hero numbers yet",
+    // Composition heroes (data-role) and the big numbers custom visuals draw (data-hero).
+    const heroes = stage.locator('[data-role="hero"], [data-hero]');
+    await expect(heroes.first()).toBeVisible();
+    const all = await heroes.evaluateAll((els) =>
+      els.map((el) => {
+        const s = getComputedStyle(el);
+        return { text: el.textContent, weight: s.fontWeight, fvs: s.fontVariationSettings };
+      }),
     );
-    const first = heroes.first();
-    await expect(first).toBeVisible();
-    const css = await first.evaluate((el) => {
-      const s = getComputedStyle(el);
-      return { weight: s.fontWeight, fvs: s.fontVariationSettings };
-    });
-    expect(css.weight).toBe(String(hero.fontWeight));
-    if (hero.fontWidth !== undefined) expect(css.fvs).toContain(`"wdth" ${String(hero.fontWidth)}`);
+    for (const css of all) {
+      expect(css.weight, `${css.text} weight`).toBe(String(hero.fontWeight));
+      if (hero.fontWidth !== undefined) {
+        expect(css.fvs, `${css.text} width`).toContain(`"wdth" ${String(hero.fontWidth)}`);
+      }
+    }
   });
 }

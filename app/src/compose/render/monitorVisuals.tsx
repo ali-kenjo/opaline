@@ -133,7 +133,9 @@ export function LiquidFillVisual({ params, label, animate = false }: VisualProps
         <path ref={wave1} d={liquidWavePath(level, amp, 0)} fill={color} fillOpacity={0.14} />
       </svg>
       <div className={styles.liquidOverlay}>
-        <span className={styles.liquidPct}>{text}</span>
+        <span data-hero="" className={styles.liquidPct}>
+          {text}
+        </span>
         {sub ? <span className={styles.liquidSub}>{sub}</span> : null}
       </div>
     </div>

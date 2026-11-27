@@ -415,7 +415,7 @@ export function ClockFace({ params, label }: VisualProps) {
     case "stacked":
       return (
         <div className={styles.stackedWrap} role="img" aria-label={label}>
-          <div className={styles.stackedDigits} style={numStyle}>
+          <div data-hero="" className={styles.stackedDigits} style={numStyle}>
             <span className={styles.stackedRow}>{hh}</span>
             <span className={styles.stackedRow}>{mm}</span>
           </div>
@@ -432,7 +432,7 @@ export function ClockFace({ params, label }: VisualProps) {
             <svg viewBox="0 0 100 100" className={styles.shapeBg} aria-hidden>
               <path d={hourPath} className={styles.shapePrimary} />
             </svg>
-            <span className={styles.shapeDigit} style={numStyle}>
+            <span data-hero="" className={styles.shapeDigit} style={numStyle}>
               {hh}
             </span>
           </div>
@@ -440,7 +440,7 @@ export function ClockFace({ params, label }: VisualProps) {
             <svg viewBox="0 0 100 100" className={styles.shapeBg} aria-hidden>
               <path d={minPath} className={styles.shapeSecondary} />
             </svg>
-            <span className={styles.shapeDigitAlt} style={numStyle}>
+            <span data-hero="" className={styles.shapeDigitAlt} style={numStyle}>
               {mm}
             </span>
           </div>
@@ -452,20 +452,20 @@ export function ClockFace({ params, label }: VisualProps) {
       return (
         <div className={styles.flipWrap} role="img" aria-label={label}>
           <div className={styles.flipTile}>
-            <span className={styles.flipDigit} style={numStyle}>
+            <span data-hero="" className={styles.flipDigit} style={numStyle}>
               {hh}
             </span>
             <span className={styles.flipHinge} aria-hidden />
           </div>
           <div className={styles.flipTile}>
-            <span className={styles.flipDigit} style={numStyle}>
+            <span data-hero="" className={styles.flipDigit} style={numStyle}>
               {mm}
             </span>
             <span className={styles.flipHinge} aria-hidden />
           </div>
           {seconds ? (
             <div className={`${styles.flipTile ?? ""} ${styles.flipSmall ?? ""}`}>
-              <span className={styles.flipDigit} style={numStyle}>
+              <span data-hero="" className={styles.flipDigit} style={numStyle}>
                 {ss}
               </span>
               <span className={styles.flipHinge} aria-hidden />
@@ -490,7 +490,7 @@ export function ClockFace({ params, label }: VisualProps) {
     case "typographic":
       return (
         <div className={styles.typoWrap} role="img" aria-label={label}>
-          <span className={styles.typoHour} style={numStyle}>
+          <span data-hero="" className={styles.typoHour} style={numStyle}>
             {hh}
           </span>
           <div className={styles.typoSide}>
@@ -604,7 +604,7 @@ export function ClockFace({ params, label }: VisualProps) {
             <span className={styles.bigDateMonth}>{month}</span>
             <span className={styles.bigDateWeek}>{weekday}</span>
           </div>
-          <span className={styles.bigDateNum} style={numStyle}>
+          <span data-hero="" className={styles.bigDateNum} style={numStyle}>
             {day}
           </span>
           <span className={styles.bigDateTime}>

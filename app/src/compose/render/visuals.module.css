@@ -83,15 +83,16 @@
 }
 
 .stackedDigits {
+  /* Hero number: a theme's hero role (font, weight, width) applies; the values here are the defaults. */
   display: flex;
   flex-direction: column;
   line-height: 0.86;
-  font-family: var(--w-num-font);
+  font-family: var(--w-role-hero-font, var(--w-num-font));
   font-variant-numeric: tabular-nums;
   font-variation-settings:
-    "wdth" 35,
-    "wght" 780;
-  font-weight: 780;
+    "wdth" var(--w-role-hero-wdth, 35),
+    "wght" var(--w-role-hero-weight, 780);
+  font-weight: var(--w-role-hero-weight, 780);
   font-size: clamp(24px, 34cqb, 64px);
   letter-spacing: -0.02em;
 }
@@ -141,12 +142,15 @@
 
 .shapeDigit,
 .shapeDigitAlt {
+  /* Hero number: a theme's hero role (font, weight, width) applies; the values here are the defaults. */
   position: relative;
-  font-family: var(--w-num-font);
+  font-family: var(--w-role-hero-font, var(--w-num-font));
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  font-weight: var(--w-role-hero-weight, 700);
   font-size: clamp(22px, 28cqb, 42px);
   line-height: 1;
+  font-stretch: calc(var(--w-role-hero-wdth, var(--w-wdth)) * 1%);
+  font-variation-settings: "wdth" var(--w-role-hero-wdth, var(--w-wdth));
 }
 
 .shapeDigit {
@@ -188,11 +192,14 @@
 }
 
 .flipDigit {
-  font-family: var(--w-num-font);
+  /* Hero number: a theme's hero role (font, weight, width) applies; the values here are the defaults. */
+  font-family: var(--w-role-hero-font, var(--w-num-font));
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  font-weight: var(--w-role-hero-weight, 700);
   font-size: clamp(24px, 32cqb, 48px);
   line-height: 1;
+  font-stretch: calc(var(--w-role-hero-wdth, var(--w-wdth)) * 1%);
+  font-variation-settings: "wdth" var(--w-role-hero-wdth, var(--w-wdth));
 }
 
 .flipSmall .flipDigit {
@@ -243,12 +250,13 @@
 }
 
 .typoHour {
-  font-family: var(--w-num-font);
+  /* Hero number: a theme's hero role (font, weight, width) applies; the values here are the defaults. */
+  font-family: var(--w-role-hero-font, var(--w-num-font));
   font-variant-numeric: tabular-nums;
   font-variation-settings:
-    "wdth" 35,
-    "wght" 800;
-  font-weight: 800;
+    "wdth" var(--w-role-hero-wdth, 35),
+    "wght" var(--w-role-hero-weight, 800);
+  font-weight: var(--w-role-hero-weight, 800);
   font-size: clamp(42px, 54cqb, 88px);
   line-height: 0.85;
 }
@@ -436,12 +444,13 @@
 }
 
 .bigDateNum {
-  font-family: var(--w-num-font);
+  /* Hero number: a theme's hero role (font, weight, width) applies; the values here are the defaults. */
+  font-family: var(--w-role-hero-font, var(--w-num-font));
   font-variant-numeric: tabular-nums;
   font-variation-settings:
-    "wdth" 40,
-    "wght" 800;
-  font-weight: 800;
+    "wdth" var(--w-role-hero-wdth, 40),
+    "wght" var(--w-role-hero-weight, 800);
+  font-weight: var(--w-role-hero-weight, 800);
   font-size: clamp(40px, 50cqb, 84px);
   line-height: 0.88;
 }
@@ -508,11 +517,14 @@
 }
 
 .liquidPct {
-  font-family: var(--w-num-font);
+  /* Hero number: a theme's hero role (font, weight, width) applies; the values here are the defaults. */
+  font-family: var(--w-role-hero-font, var(--w-num-font));
   font-variant-numeric: tabular-nums;
-  font-weight: 750;
+  font-weight: var(--w-role-hero-weight, 750);
   font-size: calc(24px * var(--w-scale));
   line-height: 1;
+  font-stretch: calc(var(--w-role-hero-wdth, var(--w-wdth)) * 1%);
+  font-variation-settings: "wdth" var(--w-role-hero-wdth, var(--w-wdth));
 }
 
 .liquidSub {
@@ -940,11 +952,14 @@
 }
 
 .batPillPct {
-  font-family: var(--w-num-font);
+  /* Hero number: a theme's hero role (font, weight, width) applies; the values here are the defaults. */
+  font-family: var(--w-role-hero-font, var(--w-num-font));
   font-variant-numeric: tabular-nums;
-  font-weight: 750;
+  font-weight: var(--w-role-hero-weight, 750);
   font-size: calc(22px * var(--w-scale));
   line-height: 1;
+  font-stretch: calc(var(--w-role-hero-wdth, var(--w-wdth)) * 1%);
+  font-variation-settings: "wdth" var(--w-role-hero-wdth, var(--w-wdth));
 }
 
 .batPillSub {

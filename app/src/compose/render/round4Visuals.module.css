@@ -6,6 +6,8 @@
   position: relative;
   flex: 1;
   min-height: 0;
+  /* Without this the scene is as wide as its content and a narrow card cuts both sides. */
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -51,12 +53,15 @@
 }
 
 .wxTemp {
-  font-family: var(--w-num-font);
+  /* Hero number: a theme's hero role (font, weight, width) applies; the values here are the defaults. */
+  font-family: var(--w-role-hero-font, var(--w-num-font));
   font-variant-numeric: var(--w-nums);
   font-size: calc(34px * var(--w-scale));
-  font-weight: 600;
+  font-weight: var(--w-role-hero-weight, 600);
   line-height: 1;
   letter-spacing: -0.02em;
+  font-stretch: calc(var(--w-role-hero-wdth, var(--w-wdth)) * 1%);
+  font-variation-settings: "wdth" var(--w-role-hero-wdth, var(--w-wdth));
 }
 
 .wxTempSmall {
@@ -68,6 +73,17 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+/* S cards: icon and temperature on one line, condition and place on the next at full width
+   ("Partly cloudy" didn't fit beside them in a 2×2). */
+.wxHeroStacked {
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+
+.wxHeroStacked .wxMeta {
+  flex-basis: 100%;
 }
 
 .wxCond {
