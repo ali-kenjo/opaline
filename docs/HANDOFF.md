@@ -18,11 +18,7 @@ frontend) + a small GNOME Shell helper (`opaline-desktop@ali-kenjo.github.io`, S
 ## 2. Exact Git & Phase Status
 
 - **Repository:** `/home/allousch/Dokumente/vs-code-projects/widgets-app`, branch `main`
-- **`origin/main`:** `96fdb01` (Phases **P0–P9** signed off and pushed)
-- **Local `main` ahead of `origin/main` by 3 commits** (Phase **P10**, complete & verified, awaiting owner sign-off before push):
-  - `ef6f887` `feat(i18n): expand en/de/ar 2.0 catalogs, package translations, and RTL Inspector/Builder`
-  - `a998608` `test(security): update docs/SECURITY.md 2.0 threat model and add integrated security suite`
-  - `224de09` `docs: update README, RELEASE, PROGRESS, and HANDOFF for Opaline 2.0`
+- **`origin/main` = local `main`:** all phases **P0–P10** signed off (2026-11-27) and pushed.
 - **Untracked:** `.claude/` — **NEVER stage or commit `.claude/`**.
 
 ### Phase-by-phase summary
@@ -39,7 +35,7 @@ frontend) + a small GNOME Shell helper (`opaline-desktop@ali-kenjo.github.io`, S
 | **P7** | 16 new built-in widgets (30 total) + 6 core providers: Quick Controls (ADR 0016), Notes, To-do, Timers/Pomodoro, Countdown, World Clock, Photo Frame (≤ 640 px thumbnails + EXIF), Sun & Moon, Quote, Aura, Decoration, GitHub, Home Assistant, MQTT, Feeds (HTML-stripped), n8n | ✅ Signed off & pushed |
 | **P8** | Desktop Profiles, `opaline-expr` Automation rules (hysteresis, min-duration, manual override + Resume), Shell1 Helper API v2 (`ActiveWorkspaceChanged`, `FocusedAppChanged`, `FullscreenChanged`, `SetRaisedMonitor`, N−1 compat + Instant EWMH), `opaline ctl` CLI + bash/zsh/fish completions, D-Bus API v2 + `docs/DBUS.md`, Settings → Profiles & automation | ✅ Signed off & pushed |
 | **P9** | Production `opaline-plugin://` ADR 0014 sandbox + main-frame nav guard, manifest/permission SHA-256 trust, frontend host + 2 s watchdog + hostile-plugin suite, Community Gallery SHA-256 + minisign verifier & Settings UI, `opaline pack` / `opaline validate`, `docs/SDK.md`, `examples/template-plugin/` | ✅ Signed off & pushed |
-| **P10** | Full en/de/ar 2.0 i18n parity + package translations + RTL Inspector/Builder (LTR grid invariant), `docs/SECURITY.md` 2.0 threat model + `crates/opaline-core/tests/security.rs`, `README.md` & `docs/RELEASE.md` 2.0 | ⏳ Built, verified & committed locally — awaiting owner sign-off & push |
+| **P10** | Full en/de/ar 2.0 i18n parity + package translations + RTL Inspector/Builder (LTR grid invariant), `docs/SECURITY.md` 2.0 threat model + `crates/opaline-core/tests/security.rs`, `README.md` & `docs/RELEASE.md` 2.0 | ✅ Signed off & pushed |
 
 ---
 
@@ -63,9 +59,7 @@ All checks pass cleanly with zero warnings/errors:
 
 ## 4. What to Do Next (In Exact Order)
 
-1. **Get owner sign-off on Phase 10** and push `main` to `origin/main`:
-   - Edit `docs/PROGRESS.md` line `**Sign-off:** ⏳ Awaiting owner final sign-off for Opaline 2.0.` → `✅ <date>`.
-   - Commit `docs: record Phase 10 sign-off` and `git push origin main`.
+1. ~~Owner sign-off on Phase 10 and push~~ — done 2026-11-27.
 2. **Owner-gated release preparation (`docs/RELEASE.md`)** — ask the owner before doing any of these:
    - **Minisign keys (Open Item #1):** Help the owner mint the release signing key (`RELEASE_MINISIGN_PUBKEY` in `crates/opaline-core/src/updates.rs` + GitHub Actions secrets `MINISIGN_SECRET_KEY`, `MINISIGN_PASSWORD`) and the gallery key (`GALLERY_MINISIGN_PUBKEY` in `crates/opaline-core/src/gallery.rs`, plus creating `ali-kenjo/opaline-gallery`). Both verifiers fail closed until configured.
    - **Real-desktop live verification (optional, with owner OK only):**

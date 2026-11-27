@@ -975,7 +975,7 @@ on real 1.1 fixtures, 8 schema tests, 206 core tests, 9 binary tests), `clippy -
 1. Mint minisign release key (`RELEASE_MINISIGN_PUBKEY` + GitHub Actions secrets) and gallery key (`ali-kenjo/opaline-gallery`).
 2. Bump versions to `2.0.0`, test `.deb` 1.1 → 2.0 upgrade & clean Ubuntu 26.04 VM checklist (`docs/RELEASE.md`), and tag `v2.0.0`.
 
-**Sign-off:** ⏳ Awaiting owner final sign-off for Opaline 2.0.
+**Sign-off:** ✅ 2026-11-27. Phase 10 complete; all 2.0 phases signed off. Next: owner-gated release steps (`docs/RELEASE.md`): minisign keys, version bump to 2.0.0, `.deb`, VM test, tag `v2.0.0`.
 
 
 
