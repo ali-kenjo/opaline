@@ -863,7 +863,7 @@ cycle, `photos` downscale + EXIF, `integrations` RSS/Atom/JSON Feed HTML strippi
 **Note (7.6):** Real-desktop checks against live Wi-Fi/Bluetooth/volume/brightness, notes/photos folders, and
 local n8n/GitHub/HA can be exercised whenever the owner wants.
 
-**Sign-off:** ⏳ Awaiting owner sign-off. Next: Phase 8 (Profiles, automation, CLI `opaline ctl`, D-Bus v2, helper v2).
+**Sign-off:** ✅ 2026-11-27. Phase 7 complete. Next: Phase 8 (Profiles, automation, CLI `opaline ctl`, D-Bus v2, helper v2).
 
 
 
