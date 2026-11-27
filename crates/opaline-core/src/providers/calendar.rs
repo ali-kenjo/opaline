@@ -18,7 +18,8 @@ use crate::hub::Hub;
 pub const EVENTS: &str = "calendar.events";
 pub const TOPICS: &[&str] = &[EVENTS];
 const PERIOD: Duration = Duration::from_secs(300);
-const DAYS_AHEAD: i64 = 14;
+/// Covers a full month grid (35 days ahead) so Calendar 2.0's mini-month dots are accurate.
+const DAYS_AHEAD: i64 = 35;
 const MAX_EVENTS: usize = 200;
 const MAX_OCCURRENCES: u16 = 100;
 const ICS_MAX: usize = 4 << 20;

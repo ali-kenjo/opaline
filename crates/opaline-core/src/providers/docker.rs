@@ -217,6 +217,18 @@ pub fn container_value(
         .as_ref()
         .and_then(|l| l.get(COMPOSE_PROJECT).cloned());
     let state = c.state.map(|s| s.to_string().to_lowercase());
+    let mut ports: Vec<String> = c
+        .ports
+        .as_ref()
+        .into_iter()
+        .flatten()
+        .filter_map(|p| {
+            let pub_port = p.public_port?;
+            Some(format!("{pub_port}:{}", p.private_port))
+        })
+        .collect();
+    ports.sort();
+    ports.dedup();
     Value::map([
         (
             "id",
@@ -230,6 +242,10 @@ pub fn container_value(
         ("state", Value::from(state)),
         ("status", Value::from(c.status.clone())),
         ("project", Value::from(project)),
+        (
+            "ports",
+            Value::List(ports.into_iter().map(Value::from).collect()),
+        ),
         ("cpu", Value::from(cpu)),
         ("memB", Value::from(mem.map(|m| m as f64))),
         ("memLimitB", Value::from(limit.map(|m| m as f64))),
@@ -481,6 +497,11 @@ mod tests {
             image: Some("nginx:1.27".into()),
             state: Some(ContainerSummaryStateEnum::RUNNING),
             status: Some("Up 3 minutes".into()),
+            ports: Some(vec![bollard::models::PortSummary {
+                private_port: 80,
+                public_port: Some(8080),
+                ..bollard::models::PortSummary::default()
+            }]),
             labels: Some(
                 [(COMPOSE_PROJECT.to_owned(), "shop".to_owned())]
                     .into_iter()
@@ -495,6 +516,7 @@ mod tests {
         assert_eq!(m["name"], Value::from("web-1"));
         assert_eq!(m["state"], Value::from("running"));
         assert_eq!(m["project"], Value::from("shop"));
+        assert_eq!(m["ports"], Value::List(vec![Value::from("8080:80")]));
         assert_eq!(m["cpu"], Value::Num(2.5));
     }
 
