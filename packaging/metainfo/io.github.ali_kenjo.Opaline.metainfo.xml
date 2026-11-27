@@ -34,6 +34,11 @@
     <control>touch</control>
   </recommends>
   <releases>
+    <release version="2.0.1" date="2026-11-27">
+      <description>
+        <p>Opaline 2.0.1: theme number styles now reach every widget in all ten looks, with larger numbers in Opaline and Crystal; cards no longer cut off their first line; clearer messages for GPUs without usage data and disks without health data.</p>
+      </description>
+    </release>
     <release version="2.0.0" date="2026-11-27">
       <description>
         <p>Opaline 2.0.0: 30 built-in widgets, Glass 2.0 and 10 themes, a live Inspector, Free mode and a visual Widget Builder, custom data sources with GNOME Keyring secrets, desktop profiles and automation rules, the opaline ctl command and D-Bus API v2, sandboxed plugins with a signed community gallery, and full English, German and Arabic support.</p>
