@@ -168,40 +168,83 @@
   flex-direction: row;
 }
 
-/* Roles. Sizes follow the size class; --w-scale is the widget's text size. */
+/* Roles. Sizes follow the size class; --w-scale is the widget's text size. A theme or widget style
+   can retune each role (style.roles → --w-role-<role>-*, see design-system/style/apply.ts); every
+   property falls back to the widget-wide setting, so a style without roles looks as before. The
+   width axis is set twice on purpose: WebKit maps font-stretch to wdth for variable fonts. */
+
+[data-role] {
+  font-family: var(--w-role-font);
+  font-weight: var(--w-role-weight);
+  font-stretch: calc(var(--w-role-wdth) * 1%);
+  font-variation-settings: "wdth" var(--w-role-wdth);
+  letter-spacing: var(--w-role-letter);
+  font-variant-numeric: var(--w-role-nums);
+  font-feature-settings: var(--w-role-features);
+  opacity: var(--w-role-opacity);
+}
+
+/* A unit ("%", "GHz") sits inside its number and takes the number's font unless the style gives
+   the unit role its own (custom properties inherit; the unit reads them, it doesn't set them). */
+[data-role]:not([data-role="unit"]) {
+  --w-parent-font: var(--w-role-font);
+  --w-parent-weight: var(--w-role-weight);
+}
 
 [data-role="hero"] {
-  font-family: var(--w-num-font);
-  font-variant-numeric: var(--w-nums);
-  font-weight: max(var(--w-weight), 300);
-  font-size: calc(44px * var(--w-scale));
-  line-height: 1;
+  --w-role-font: var(--w-role-hero-font, var(--w-num-font));
+  --w-role-weight: var(--w-role-hero-weight, max(var(--w-weight), 300));
+  --w-role-wdth: var(--w-role-hero-wdth, var(--w-wdth));
+  --w-role-letter: var(--w-role-hero-letter, var(--w-letter));
+  --w-role-nums: var(--w-role-hero-nums, var(--w-nums));
+  --w-role-features: var(--w-role-hero-features, var(--w-font-features));
+  --w-role-opacity: var(--w-role-hero-opacity, 1);
+  color: var(--w-role-hero-color, currentColor);
+  font-size: var(--w-role-hero-size, calc(44px * var(--w-scale)));
+  line-height: var(--w-role-hero-lh, 1);
   white-space: nowrap;
 }
 
 [data-size="1x1"] [data-role="hero"] {
-  font-size: calc(20px * var(--w-scale));
+  font-size: var(--w-role-hero-size, calc(20px * var(--w-scale)));
 }
 
 [data-size="2x1"] [data-role="hero"],
 [data-size="4x1"] [data-role="hero"],
 [data-size="S"] [data-role="hero"] {
-  font-size: calc(30px * var(--w-scale));
+  font-size: var(--w-role-hero-size, calc(30px * var(--w-scale)));
 }
 
 [data-size="L"] [data-role="hero"],
 [data-size="XL"] [data-role="hero"] {
-  font-size: calc(72px * var(--w-scale));
+  font-size: var(--w-role-hero-size, calc(72px * var(--w-scale)));
 }
 
 [data-role="title"] {
-  font-size: calc(15px * var(--w-scale));
-  font-weight: max(var(--w-weight), 600);
+  --w-role-font: var(--w-role-title-font, var(--w-font));
+  --w-role-weight: var(--w-role-title-weight, max(var(--w-weight), 600));
+  --w-role-wdth: var(--w-role-title-wdth, var(--w-wdth));
+  --w-role-letter: var(--w-role-title-letter, var(--w-letter));
+  --w-role-nums: var(--w-role-title-nums, normal);
+  --w-role-features: var(--w-role-title-features, var(--w-font-features));
+  --w-role-opacity: var(--w-role-title-opacity, 1);
+  color: var(--w-role-title-color, currentColor);
+  font-size: var(--w-role-title-size, calc(15px * var(--w-scale)));
+  line-height: var(--w-role-title-lh, normal);
+  text-transform: var(--w-role-title-case, var(--w-text-case));
 }
 
 [data-role="value"] {
-  font-size: calc(16px * var(--w-scale));
-  font-variant-numeric: var(--w-nums);
+  --w-role-font: var(--w-role-value-font, var(--w-font));
+  --w-role-weight: var(--w-role-value-weight, var(--w-weight));
+  --w-role-wdth: var(--w-role-value-wdth, var(--w-wdth));
+  --w-role-letter: var(--w-role-value-letter, var(--w-letter));
+  --w-role-nums: var(--w-role-value-nums, var(--w-nums));
+  --w-role-features: var(--w-role-value-features, var(--w-font-features));
+  --w-role-opacity: var(--w-role-value-opacity, 1);
+  color: var(--w-role-value-color, currentColor);
+  font-size: var(--w-role-value-size, calc(16px * var(--w-scale)));
+  line-height: var(--w-role-value-lh, normal);
 }
 
 [data-role="label"],
@@ -212,9 +255,46 @@
   text-transform: var(--w-label-case);
 }
 
+[data-role="label"] {
+  --w-role-font: var(--w-role-label-font, var(--w-font));
+  --w-role-weight: var(--w-role-label-weight, var(--w-weight));
+  --w-role-wdth: var(--w-role-label-wdth, var(--w-wdth));
+  --w-role-letter: var(--w-role-label-letter, var(--w-letter));
+  --w-role-nums: var(--w-role-label-nums, var(--w-nums));
+  --w-role-features: var(--w-role-label-features, var(--w-font-features));
+  --w-role-opacity: var(--w-role-label-opacity, 1);
+  color: var(--w-role-label-color, rgb(var(--md-on-surface-variant)));
+  font-size: var(--w-role-label-size, calc(14px * var(--w-scale)));
+  line-height: var(--w-role-label-lh, normal);
+  text-transform: var(--w-role-label-case, var(--w-label-case));
+}
+
+[data-role="caption"] {
+  --w-role-font: var(--w-role-caption-font, var(--w-font));
+  --w-role-weight: var(--w-role-caption-weight, var(--w-weight));
+  --w-role-wdth: var(--w-role-caption-wdth, var(--w-wdth));
+  --w-role-letter: var(--w-role-caption-letter, var(--w-letter));
+  --w-role-nums: var(--w-role-caption-nums, var(--w-nums));
+  --w-role-features: var(--w-role-caption-features, var(--w-font-features));
+  --w-role-opacity: var(--w-role-caption-opacity, 1);
+  color: var(--w-role-caption-color, rgb(var(--md-on-surface-variant)));
+  font-size: var(--w-role-caption-size, calc(14px * var(--w-scale)));
+  line-height: var(--w-role-caption-lh, normal);
+  text-transform: var(--w-role-caption-case, var(--w-label-case));
+}
+
 [data-role="unit"] {
-  font-size: 0.5em;
-  text-transform: none;
+  --w-role-font: var(--w-role-unit-font, var(--w-parent-font, var(--w-font)));
+  --w-role-weight: var(--w-role-unit-weight, var(--w-parent-weight, var(--w-weight)));
+  --w-role-wdth: var(--w-role-unit-wdth, var(--w-wdth));
+  --w-role-letter: var(--w-role-unit-letter, var(--w-letter));
+  --w-role-nums: var(--w-role-unit-nums, var(--w-nums));
+  --w-role-features: var(--w-role-unit-features, var(--w-font-features));
+  --w-role-opacity: var(--w-role-unit-opacity, 1);
+  color: var(--w-role-unit-color, rgb(var(--md-on-surface-variant)));
+  font-size: var(--w-role-unit-size, 0.5em);
+  line-height: var(--w-role-unit-lh, normal);
+  text-transform: var(--w-role-unit-case, none);
 }
 
 [data-role="accent"] {

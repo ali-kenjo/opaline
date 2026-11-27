@@ -1,5 +1,7 @@
 // Phase 4 Round 5 (PLAN-2 4.15–4.16): verifies all ten built-in looks in WebKit for clean
 // rendering, zero idle frames, zero label/value truncation, and readable text contrast.
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { findLowContrast } from "./stub/contrast";
 import { findTruncations } from "./stub/truncation";
@@ -55,5 +57,43 @@ for (const id of ALL_LOOKS) {
     await page.waitForTimeout(600);
     expect(await frames()).toBe(before);
     expect(errors).toEqual([]);
+  });
+}
+
+// Theme typography roles (style.roles) must reach the rendered widgets. They were written as CSS
+// variables that no rule read, so every look's hero numbers fell back to the widget-wide font.
+interface RoleSpec {
+  fontWeight?: number;
+  fontWidth?: number;
+}
+const heroRole = (id: string): RoleSpec | undefined => {
+  const file = path.resolve(import.meta.dirname, `../../spec/themes/${id}/theme.json`);
+  const theme = JSON.parse(readFileSync(file, "utf8")) as {
+    style?: { roles?: { hero?: RoleSpec } };
+  };
+  return theme.style?.roles?.hero;
+};
+
+for (const id of ALL_LOOKS) {
+  const hero = heroRole(id);
+  if (!hero?.fontWeight) continue;
+  test(`look "${id}": hero numbers use the theme's hero typography`, async ({ page }) => {
+    await page.goto(`/lab.html?only=looks&lookTheme=${id}&wallpaper=dusk&still`);
+    await page.evaluate(() => document.fonts.ready);
+    const stage = page.getByTestId("looks-stage");
+    await expect(stage).toHaveAttribute("data-look-id", id);
+    const heroes = stage.locator('[data-role="hero"]');
+    test.skip(
+      (await heroes.count()) === 0,
+      "this look's starter widgets don't render composition hero numbers yet",
+    );
+    const first = heroes.first();
+    await expect(first).toBeVisible();
+    const css = await first.evaluate((el) => {
+      const s = getComputedStyle(el);
+      return { weight: s.fontWeight, fvs: s.fontVariationSettings };
+    });
+    expect(css.weight).toBe(String(hero.fontWeight));
+    if (hero.fontWidth !== undefined) expect(css.fvs).toContain(`"wdth" ${String(hero.fontWidth)}`);
   });
 }

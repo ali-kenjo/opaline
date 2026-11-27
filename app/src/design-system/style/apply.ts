@@ -173,6 +173,10 @@ function writeRoleVars(vars: Record<string, string | number>, role: string, r: R
   if (r.lineHeight !== undefined) vars[`${p}-lh`] = r.lineHeight;
   if (r.color) vars[`${p}-color`] = r.color;
   if (r.opacity !== undefined) vars[`${p}-opacity`] = r.opacity / 100;
+  if (r.tabularNumbers !== undefined) {
+    vars[`${p}-nums`] = r.tabularNumbers ? "tabular-nums" : "normal";
+  }
+  if (r.slashedZero !== undefined) vars[`${p}-features`] = r.slashedZero ? '"zero" 1' : "normal";
 }
 
 /** CSS custom properties for a widget root: its scheme plus every text/icon/spacing/role setting. */
