@@ -39,18 +39,24 @@ pub struct Layout {
     pub root: Node,
 }
 
-/// Grid spans: `1x1`, `2x1`, `4x1`, `S` (2×2), `M` (4×2), `L` (4×4), `XL` (8×4).
+/// Grid spans: `1x1`, `2x1`, `1x2`, `4x1`, `S` (2×2), `2x3`, `M` (4×2), `L` (4×4), `6x4`, `XL` (8×4).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub enum SizeClass {
     #[serde(rename = "1x1")]
     Tiny,
     #[serde(rename = "2x1")]
     Wide,
+    #[serde(rename = "1x2")]
+    TallNarrow,
     #[serde(rename = "4x1")]
     Strip,
     S,
+    #[serde(rename = "2x3")]
+    Tall,
     M,
     L,
+    #[serde(rename = "6x4")]
+    LargeWide,
     XL,
 }
 

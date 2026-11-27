@@ -40,9 +40,31 @@ function events(v: Value | undefined): Event[] {
   });
 }
 
-const ROWS = { "1x1": 1, "2x1": 1, "4x1": 2, S: 3, M: 4, L: 9, XL: 12 } as const;
+const ROWS = {
+  "1x1": 1,
+  "2x1": 1,
+  "1x2": 2,
+  "4x1": 2,
+  S: 3,
+  "2x3": 5,
+  M: 4,
+  L: 9,
+  "6x4": 10,
+  XL: 12,
+} as const;
 /** Lines (events and day headings) that fit per size. */
-const LINES = { "1x1": 1, "2x1": 1, "4x1": 2, S: 4, M: 4, L: 11, XL: 11 } as const;
+const LINES = {
+  "1x1": 1,
+  "2x1": 1,
+  "1x2": 2,
+  "4x1": 2,
+  S: 4,
+  "2x3": 6,
+  M: 4,
+  L: 11,
+  "6x4": 11,
+  XL: 11,
+} as const;
 
 function dayKey(ms: number): string {
   const d = new Date(ms);

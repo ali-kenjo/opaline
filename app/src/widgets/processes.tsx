@@ -50,10 +50,13 @@ function rows(v: Value | undefined, apps: boolean): Row[] {
 const COUNT: Record<SizeClass, number> = {
   "1x1": 1,
   "2x1": 1,
+  "1x2": 2,
   "4x1": 2,
   S: 4,
+  "2x3": 6,
   M: 4,
   L: 10,
+  "6x4": 11,
   XL: 12,
 };
 

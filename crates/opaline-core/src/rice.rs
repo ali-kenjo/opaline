@@ -228,6 +228,7 @@ pub fn anchor_monitor_layout(mon: &MonitorLayout, cols: u32, rows: u32) -> Vec<A
             y,
             w,
             h,
+            ..
         } = item
         {
             let cx = (*x as f64) + (*w as f64) * 0.5;
@@ -290,9 +291,16 @@ pub fn materialize_anchored_layout(items: &[AnchoredItem], cols: u32, rows: u32)
             y,
             w,
             h,
+            free: None,
+            z: 0,
+            locked: false,
+            group_id: None,
         });
     }
-    MonitorLayout { items: out }
+    MonitorLayout {
+        items: out,
+        ..MonitorLayout::default()
+    }
 }
 
 /// Exports the full desktop setup as a `.opaline-rice` ZIP archive (secrets stripped).
@@ -472,7 +480,12 @@ mod tests {
                     y: 0,
                     w: 4,
                     h: 2,
+                    free: None,
+                    z: 0,
+                    locked: false,
+                    group_id: None,
                 }],
+                ..MonitorLayout::default()
             },
         );
         hub.set_layouts(layouts);

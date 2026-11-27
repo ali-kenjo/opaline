@@ -297,8 +297,8 @@ export type Role =
   | "meter"
   | "decoration";
 
-/** Grid spans: `1x1`, `2x1`, `4x1`, `S` (2×2), `M` (4×2), `L` (4×4), `XL` (8×4). */
-export type SizeClass = "1x1" | "2x1" | "4x1" | "S" | "M" | "L" | "XL";
+/** Grid spans: `1x1`, `2x1`, `1x2`, `4x1`, `S` (2×2), `2x3`, `M` (4×2), `L` (4×4), `6x4`, `XL` (8×4). */
+export type SizeClass = "1x1" | "2x1" | "1x2" | "4x1" | "S" | "2x3" | "M" | "L" | "6x4" | "XL";
 
 /** A template: text with expressions in braces, `"{cpu.load | round}%"`. */
 export type Template = string;

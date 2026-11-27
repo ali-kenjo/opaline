@@ -17,8 +17,55 @@ pub const SCHEMA_URL: &str = "file:///usr/share/opaline/schemas/layouts.schema.j
 const MAX_MONITORS: usize = 16;
 const MAX_ITEMS_PER_MONITOR: usize = 64;
 const MAX_STACK_CHILDREN: usize = 12;
+const MAX_SMART_RULES: usize = 16;
 const MAX_GRID_COORD: u32 = 64;
 const MAX_GRID_SPAN: u32 = 16;
+const MIN_FREE_SIZE: u32 = 64;
+const MAX_FREE_SIZE: u32 = 4096;
+const MAX_FREE_OFFSET: i32 = 8192;
+const ALLOWED_CELL_SIZES: &[u32] = &[72, 84, 96, 112];
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "kebab-case")]
+pub enum LayoutMode {
+    #[default]
+    Grid,
+    Free,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "kebab-case")]
+pub enum FreeAnchor {
+    #[default]
+    TopLeft,
+    TopRight,
+    BottomLeft,
+    BottomRight,
+    Center,
+}
+
+/// Work-area-anchored pixel placement for Free mode (brief §7): stays coherent across
+/// resolution, scale, and monitor changes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct FreeRect {
+    #[serde(default)]
+    pub anchor: FreeAnchor,
+    pub offset_x: i32,
+    pub offset_y: i32,
+    pub width: u32,
+    pub height: u32,
+}
+
+/// Custom expression rule for Smart Rotate inside a widget stack (brief §6.2).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SmartStackRule {
+    pub child_id: String,
+    pub when: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(default, rename_all = "camelCase")]
@@ -45,7 +92,23 @@ impl Default for Layouts {
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(default, rename_all = "camelCase")]
 pub struct MonitorLayout {
+    #[serde(default, skip_serializing_if = "is_grid_mode")]
+    pub mode: LayoutMode,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cell_size: Option<u32>,
     pub items: Vec<LayoutItem>,
+}
+
+fn is_grid_mode(mode: &LayoutMode) -> bool {
+    *mode == LayoutMode::Grid
+}
+
+fn is_zero_i32(v: &i32) -> bool {
+    *v == 0
+}
+
+fn is_false(v: &bool) -> bool {
+    !*v
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -59,6 +122,14 @@ pub enum LayoutItem {
         y: u32,
         w: u32,
         h: u32,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        free: Option<FreeRect>,
+        #[serde(default, skip_serializing_if = "is_zero_i32")]
+        z: i32,
+        #[serde(default, skip_serializing_if = "is_false")]
+        locked: bool,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        group_id: Option<String>,
     },
     #[serde(rename_all = "camelCase")]
     Stack {
@@ -72,6 +143,16 @@ pub enum LayoutItem {
         active_index: usize,
         #[serde(default)]
         smart_rotate: bool,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        smart_rules: Vec<SmartStackRule>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        free: Option<FreeRect>,
+        #[serde(default, skip_serializing_if = "is_zero_i32")]
+        z: i32,
+        #[serde(default, skip_serializing_if = "is_false")]
+        locked: bool,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        group_id: Option<String>,
     },
 }
 
@@ -85,6 +166,24 @@ impl LayoutItem {
     pub fn rect(&self) -> (u32, u32, u32, u32) {
         match self {
             Self::Widget { x, y, w, h, .. } | Self::Stack { x, y, w, h, .. } => (*x, *y, *w, *h),
+        }
+    }
+
+    pub fn free_rect(&self) -> Option<FreeRect> {
+        match self {
+            Self::Widget { free, .. } | Self::Stack { free, .. } => *free,
+        }
+    }
+
+    pub fn z(&self) -> i32 {
+        match self {
+            Self::Widget { z, .. } | Self::Stack { z, .. } => *z,
+        }
+    }
+
+    pub fn group_id(&self) -> Option<&str> {
+        match self {
+            Self::Widget { group_id, .. } | Self::Stack { group_id, .. } => group_id.as_deref(),
         }
     }
 }
@@ -102,7 +201,8 @@ impl Layouts {
         serde_json::Value::from(schemars::schema_for!(Layouts))
     }
 
-    /// Checks structural invariants (bounds, spans, unique IDs, no overlaps, non-empty stacks).
+    /// Checks structural invariants (bounds, spans, unique IDs, no grid overlaps, non-empty stacks,
+    /// valid Free-mode anchors/bounds, z-order, groups, and Smart Stack rules).
     pub fn validate(&self) -> Result<(), String> {
         if self.version != VERSION {
             return Err("version-is-read-only".into());
@@ -113,6 +213,11 @@ impl Layouts {
         for (key, mon) in &self.monitors {
             if key.is_empty() || key.len() > 160 {
                 return Err("invalid-monitor-key".into());
+            }
+            if let Some(cs) = mon.cell_size
+                && !ALLOWED_CELL_SIZES.contains(&cs)
+            {
+                return Err("invalid-cell-size".into());
             }
             if mon.items.len() > MAX_ITEMS_PER_MONITOR {
                 return Err("too-many-items".into());
@@ -132,13 +237,33 @@ impl Layouts {
                 {
                     return Err("item-out-of-bounds".into());
                 }
+                if !(-1000..=1000).contains(&item.z()) {
+                    return Err("invalid-z-order".into());
+                }
+                if let Some(gid) = item.group_id()
+                    && (gid.is_empty() || gid.len() > 64)
+                {
+                    return Err("invalid-group-id".into());
+                }
+                if let Some(fr) = item.free_rect()
+                    && (!(MIN_FREE_SIZE..=MAX_FREE_SIZE).contains(&fr.width)
+                        || !(MIN_FREE_SIZE..=MAX_FREE_SIZE).contains(&fr.height)
+                        || !(-MAX_FREE_OFFSET..=MAX_FREE_OFFSET).contains(&fr.offset_x)
+                        || !(-MAX_FREE_OFFSET..=MAX_FREE_OFFSET).contains(&fr.offset_y))
+                {
+                    return Err("free-rect-out-of-bounds".into());
+                }
                 match item {
                     LayoutItem::Widget { kind, .. } => {
                         if kind.is_empty() || kind.len() > 32 {
                             return Err("invalid-widget-kind".into());
                         }
                     }
-                    LayoutItem::Stack { children, .. } => {
+                    LayoutItem::Stack {
+                        children,
+                        smart_rules,
+                        ..
+                    } => {
                         if children.is_empty() || children.len() > MAX_STACK_CHILDREN {
                             return Err("invalid-stack-children".into());
                         }
@@ -148,11 +273,23 @@ impl Layouts {
                                 return Err("invalid-stack-child-id".into());
                             }
                         }
+                        if smart_rules.len() > MAX_SMART_RULES {
+                            return Err("too-many-smart-rules".into());
+                        }
+                        for rule in smart_rules {
+                            if !cids.contains(rule.child_id.as_str())
+                                || rule.when.trim().is_empty()
+                                || rule.when.len() > 512
+                            {
+                                return Err("invalid-smart-rule".into());
+                            }
+                        }
                     }
                 }
-                if rects
-                    .iter()
-                    .any(|&other| rects_overlap(other, (x, y, w, h)))
+                if mon.mode == LayoutMode::Grid
+                    && rects
+                        .iter()
+                        .any(|&other| rects_overlap(other, (x, y, w, h)))
                 {
                     return Err("overlapping-items".into());
                 }
@@ -310,5 +447,68 @@ mod tests {
         let parsed: Layouts = serde_json::from_value(via_ipc).unwrap();
         assert!(parsed.validate().is_ok());
         assert_eq!(parsed.monitors["AUO:eDP-1"].items.len(), 1);
+    }
+
+    #[test]
+    fn free_mode_allows_overlap_and_validates_anchors_and_smart_rules() {
+        let ok: Layouts = serde_json::from_value(json!({
+            "version": 1,
+            "monitors": {
+                "AUO:eDP-1": {
+                    "mode": "free",
+                    "cellSize": 96,
+                    "items": [
+                        {
+                            "id": "w1",
+                            "type": "widget",
+                            "kind": "clock",
+                            "x": 0, "y": 0, "w": 4, "h": 2,
+                            "free": { "anchor": "top-right", "offsetX": 24, "offsetY": 24, "width": 372, "height": 180 },
+                            "z": 2,
+                            "locked": true,
+                            "groupId": "g-top"
+                        },
+                        {
+                            "id": "s1",
+                            "type": "stack",
+                            "x": 0, "y": 0, "w": 2, "h": 2,
+                            "children": ["w2", "w3"],
+                            "smartRotate": true,
+                            "smartRules": [
+                                { "childId": "w2", "when": "power.battery.percent <= 20", "label": "Low battery" }
+                            ],
+                            "free": { "anchor": "bottom-left", "offsetX": 32, "offsetY": 32, "width": 200, "height": 200 },
+                            "z": 1
+                        }
+                    ]
+                }
+            }
+        }))
+        .unwrap();
+        assert_eq!(ok.validate(), Ok(()));
+
+        let bad_cell: Layouts = serde_json::from_value(json!({
+            "version": 1,
+            "monitors": { "k": { "cellSize": 50, "items": [] } }
+        }))
+        .unwrap();
+        assert_eq!(bad_cell.validate(), Err("invalid-cell-size".into()));
+
+        let bad_rule: Layouts = serde_json::from_value(json!({
+            "version": 1,
+            "monitors": {
+                "k": {
+                    "items": [
+                        {
+                            "id": "s1", "type": "stack", "x": 0, "y": 0, "w": 2, "h": 2,
+                            "children": ["w2"],
+                            "smartRules": [{ "childId": "missing", "when": "true" }]
+                        }
+                    ]
+                }
+            }
+        }))
+        .unwrap();
+        assert_eq!(bad_rule.validate(), Err("invalid-smart-rule".into()));
     }
 }

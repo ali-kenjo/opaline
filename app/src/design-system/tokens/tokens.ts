@@ -9,22 +9,28 @@ export const grid = {
   safeMargin: 24,
 } as const;
 
+export const ALLOWED_CELL_SIZES = [72, 84, 96, 112] as const;
+export type CellSize = (typeof ALLOWED_CELL_SIZES)[number];
+
 /** Grid spans of each size class. */
 export const sizes = {
   "1x1": { w: 1, h: 1 },
   "2x1": { w: 2, h: 1 },
+  "1x2": { w: 1, h: 2 },
   "4x1": { w: 4, h: 1 },
   S: { w: 2, h: 2 },
+  "2x3": { w: 2, h: 3 },
   M: { w: 4, h: 2 },
   L: { w: 4, h: 4 },
+  "6x4": { w: 6, h: 4 },
   XL: { w: 8, h: 4 },
 } as const;
 
 export type SizeClass = keyof typeof sizes;
 
 /** Pixel size of a span: n cells and n − 1 gaps. */
-export function spanPx(cells: number): number {
-  return cells * grid.cell + Math.max(0, cells - 1) * grid.gap;
+export function spanPx(cells: number, cellSize: number = grid.cell): number {
+  return cells * cellSize + Math.max(0, cells - 1) * grid.gap;
 }
 
 /** S and smaller get the small radius and padding; M and larger the large ones. */

@@ -29,14 +29,28 @@ function labelVariants(shown: string, original: string, short: string | undefine
 }
 
 /** How many rows fit beside / under the hero per size class. */
-const ROWS: Record<SizeClass, number> = { "1x1": 0, "2x1": 0, "4x1": 2, S: 3, M: 6, L: 10, XL: 16 };
+const ROWS: Record<SizeClass, number> = {
+  "1x1": 0,
+  "2x1": 0,
+  "1x2": 1,
+  "4x1": 2,
+  S: 3,
+  "2x3": 5,
+  M: 6,
+  L: 10,
+  "6x4": 12,
+  XL: 16,
+};
 const RING: Record<SizeClass, number> = {
   "1x1": 0,
   "2x1": 0,
+  "1x2": 0,
   "4x1": 0,
   S: 64,
+  "2x3": 72,
   M: 104,
   L: 152,
+  "6x4": 164,
   XL: 180,
 };
 /** Points the graph keeps (≈ one per 2 s sample). */

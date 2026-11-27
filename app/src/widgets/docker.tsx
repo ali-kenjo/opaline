@@ -44,7 +44,18 @@ function containers(v: Value | undefined): Container[] {
   );
 }
 
-const ROWS = { "1x1": 1, "2x1": 1, "4x1": 2, S: 3, M: 4, L: 9, XL: 12 } as const;
+const ROWS = {
+  "1x1": 1,
+  "2x1": 1,
+  "1x2": 2,
+  "4x1": 2,
+  S: 3,
+  "2x3": 5,
+  M: 4,
+  L: 9,
+  "6x4": 10,
+  XL: 12,
+} as const;
 
 function DockerList({ ctx }: { ctx: RenderCtx }) {
   const host = useHost();

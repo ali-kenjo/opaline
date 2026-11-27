@@ -1,9 +1,69 @@
 {
   "$defs": {
+    "FreeAnchor": {
+      "enum": [
+        "top-left",
+        "top-right",
+        "bottom-left",
+        "bottom-right",
+        "center"
+      ],
+      "type": "string"
+    },
+    "FreeRect": {
+      "description": "Work-area-anchored pixel placement for Free mode (brief §7): stays coherent across\nresolution, scale, and monitor changes.",
+      "properties": {
+        "anchor": {
+          "$ref": "#/$defs/FreeAnchor",
+          "default": "top-left"
+        },
+        "height": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "offsetX": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "offsetY": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "width": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "offsetX",
+        "offsetY",
+        "width",
+        "height"
+      ],
+      "type": "object"
+    },
     "LayoutItem": {
       "oneOf": [
         {
           "properties": {
+            "free": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/FreeRect"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "groupId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "h": {
               "format": "uint32",
               "minimum": 0,
@@ -14,6 +74,9 @@
             },
             "kind": {
               "type": "string"
+            },
+            "locked": {
+              "type": "boolean"
             },
             "type": {
               "const": "widget",
@@ -32,6 +95,10 @@
             "y": {
               "format": "uint32",
               "minimum": 0,
+              "type": "integer"
+            },
+            "z": {
+              "format": "int32",
               "type": "integer"
             }
           },
@@ -60,6 +127,22 @@
               },
               "type": "array"
             },
+            "free": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/FreeRect"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "groupId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "h": {
               "format": "uint32",
               "minimum": 0,
@@ -68,9 +151,18 @@
             "id": {
               "type": "string"
             },
+            "locked": {
+              "type": "boolean"
+            },
             "smartRotate": {
               "default": false,
               "type": "boolean"
+            },
+            "smartRules": {
+              "items": {
+                "$ref": "#/$defs/SmartStackRule"
+              },
+              "type": "array"
             },
             "type": {
               "const": "stack",
@@ -90,6 +182,10 @@
               "format": "uint32",
               "minimum": 0,
               "type": "integer"
+            },
+            "z": {
+              "format": "int32",
+              "type": "integer"
             }
           },
           "required": [
@@ -105,16 +201,56 @@
         }
       ]
     },
+    "LayoutMode": {
+      "enum": [
+        "grid",
+        "free"
+      ],
+      "type": "string"
+    },
     "MonitorLayout": {
       "properties": {
+        "cellSize": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "items": {
           "default": [],
           "items": {
             "$ref": "#/$defs/LayoutItem"
           },
           "type": "array"
+        },
+        "mode": {
+          "$ref": "#/$defs/LayoutMode"
         }
       },
+      "type": "object"
+    },
+    "SmartStackRule": {
+      "description": "Custom expression rule for Smart Rotate inside a widget stack (brief §6.2).",
+      "properties": {
+        "childId": {
+          "type": "string"
+        },
+        "label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "when": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "childId",
+        "when"
+      ],
       "type": "object"
     }
   },
