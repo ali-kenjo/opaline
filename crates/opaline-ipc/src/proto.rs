@@ -215,6 +215,10 @@ pub enum CoreEvent {
         monitors: Vec<MonitorInfo>,
     },
     PeekRequested,
+    /// Per-monitor Peek requested via CLI, D-Bus v2, or shortcut (PLAN-2 8.4/8.6).
+    PeekMonitorRequested {
+        connector: String,
+    },
     EditRequested,
     UpdatesPaused {
         paused: bool,

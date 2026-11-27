@@ -4,10 +4,12 @@
 
 pub mod alerts;
 pub mod app_service;
+pub mod automation;
 pub mod autostart;
 pub mod backup;
 pub mod commands;
 pub mod css;
+pub mod ctl;
 pub mod desktop;
 pub mod diagnose;
 pub mod displays;
@@ -24,6 +26,7 @@ pub mod jsonpath;
 pub mod layouts;
 pub mod logging;
 pub mod paths;
+pub mod profiles;
 pub mod providers;
 pub mod rice;
 pub mod secrets;

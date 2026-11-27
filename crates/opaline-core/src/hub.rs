@@ -39,10 +39,20 @@ fn class_index(class: ActivityClass) -> usize {
 /// How many subscribers want a topic, per activity class.
 type ClassCounts = [usize; 4];
 
+/// Signals emitted on the session D-Bus `io.github.ali_kenjo.Opaline1` interface (v2, PLAN-2 8.5).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DbusSignal {
+    ProfileChanged { profile_id: String },
+    ThemeChanged { theme_id: String },
+    VariableChanged { name: String, value_json: String },
+    WidgetAction { widget_id: String, action: String },
+}
+
 #[derive(Debug)]
 pub struct Hub {
     updates: broadcast::Sender<Arc<UpdateBatch>>,
     events: broadcast::Sender<CoreEvent>,
+    dbus_signals: broadcast::Sender<DbusSignal>,
     monitors: watch::Sender<Vec<MonitorInfo>>,
     backend: watch::Sender<BackendKind>,
     subscriptions: Mutex<HashMap<Topic, ClassCounts>>,
@@ -84,6 +94,10 @@ pub struct Hub {
     requests: Mutex<Option<tokio::sync::mpsc::UnboundedSender<AppRequest>>>,
     /// Runtime manager for custom data sources and custom widget packages (Phase 6).
     sources: Mutex<Option<Arc<crate::sources::SourceManager>>>,
+    /// Named desktop profiles manager (Phase 8).
+    profiles: Mutex<Option<Arc<crate::profiles::ProfilesManager>>>,
+    /// Automation rules engine manager (Phase 8).
+    automation: Mutex<Option<Arc<crate::automation::AutomationManager>>>,
 }
 
 impl Hub {
@@ -91,6 +105,7 @@ impl Hub {
         Arc::new(Self {
             updates: broadcast::channel(CHANNEL_CAPACITY).0,
             events: broadcast::channel(CHANNEL_CAPACITY).0,
+            dbus_signals: broadcast::channel(CHANNEL_CAPACITY).0,
             monitors: watch::channel(monitors).0,
             backend: watch::channel(backend).0,
             subscriptions: Mutex::new(HashMap::new()),
@@ -115,6 +130,8 @@ impl Hub {
             latest_update: Mutex::new(None),
             requests: Mutex::new(None),
             sources: Mutex::new(None),
+            profiles: Mutex::new(None),
+            automation: Mutex::new(None),
         })
     }
 
@@ -542,6 +559,38 @@ impl Hub {
 
     pub fn sources(&self) -> Option<Arc<crate::sources::SourceManager>> {
         lock(&self.sources).clone()
+    }
+
+    pub fn set_profiles(&self, mgr: Arc<crate::profiles::ProfilesManager>) {
+        *lock(&self.profiles) = Some(mgr);
+    }
+
+    pub fn profiles(&self) -> Option<Arc<crate::profiles::ProfilesManager>> {
+        lock(&self.profiles).clone()
+    }
+
+    pub fn set_automation(&self, mgr: Arc<crate::automation::AutomationManager>) {
+        *lock(&self.automation) = Some(mgr);
+    }
+
+    pub fn automation(&self) -> Option<Arc<crate::automation::AutomationManager>> {
+        lock(&self.automation).clone()
+    }
+
+    pub fn latest_snapshot(&self) -> HashMap<Topic, Value> {
+        lock(&self.latest).clone()
+    }
+
+    pub fn is_locked(&self) -> bool {
+        self.locked.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    pub fn emit_dbus(&self, sig: DbusSignal) {
+        let _ = self.dbus_signals.send(sig);
+    }
+
+    pub fn dbus_signals(&self) -> broadcast::Receiver<DbusSignal> {
+        self.dbus_signals.subscribe()
     }
 
     fn bump(&self) {
