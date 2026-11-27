@@ -524,3 +524,78 @@ export async function setExtendedShortcuts(
     peekPrimary,
   });
 }
+
+export type PluginKind = "code-widget" | "declarative-widget" | "theme" | "rice";
+export type PluginTrustState = "approved" | "needs-approval" | "disabled" | "error";
+
+export interface PluginPermissions {
+  topics: string[];
+  sources: string[];
+  actions: string[];
+}
+
+export interface PluginStatus {
+  id: string;
+  name: string;
+  pluginVersion: string;
+  author: string;
+  license: string;
+  description: string;
+  kind: PluginKind;
+  entry: string;
+  sizes: string[];
+  permissions: PluginPermissions;
+  permissionSummary: string;
+  fingerprint: string;
+  state: PluginTrustState;
+  error: string | null;
+}
+
+export interface GalleryPackage {
+  id: string;
+  name: string;
+  kind: PluginKind;
+  version: string;
+  author: string;
+  license: string;
+  description: string;
+  downloadUrl: string;
+  sha256: string;
+  signature: string;
+  minOpalineVersion: string;
+  permissions: PluginPermissions;
+}
+
+export interface GalleryIndex {
+  version: number;
+  updatedAt: string;
+  packages: GalleryPackage[];
+}
+
+export async function listPlugins(): Promise<PluginStatus[]> {
+  return await invoke<PluginStatus[]>("shell_list_plugins");
+}
+
+export async function approvePlugin(id: string): Promise<PluginStatus> {
+  return await invoke<PluginStatus>("shell_approve_plugin", { id });
+}
+
+export async function revokePlugin(id: string): Promise<void> {
+  await invoke("shell_revoke_plugin", { id });
+}
+
+export async function removePlugin(id: string): Promise<boolean> {
+  return await invoke<boolean>("shell_remove_plugin", { id });
+}
+
+export async function installPluginFile(path: string): Promise<PluginStatus> {
+  return await invoke<PluginStatus>("shell_install_plugin_file", { path });
+}
+
+export async function fetchGalleryIndex(indexUrl?: string): Promise<GalleryIndex> {
+  return await invoke<GalleryIndex>("shell_gallery_fetch_index", indexUrl ? { indexUrl } : {});
+}
+
+export async function installGalleryPackage(pkg: GalleryPackage): Promise<PluginStatus> {
+  return await invoke<PluginStatus>("shell_gallery_install", { pkg });
+}

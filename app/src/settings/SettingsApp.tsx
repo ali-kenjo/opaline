@@ -26,6 +26,7 @@ import {
 import { useShellTheme } from "../shell/useShellTheme";
 import { AccountsSection } from "./AccountsSection";
 import { DataSourcesSection } from "./DataSourcesSection";
+import { GallerySection } from "./GallerySection";
 import { LooksSection } from "./LooksSection";
 import { ProfilesSection } from "./ProfilesSection";
 import styles from "./Settings.module.css";
@@ -42,6 +43,7 @@ const NAV: readonly {
   { id: "appearance", labelKey: "settings.nav.appearance", icon: "tune" },
   { id: "layout", labelKey: "settings.nav.layout", icon: "grid_view" },
   { id: "profiles", label: "Profiles & automation", icon: "layers" },
+  { id: "plugins", label: "Plugins & Gallery", icon: "widgets" },
   { id: "widget-defaults", label: "Widget defaults", icon: "widgets" },
   { id: "data-sources", label: "Data sources", icon: "terminal" },
   { id: "accounts", label: "Accounts & integrations", icon: "lock" },
@@ -1432,6 +1434,8 @@ export function SettingsApp() {
           ) : null}
 
           {section === "profiles" ? <ProfilesSection notify={notify} refresh={refresh} /> : null}
+
+          {section === "plugins" ? <GallerySection notify={notify} /> : null}
 
           {section === "data-sources" ? <DataSourcesSection notify={notify} /> : null}
 

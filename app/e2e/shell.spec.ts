@@ -9,6 +9,7 @@ const SECTIONS = [
   "Appearance",
   "Layout",
   "Profiles & automation",
+  "Plugins & Gallery",
   "Widget defaults",
   "Data sources",
   "Accounts & integrations",

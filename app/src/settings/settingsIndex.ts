@@ -5,6 +5,7 @@ export type SettingsSectionId =
   | "appearance"
   | "layout"
   | "profiles"
+  | "plugins"
   | "widget-defaults"
   | "data-sources"
   | "accounts"
@@ -78,6 +79,14 @@ export const SETTINGS_SEARCH_INDEX: readonly SettingSearchEntry[] = [
     title: "Desktop profiles, automation rules, hysteresis & manual override",
     keywords:
       "profile automation rule workspace focused app docked hysteresis override resume ctl dbus cli",
+  },
+  {
+    id: "plugins-installed",
+    section: "plugins",
+    sectionLabel: "Plugins & Gallery",
+    title: "Sandboxed code plugins, permission approval, community gallery & install from file",
+    keywords:
+      "plugin gallery sandbox worker permissions approve revoke minisign signature pack validate sdk",
   },
   {
     id: "defaults-inspector",

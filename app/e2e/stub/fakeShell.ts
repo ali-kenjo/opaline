@@ -63,6 +63,25 @@ export function installFakeShell(initial: Record<string, Json>): void {
       idle: false,
     },
   };
+  let installedPlugins: Record<string, Json>[] = [
+    {
+      id: "demo-gauge",
+      name: "Demo Gauge",
+      pluginVersion: "1.0.0",
+      author: "Community",
+      license: "MIT",
+      description: "Sandboxed CPU gauge",
+      kind: "code-widget",
+      entry: "worker.js",
+      sizes: ["S", "M"],
+      permissions: { topics: ["cpu.load"], sources: [], actions: [] },
+      permissionSummary:
+        "Reads topics: cpu.load · No actions · No direct network or Tauri IPC access (ADR 0014 sandbox)",
+      fingerprint: "fp-demo-1",
+      state: "needs-approval",
+      error: null,
+    },
+  ];
   const sources: {
     specs: Record<string, Json>[];
     statuses: Record<string, Json>[];
@@ -282,6 +301,91 @@ export function installFakeShell(initial: Record<string, Json>): void {
           peekPrimary: args.peekPrimary ?? "",
         };
         return null;
+      }
+      case "shell_list_plugins":
+        return structuredClone(installedPlugins);
+      case "shell_approve_plugin": {
+        const pid = typeof args.id === "string" ? args.id : "";
+        installedPlugins = installedPlugins.map((p) =>
+          p.id === pid ? { ...p, state: "approved" } : p,
+        );
+        return installedPlugins.find((p) => p.id === pid) ?? null;
+      }
+      case "shell_revoke_plugin": {
+        const pid = typeof args.id === "string" ? args.id : "";
+        installedPlugins = installedPlugins.map((p) =>
+          p.id === pid ? { ...p, state: "needs-approval" } : p,
+        );
+        return null;
+      }
+      case "shell_remove_plugin": {
+        const pid = typeof args.id === "string" ? args.id : "";
+        installedPlugins = installedPlugins.filter((p) => p.id !== pid);
+        return true;
+      }
+      case "shell_install_plugin_file": {
+        const entry: Record<string, Json> = {
+          id: "local-pkg",
+          name: "Local Pack Widget",
+          pluginVersion: "0.1.0",
+          author: "Local Author",
+          license: "GPL-3.0-or-later",
+          description: "Installed from file",
+          kind: "code-widget",
+          entry: "worker.js",
+          sizes: ["M"],
+          permissions: { topics: ["cpu.load"], sources: [], actions: [] },
+          permissionSummary: "Reads topics: cpu.load · No actions",
+          fingerprint: "fp-local",
+          state: "needs-approval",
+          error: null,
+        };
+        installedPlugins = [...installedPlugins.filter((p) => p.id !== "local-pkg"), entry];
+        return entry;
+      }
+      case "shell_gallery_fetch_index":
+        return {
+          version: 1,
+          updatedAt: "2026-11-27T12:00:00Z",
+          packages: [
+            {
+              id: "solar-ring",
+              name: "Solar Ring",
+              kind: "code-widget",
+              version: "1.2.0",
+              author: "Opaline Community",
+              license: "MIT",
+              description: "Minimal solar arc ring widget",
+              downloadUrl: "https://example.invalid/solar-ring.opaline-plugin",
+              sha256: "0".repeat(64),
+              signature: "minisig",
+              minOpalineVersion: "2.0.0",
+              permissions: { topics: ["weather.current"], sources: [], actions: [] },
+            },
+          ],
+        };
+      case "shell_gallery_install": {
+        const pkg = (args.pkg ?? {}) as Record<string, Json>;
+        const pid = typeof pkg.id === "string" ? pkg.id : "gallery-pkg";
+        const pname = typeof pkg.name === "string" ? pkg.name : pid;
+        const entry: Record<string, Json> = {
+          id: pid,
+          name: pname,
+          pluginVersion: typeof pkg.version === "string" ? pkg.version : "1.0.0",
+          author: typeof pkg.author === "string" ? pkg.author : "Community",
+          license: typeof pkg.license === "string" ? pkg.license : "MIT",
+          description: typeof pkg.description === "string" ? pkg.description : "",
+          kind: pkg.kind ?? "code-widget",
+          entry: "worker.js",
+          sizes: ["S", "M"],
+          permissions: pkg.permissions ?? { topics: [], sources: [], actions: [] },
+          permissionSummary: "Verified gallery package · Awaiting approval",
+          fingerprint: "fp-gal",
+          state: "needs-approval",
+          error: null,
+        };
+        installedPlugins = [...installedPlugins.filter((p) => p.id !== pid), entry];
+        return entry;
       }
       case "shell_wallpaper_asset":
         throw new Error("no assets in tests");
