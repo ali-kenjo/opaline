@@ -31,10 +31,10 @@ pub fn run(request: Option<AppRequest>, safe_mode_flag: bool) -> ExitCode {
         )
         .await
         {
-            Ok(Claim::Primary(conn)) => Ok(Some(conn)),
+            Ok(Claim::Primary { conn, hub_slot }) => Ok(Some((conn, hub_slot))),
             Ok(Claim::AlreadyRunning) => {
                 // A second launch (app grid, desktop action, CLI) talks to the running core.
-                let request = request.unwrap_or(AppRequest::Edit);
+                let request = request.clone().unwrap_or(AppRequest::Edit);
                 match app_service::forward(request).await {
                     Ok(()) => Ok(None),
                     Err(error) => Err(format!("Opaline is running but didn't answer: {error}")),
@@ -43,8 +43,8 @@ pub fn run(request: Option<AppRequest>, safe_mode_flag: bool) -> ExitCode {
             Err(error) => Err(format!("could not reach the session bus: {error}")),
         }
     });
-    let bus = match started {
-        Ok(Some(bus)) => bus,
+    let (bus, hub_slot) = match started {
+        Ok(Some(pair)) => pair,
         Ok(None) => return ExitCode::SUCCESS,
         Err(message) => {
             tracing::error!("{message}");
@@ -92,10 +92,21 @@ pub fn run(request: Option<AppRequest>, safe_mode_flag: bool) -> ExitCode {
     hub.init_layouts(layouts, layouts_writable);
     hub.set_request_sender(requests_tx.clone());
     if let Ok(cfg_dir) = opaline_core::paths::config_dir() {
-        let source_mgr = opaline_core::sources::SourceManager::new(cfg_dir);
+        let source_mgr = opaline_core::sources::SourceManager::new(cfg_dir.clone());
         hub.set_sources(source_mgr.clone());
         rt.spawn(source_mgr.run(hub.clone()));
+
+        let profiles_mgr = opaline_core::profiles::ProfilesManager::new(cfg_dir.clone());
+        profiles_mgr.publish_initial(&hub);
+        hub.set_profiles(profiles_mgr);
+
+        let automation_mgr = opaline_core::automation::AutomationManager::new(cfg_dir);
+        hub.set_automation(automation_mgr.clone());
+        rt.spawn(automation_mgr.run(hub.clone()));
     }
+    let _ = hub_slot.set(hub.clone());
+    rt.spawn(app_service::forward_signals(bus.clone(), hub.clone()));
+    rt.spawn(opaline_core::desktop::watch_instant_ewmh(hub.clone()));
     rt.spawn(opaline_core::watcher::run(hub.clone()));
 
     let listener = match rt.block_on(ipc_server::bind_default()) {
@@ -196,6 +207,17 @@ pub fn run(request: Option<AppRequest>, safe_mode_flag: bool) -> ExitCode {
             crate::shell::shell_list_custom_widgets,
             crate::shell::shell_save_custom_widget,
             crate::shell::shell_delete_custom_widget,
+            crate::shell::shell_list_profiles,
+            crate::shell::shell_save_profile,
+            crate::shell::shell_snapshot_profile,
+            crate::shell::shell_delete_profile,
+            crate::shell::shell_activate_profile,
+            crate::shell::shell_get_automation,
+            crate::shell::shell_set_automation_enabled,
+            crate::shell::shell_save_automation_rule,
+            crate::shell::shell_delete_automation_rule,
+            crate::shell::shell_resume_automation,
+            crate::shell::shell_set_extended_shortcuts,
         ])
         .setup({
             let hub = hub.clone();
@@ -320,13 +342,48 @@ async fn handle_requests(
     }
 }
 
-fn handle_request(app: &AppHandle, hub: &Hub, request: AppRequest) {
+fn handle_request(app: &AppHandle, hub: &Arc<Hub>, request: AppRequest) {
     tracing::info!(?request, "request");
     match request {
         AppRequest::Peek => hub.emit(CoreEvent::PeekRequested),
+        AppRequest::PeekMonitor(connector) => {
+            hub.emit(CoreEvent::PeekMonitorRequested { connector });
+        }
         AppRequest::Edit => hub.emit(CoreEvent::EditRequested),
         AppRequest::OpenSettings => crate::shell::open_settings(app),
         AppRequest::OpenOnboarding => crate::shell::open_onboarding(app),
+        AppRequest::NextProfile => {
+            let hub = hub.clone();
+            tauri::async_runtime::spawn(async move {
+                if let Some(profiles) = hub.profiles() {
+                    let _ = profiles.cycle_next(&hub).await;
+                }
+            });
+        }
+        AppRequest::CycleLook => {
+            let hub = hub.clone();
+            tauri::async_runtime::spawn(async move {
+                use opaline_core::store::DesktopLook;
+                let order = [
+                    DesktopLook::Glass,
+                    DesktopLook::Clear,
+                    DesktopLook::Tinted,
+                    DesktopLook::Dark,
+                    DesktopLook::Light,
+                    DesktopLook::Dimmed,
+                ];
+                let cur = hub.settings().appearance.look;
+                let idx = order.iter().position(|&l| l == cur).unwrap_or(0);
+                let next = order[(idx + 1) % order.len()];
+                if let Ok(v) = serde_json::to_value(next) {
+                    let _ = opaline_core::store::update(
+                        &hub,
+                        serde_json::json!({ "appearance": { "look": v } }),
+                    )
+                    .await;
+                }
+            });
+        }
         AppRequest::Quit => app.exit(0),
     }
 }

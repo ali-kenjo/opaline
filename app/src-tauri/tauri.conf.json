@@ -75,7 +75,10 @@
           "/usr/share/opaline/schemas/layouts.schema.json": "../../spec/layouts.schema.json",
           "/usr/share/opaline/schemas/rice.schema.json": "../../spec/rice.schema.json",
           "/usr/share/opaline/themes/opaline/theme.json": "../../spec/themes/opaline/theme.json",
-          "/usr/share/opaline/themes/classic/theme.json": "../../spec/themes/classic/theme.json"
+          "/usr/share/opaline/themes/classic/theme.json": "../../spec/themes/classic/theme.json",
+          "/usr/share/bash-completion/completions/opaline": "../../packaging/completions/opaline.bash",
+          "/usr/share/zsh/vendor-completions/_opaline": "../../packaging/completions/_opaline",
+          "/usr/share/fish/vendor_completions.d/opaline.fish": "../../packaging/completions/opaline.fish"
         }
       }
     }

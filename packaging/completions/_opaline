@@ -1,0 +1,52 @@
+#compdef opaline
+
+_opaline() {
+  local -a cmds ctl_cmds
+  cmds=(
+    'ctl:Control a running Opaline instance over D-Bus'
+    '--peek:Raise widgets above all windows'
+    '--edit:Toggle Edit mode'
+    '--settings:Open Settings'
+    '--onboarding:Open Onboarding'
+    '--safe-mode:Start without user CSS, custom sources, or plugins'
+    '--diagnose:Print redacted system diagnostics JSON'
+    '--dump:Dump live sensor topics as JSON'
+    '--quit:Quit Opaline'
+  )
+  ctl_cmds=(
+    'status:Show running status'
+    'get:Get a setting by JSON path'
+    'set:Set a setting by JSON path'
+    'widgets:List, add, remove, move, or toggle widgets'
+    'profile:List, activate, save, or delete profiles'
+    'theme:Get or switch active theme'
+    'look:Get or switch desktop look'
+    'var:Set a variable topic'
+    'action:Run a widget action'
+    'peek:Peek all monitors or one monitor'
+    'edit:Toggle Edit mode'
+    'export:Export settings and layouts backup'
+    'import:Import a backup JSON file'
+    'automation:Inspect or resume automation rules'
+    'completions:Print bash, zsh, or fish completion script'
+  )
+  if (( CURRENT == 2 )); then
+    _describe 'command' cmds
+  elif [[ $words[2] == ctl && CURRENT == 3 ]]; then
+    _describe 'ctl command' ctl_cmds
+  elif [[ $words[2] == ctl && $words[3] == look ]]; then
+    compadd glass clear tinted dark light dimmed
+  elif [[ $words[2] == ctl && $words[3] == theme ]]; then
+    compadd opaline crystal bloom instrument air terminal neon paper mono classic
+  elif [[ $words[2] == ctl && $words[3] == widgets ]]; then
+    compadd list add remove move toggle
+  elif [[ $words[2] == ctl && $words[3] == profile ]]; then
+    compadd list use save delete
+  elif [[ $words[2] == ctl && $words[3] == automation ]]; then
+    compadd status resume
+  elif [[ $words[2] == ctl && $words[3] == completions ]]; then
+    compadd bash zsh fish
+  fi
+}
+
+_opaline "$@"

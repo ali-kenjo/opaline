@@ -341,3 +341,119 @@ pub fn shell_delete_custom_widget(id: String, hub: State<'_, Arc<Hub>>) -> Resul
         .ok_or_else(|| "sources-unavailable".to_owned())?;
     mgr.delete_custom_widget(&id, &hub)
 }
+
+#[tauri::command]
+pub fn shell_list_profiles(
+    hub: State<'_, Arc<Hub>>,
+) -> Result<opaline_core::profiles::ProfilesFile, String> {
+    let mgr = hub
+        .profiles()
+        .ok_or_else(|| "profiles-unavailable".to_owned())?;
+    Ok(mgr.snapshot())
+}
+
+#[tauri::command]
+pub fn shell_save_profile(
+    profile: opaline_core::profiles::Profile,
+    hub: State<'_, Arc<Hub>>,
+) -> Result<opaline_core::profiles::Profile, String> {
+    let mgr = hub
+        .profiles()
+        .ok_or_else(|| "profiles-unavailable".to_owned())?;
+    mgr.save(&hub, profile)
+}
+
+#[tauri::command]
+pub fn shell_snapshot_profile(
+    id: String,
+    name: String,
+    hub: State<'_, Arc<Hub>>,
+) -> Result<opaline_core::profiles::Profile, String> {
+    let mgr = hub
+        .profiles()
+        .ok_or_else(|| "profiles-unavailable".to_owned())?;
+    mgr.snapshot_current(&hub, &id, &name)
+}
+
+#[tauri::command]
+pub fn shell_delete_profile(id: String, hub: State<'_, Arc<Hub>>) -> Result<bool, String> {
+    let mgr = hub
+        .profiles()
+        .ok_or_else(|| "profiles-unavailable".to_owned())?;
+    mgr.delete(&hub, &id)
+}
+
+#[tauri::command]
+pub async fn shell_activate_profile(
+    id: String,
+    hub: State<'_, Arc<Hub>>,
+) -> Result<opaline_core::profiles::Profile, String> {
+    let mgr = hub
+        .profiles()
+        .ok_or_else(|| "profiles-unavailable".to_owned())?;
+    mgr.activate(&hub, &id, true).await
+}
+
+#[tauri::command]
+pub fn shell_get_automation(
+    hub: State<'_, Arc<Hub>>,
+) -> Result<opaline_core::automation::AutomationStatus, String> {
+    let mgr = hub
+        .automation()
+        .ok_or_else(|| "automation-unavailable".to_owned())?;
+    Ok(mgr.status())
+}
+
+#[tauri::command]
+pub fn shell_set_automation_enabled(enabled: bool, hub: State<'_, Arc<Hub>>) -> Result<(), String> {
+    let mgr = hub
+        .automation()
+        .ok_or_else(|| "automation-unavailable".to_owned())?;
+    mgr.set_enabled(&hub, enabled)
+}
+
+#[tauri::command]
+pub fn shell_save_automation_rule(
+    rule: opaline_core::automation::AutomationRule,
+    hub: State<'_, Arc<Hub>>,
+) -> Result<opaline_core::automation::AutomationRule, String> {
+    let mgr = hub
+        .automation()
+        .ok_or_else(|| "automation-unavailable".to_owned())?;
+    mgr.save_rule(&hub, rule)
+}
+
+#[tauri::command]
+pub fn shell_delete_automation_rule(id: String, hub: State<'_, Arc<Hub>>) -> Result<bool, String> {
+    let mgr = hub
+        .automation()
+        .ok_or_else(|| "automation-unavailable".to_owned())?;
+    mgr.delete_rule(&hub, &id)
+}
+
+#[tauri::command]
+pub fn shell_resume_automation(hub: State<'_, Arc<Hub>>) -> Result<(), String> {
+    let mgr = hub
+        .automation()
+        .ok_or_else(|| "automation-unavailable".to_owned())?;
+    mgr.resume(&hub);
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn shell_set_extended_shortcuts(
+    peek: String,
+    edit: String,
+    next_profile: String,
+    cycle_look: String,
+    peek_primary: String,
+) -> Result<(), String> {
+    opaline_core::shortcuts::set_extended_shortcuts(
+        &peek,
+        &edit,
+        &next_profile,
+        &cycle_look,
+        &peek_primary,
+    )
+    .await
+}

@@ -1,6 +1,7 @@
 //! `opaline`: one binary, several roles (docs/ARCHITECTURE.md §1).
 
 mod core_mode;
+mod ctl;
 mod instant;
 mod layer;
 mod runtime;
@@ -8,8 +9,14 @@ mod shell;
 
 use std::process::ExitCode;
 
-use clap::{Parser, ValueEnum};
+use clap::{Parser, Subcommand, ValueEnum};
 use opaline_core::app_service::AppRequest;
+
+#[derive(Debug, Subcommand)]
+enum TopCommand {
+    /// Control a running Opaline instance over D-Bus (settings, widgets, profiles, automation).
+    Ctl(ctl::CtlArgs),
+}
 
 #[derive(Debug, Parser)]
 #[command(
@@ -18,6 +25,8 @@ use opaline_core::app_service::AppRequest;
     about = "Glass widgets for your Ubuntu desktop"
 )]
 struct Cli {
+    #[command(subcommand)]
+    command: Option<TopCommand>,
     /// Run as the widget layer renderer (started by core or by the desktop-integration helper).
     #[arg(long)]
     layer: bool,
@@ -86,6 +95,9 @@ impl Cli {
 
 fn main() -> ExitCode {
     let cli = Cli::parse();
+    if let Some(TopCommand::Ctl(args)) = cli.command {
+        return ctl::run(args);
+    }
     if cli.diagnose {
         return diagnose();
     }
