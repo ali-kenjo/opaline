@@ -667,7 +667,7 @@ existing baselines/checks + new `themes.spec.ts`), `eslint`, `prettier`, `tsc`, 
 `clippy -D warnings`, `rustfmt`; 293 Vitest, 61 Playwright WebKit e2e (all existing baselines/checks +
 `round4.spec.ts` verifying 0 idle frames), `eslint`, `prettier`, `tsc`.
 
-**Sign-off:** Pending owner review of Round 4. Next: Round 5 (4.15 The ten built-in looks + starter layouts +
+**Sign-off:** ✅ 2026-11-27. Next: Round 5 (4.15 The ten built-in looks + starter layouts +
 lazy fonts, and 4.16 Lab baselines per theme with zero-truncation & contrast checks).
 
 
