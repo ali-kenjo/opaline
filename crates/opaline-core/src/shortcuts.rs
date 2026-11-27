@@ -235,6 +235,9 @@ pub struct ShortcutsState {
     pub editable: bool,
     pub peek: String,
     pub edit: String,
+    pub next_profile: String,
+    pub cycle_look: String,
+    pub peek_primary: String,
 }
 
 const HELPER_SCHEMA: &str = "org.gnome.shell.extensions.opaline-desktop";
@@ -262,29 +265,58 @@ async fn read_helper_binding(key: &str, fallback: &str) -> String {
         .unwrap_or_else(|| fallback.to_owned())
 }
 
-/// Reads the active Peek and Edit shortcuts.
+/// Reads the active Peek, Edit, and Phase 8 profile/look/per-monitor shortcuts.
 pub async fn read_state(backend: BackendKind) -> ShortcutsState {
     let editable = backend == BackendKind::Native && helper_schema_dir().is_some();
-    let (peek, edit) = if editable {
-        (
-            read_helper_binding("peek-shortcut", "<Super><Alt>w").await,
-            read_helper_binding("edit-shortcut", "<Super><Alt>e").await,
-        )
+    if editable {
+        ShortcutsState {
+            backend,
+            editable,
+            peek: read_helper_binding("peek-shortcut", "<Super><Alt>w").await,
+            edit: read_helper_binding("edit-shortcut", "<Super><Alt>e").await,
+            next_profile: read_helper_binding("next-profile-shortcut", "").await,
+            cycle_look: read_helper_binding("cycle-look-shortcut", "").await,
+            peek_primary: read_helper_binding("peek-primary-shortcut", "").await,
+        }
     } else {
-        ("<Super><Alt>w".into(), "<Super><Alt>e".into())
-    };
-    ShortcutsState {
-        backend,
-        editable,
-        peek,
-        edit,
+        ShortcutsState {
+            backend,
+            editable,
+            peek: "<Super><Alt>w".into(),
+            edit: "<Super><Alt>e".into(),
+            next_profile: String::new(),
+            cycle_look: String::new(),
+            peek_primary: String::new(),
+        }
     }
 }
 
 /// Updates the Native-mode GNOME Shell helper shortcuts via GSettings.
 pub async fn set_native_shortcuts(peek: &str, edit: &str) -> Result<(), String> {
+    set_native_key_pairs(&[("peek-shortcut", peek), ("edit-shortcut", edit)]).await
+}
+
+/// Updates all Native-mode GNOME Shell helper shortcuts (Phase 8 extended bindings).
+pub async fn set_extended_shortcuts(
+    peek: &str,
+    edit: &str,
+    next_profile: &str,
+    cycle_look: &str,
+    peek_primary: &str,
+) -> Result<(), String> {
+    set_native_key_pairs(&[
+        ("peek-shortcut", peek),
+        ("edit-shortcut", edit),
+        ("next-profile-shortcut", next_profile),
+        ("cycle-look-shortcut", cycle_look),
+        ("peek-primary-shortcut", peek_primary),
+    ])
+    .await
+}
+
+async fn set_native_key_pairs(pairs: &[(&str, &str)]) -> Result<(), String> {
     let dir = helper_schema_dir().ok_or_else(|| "helper-schema-not-found".to_owned())?;
-    for (key, value) in [("peek-shortcut", peek), ("edit-shortcut", edit)] {
+    for &(key, value) in pairs {
         let trimmed = value.trim();
         if trimmed.contains('\'') || trimmed.contains('\n') {
             return Err("invalid-shortcut".into());

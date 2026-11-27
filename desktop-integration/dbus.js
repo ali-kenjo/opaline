@@ -5,10 +5,13 @@ import GLib from "gi://GLib";
 
 import * as Main from "resource:///org/gnome/shell/ui/main.js";
 
-export const API_VERSION = 1;
+// v2 adds ActiveWorkspaceChanged, FocusedAppChanged, FullscreenChanged, SetRaisedMonitor,
+// and extended keybinding names while keeping every v1 method/property/signal intact.
+export const API_VERSION = 2;
 // Additive changes within a version, so older cores keep working with a newer helper.
 // 1: ReleaseFocus, and the layer no longer takes focus when it appears (ADR 0015).
-export const API_REVISION = 1;
+// 2: ActiveWorkspace / FocusedApp / Fullscreen signals + SetRaisedMonitor (Phase 8).
+export const API_REVISION = 2;
 const NAME = "io.github.ali_kenjo.Opaline.Shell1";
 const PATH = "/io/github/ali_kenjo/Opaline/Shell1";
 
@@ -20,6 +23,9 @@ const XML = `
     <property name="DesktopFocused" type="b" access="read"/>
     <property name="OverviewVisible" type="b" access="read"/>
     <property name="LayerWindows" type="u" access="read"/>
+    <property name="ActiveWorkspace" type="i" access="read"/>
+    <property name="FocusedApp" type="s" access="read"/>
+    <property name="Fullscreen" type="b" access="read"/>
     <method name="GetMonitors">
       <arg type="a(siiiidb)" direction="out" name="monitors"/>
     </method>
@@ -29,6 +35,10 @@ const XML = `
     <method name="SetRaised">
       <arg type="b" direction="in" name="raised"/>
     </method>
+    <method name="SetRaisedMonitor">
+      <arg type="s" direction="in" name="connector"/>
+      <arg type="b" direction="in" name="raised"/>
+    </method>
     <method name="ReleaseFocus"/>
     <signal name="MonitorsChanged"/>
     <signal name="WorkAreasChanged"/>
@@ -36,6 +46,9 @@ const XML = `
     <signal name="OverviewChanged"><arg type="b" name="visible"/></signal>
     <signal name="LayerCovered"><arg type="s" name="connector"/><arg type="b" name="covered"/></signal>
     <signal name="ShortcutActivated"><arg type="s" name="name"/></signal>
+    <signal name="ActiveWorkspaceChanged"><arg type="i" name="index"/></signal>
+    <signal name="FocusedAppChanged"><arg type="s" name="app"/></signal>
+    <signal name="FullscreenChanged"><arg type="b" name="fullscreen"/></signal>
   </interface>
 </node>`;
 
@@ -52,10 +65,14 @@ function connectorOf(index) {
 export class ShellService {
   constructor() {
     this.onSetRaised = null;
+    this.onSetRaisedMonitor = null;
     this.onReleaseFocus = null;
     this._desktopFocused = true;
     this._overview = false;
     this._layerWindows = 0;
+    this._workspace = global.workspace_manager.get_active_workspace_index?.() ?? 0;
+    this._focusedApp = "";
+    this._fullscreen = false;
     this._signals = [];
     this._impl = Gio.DBusExportedObject.wrapJSObject(XML, this);
     this._impl.export(Gio.DBus.session, PATH);
@@ -66,6 +83,10 @@ export class ShellService {
     on(global.display, "workareas-changed", () => this._impl.emit_signal("WorkAreasChanged", null));
     on(Main.overview, "showing", () => this._setOverview(true));
     on(Main.overview, "hidden", () => this._setOverview(false));
+    on(global.workspace_manager, "active-workspace-changed", () => {
+      const idx = global.workspace_manager.get_active_workspace_index?.() ?? 0;
+      this.setActiveWorkspace(idx);
+    });
   }
 
   get ApiVersion() {
@@ -86,6 +107,18 @@ export class ShellService {
 
   get LayerWindows() {
     return this._layerWindows;
+  }
+
+  get ActiveWorkspace() {
+    return this._workspace;
+  }
+
+  get FocusedApp() {
+    return this._focusedApp;
+  }
+
+  get Fullscreen() {
+    return this._fullscreen;
   }
 
   GetMonitors() {
@@ -113,6 +146,10 @@ export class ShellService {
     this.onSetRaised?.(raised);
   }
 
+  SetRaisedMonitor(connector, raised) {
+    this.onSetRaisedMonitor?.(connector, raised);
+  }
+
   /** A widget button acted: give keyboard focus back to the window that had it (ADR 0015). */
   ReleaseFocus() {
     this.onReleaseFocus?.();
@@ -123,6 +160,29 @@ export class ShellService {
     this._desktopFocused = focused;
     this._impl.emit_signal("DesktopFocusChanged", new GLib.Variant("(b)", [focused]));
     this._impl.emit_property_changed("DesktopFocused", new GLib.Variant("b", focused));
+  }
+
+  setActiveWorkspace(index) {
+    if (typeof index !== "number" || index === this._workspace) return;
+    this._workspace = index;
+    this._impl.emit_signal("ActiveWorkspaceChanged", new GLib.Variant("(i)", [index]));
+    this._impl.emit_property_changed("ActiveWorkspace", new GLib.Variant("i", index));
+  }
+
+  setFocusedApp(app) {
+    const next = typeof app === "string" ? app : "";
+    if (next === this._focusedApp) return;
+    this._focusedApp = next;
+    this._impl.emit_signal("FocusedAppChanged", new GLib.Variant("(s)", [next]));
+    this._impl.emit_property_changed("FocusedApp", new GLib.Variant("s", next));
+  }
+
+  setFullscreen(fullscreen) {
+    const next = Boolean(fullscreen);
+    if (next === this._fullscreen) return;
+    this._fullscreen = next;
+    this._impl.emit_signal("FullscreenChanged", new GLib.Variant("(b)", [next]));
+    this._impl.emit_property_changed("Fullscreen", new GLib.Variant("b", next));
   }
 
   _setOverview(visible) {

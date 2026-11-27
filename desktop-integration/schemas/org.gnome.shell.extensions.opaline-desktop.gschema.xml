@@ -11,5 +11,20 @@
       <default><![CDATA[['<Super><Alt>e']]]></default>
       <summary>Edit widgets</summary>
     </key>
+    <key name="next-profile-shortcut" type="as">
+      <default><![CDATA[[]]]></default>
+      <summary>Next Opaline profile</summary>
+      <description>Cycles to the next saved Opaline desktop profile.</description>
+    </key>
+    <key name="cycle-look-shortcut" type="as">
+      <default><![CDATA[[]]]></default>
+      <summary>Cycle desktop look</summary>
+      <description>Cycles through Glass, Clear, Tinted, Dark, Light, and Dimmed looks.</description>
+    </key>
+    <key name="peek-primary-shortcut" type="as">
+      <default><![CDATA[[]]]></default>
+      <summary>Peek primary monitor</summary>
+      <description>Raises the widget layer on the primary monitor only.</description>
+    </key>
   </schema>
 </schemalist>

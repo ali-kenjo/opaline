@@ -92,9 +92,18 @@ export class Stacking {
    * it just by appearing (Wayland ignores GTK's focus-on-map hint). */
   _trackFocus() {
     const f = global.display.focus_window;
-    if (!f) return;
+    if (!f) {
+      this._service.setFocusedApp("");
+      return;
+    }
     if (!this._layer.owns(f)) {
-      if (this._isOther(f)) this._remember(f);
+      if (this._isOther(f)) {
+        this._remember(f);
+        const app = f.get_wm_class_instance?.() || f.get_wm_class?.() || "";
+        this._service.setFocusedApp(app);
+      } else {
+        this._service.setFocusedApp("");
+      }
       return;
     }
     if (!this._raised && GLib.get_monotonic_time() - this._mappedAt < MAP_GRACE_US) this.releaseFocus();
@@ -138,10 +147,12 @@ export class Stacking {
     const ws = global.workspace_manager.get_active_workspace();
     const n = global.display.get_n_monitors();
     const covered = new Array(n).fill(false);
+    let anyFullscreen = false;
     // While Peek or Edit raises the layer above all windows, nothing covers it.
-    if (!this._raised) {
-      for (const win of ws.list_windows()) {
-        if (!this._isOther(win)) continue;
+    for (const win of ws.list_windows()) {
+      if (!this._isOther(win)) continue;
+      if (win.is_fullscreen()) anyFullscreen = true;
+      if (!this._raised) {
         const full = win.is_fullscreen() || win.is_maximized();
         if (full) {
           const m = win.get_monitor();
@@ -149,6 +160,7 @@ export class Stacking {
         }
       }
     }
+    this._service.setFullscreen(anyFullscreen);
     for (const win of this._layer.windows) {
       const connector = this._layer.connectorOf(win);
       const m = this._layer.monitorIndexOf(win);
@@ -181,6 +193,36 @@ export class Stacking {
       this._lowering = true;
       try {
         for (const w of this._layer.windows) w.lower();
+      } finally {
+        this._lowering = false;
+      }
+      this._schedule();
+    }
+  }
+
+  /** Per-monitor Peek (Shell1 API v2): raises or lowers only the matching monitor's window. */
+  setRaisedMonitor(connector, raised) {
+    const matches = this._layer.windows.filter((w) => this._layer.connectorOf(w) === connector);
+    if (!matches.length) {
+      this.setRaised(raised);
+      return;
+    }
+    this._raised = raised;
+    for (const w of matches) {
+      if (raised) {
+        w.make_above();
+        w.raise();
+      } else {
+        w.unmake_above();
+      }
+    }
+    if (raised) {
+      this._updateCovered();
+      matches[0]?.activate(global.get_current_time());
+    } else {
+      this._lowering = true;
+      try {
+        for (const w of matches) w.lower();
       } finally {
         this._lowering = false;
       }

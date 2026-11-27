@@ -15,6 +15,7 @@ export default class OpalineDesktop extends Extension {
     this._layer = new Layer(this._service);
     this._stacking = new Stacking(this._layer, this._service);
     this._service.onSetRaised = (raised) => this._stacking.setRaised(raised);
+    this._service.onSetRaisedMonitor = (connector, raised) => this._stacking.setRaisedMonitor(connector, raised);
     this._service.onReleaseFocus = () => this._stacking.releaseFocus();
     this._keys = new Keys(this.getSettings(), (name) => this._service.emitShortcut(name));
   }
