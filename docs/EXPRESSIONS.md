@@ -82,6 +82,12 @@ field `tempC` of topic `weather.current`. An unknown path is `null` and a compil
 Special names: `$item` (the current element inside a List block's item template), `$index` (its position), and
 variables set from outside (`var.build`, §10 of the brief).
 
+**Automation rules** (core, `automation.json`) see every topic plus `desktop.*` (`workspace`, `focusedApp`,
+`fullscreen`, `monitorCount`, `docked`, `locked`, `idle`, `dnd`) and `time.*` from the local wall clock: `time.hour`,
+`time.minute`, `time.weekday` (1 = Monday … 7 = Sunday) and `time.isNight`, which is fixed to **before 06:00 or from
+21:00 on** (not sunset; write e.g. `time.hour >= 19 || time.hour < 7` for other hours). Rule conditions format numbers in
+English (`Locale::En`), whatever the desktop language.
+
 ## 6. Functions
 
 Arguments in `[]` are optional. "num?" means the result is `null` when an input is `null`.
