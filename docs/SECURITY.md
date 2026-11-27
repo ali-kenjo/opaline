@@ -1,41 +1,37 @@
-# Opaline 1.0 Security Review (Phase 7.4)
+# Opaline 2.0 Security Review & Threat Model
 
-Date: 2026-11-24
+Updated: 2026-11-27 (Opaline 2.0, Phase 10)
 
-This audit verifies every security and privacy control specified in `OPALINE_BUILD_PROMPT.md` §5.8 and `docs/ARCHITECTURE.md` §7.
+This document covers Opaline's threat model and automated security controls across every trust boundary specified in `OPALINE_2_BRIEF.md` §12, `docs/ARCHITECTURE.md` §7, ADR 0014, ADR 0016, and ADR 0019.
 
-## 1. Tauri capabilities & least privilege
-- **Layer windows (`app/src-tauri/capabilities/layer.json`):** Scoped strictly to `["layer-*"]`. Grants only the 9 explicit layer IPC commands (`layer_attach`, `layer_subscribe`, `layer_command`, `layer_set_raised`, `layer_set_peek`, `layer_set_edit`, `layer_asset`, `layer_set_input_region`, `layer_report`). Zero filesystem, shell, HTTP, or general Tauri plugin permissions.
-- **Core shell windows (`app/src-tauri/capabilities/shell.json`):** Scoped strictly to `["settings", "onboarding"]`. Grants only the explicit `shell_*` commands declared in `app/src-tauri/build.rs`.
-- **Custom asset loader (`app/src-tauri/src/layer/assets.rs`):** `safe_name()` allows only `[A-Za-z0-9._-]+` ending in `.png`/`.jpg`/`.jpeg`/`.webp` inside Opaline's `wallpaper/` or `art/` cache subdirectories (rejects `..`, `/`, leading `.`, and unknown kinds; unit tested).
+---
 
-## 2. Content Security Policy (CSP)
-Configured in `app/src-tauri/tauri.conf.json`:
-- `default-src 'self'`, `script-src 'self'`, `font-src 'self'`
-- `img-src 'self' data: blob:` (webviews never load remote URLs; core fetches & caches album art and wallpaper textures)
-- `connect-src ipc: http://ipc.localhost` (zero outbound webview network access)
-- `object-src 'none'`, `base-uri 'none'`, `frame-ancestors 'none'`
-- `freezePrototype: true`, `withGlobalTauri: false`
+## 1. Threat Model & Trust Boundaries
 
-## 3. Local IPC (`crates/opaline-ipc` & `crates/opaline-core/src/ipc_server.rs`)
-- Runtime directory `$XDG_RUNTIME_DIR/opaline/` created with mode `0700`; `ipc.sock` set to mode `0600` (unit tested).
-- Every incoming connection is checked with `SO_PEERCRED` (`peer_cred().uid() == own_uid`); other UIDs are rejected before reading a frame.
-- Frame codec enforces a hard maximum payload cap without pre-allocating untrusted lengths (fuzz/oversize/EOF unit tested).
+| Attack Surface | Threat | Controls & Enforcement | Automated Tests |
+| - | - | - | - |
+| **Layer Webviews** | Compromise via untrusted data or navigation | Strict CSP (`default-src 'self'`, `connect-src ipc: http://ipc.localhost`, `object-src 'none'`, `frame-ancestors 'none'`), `freezePrototype: true`, `withGlobalTauri: false`, minimal `layer.json` capabilities, main-frame navigation guard (`is_allowed_layer_navigation`, ADR 0014) | `layer::plugin_scheme::tests::navigation_guard_allows_only_layer_origins` |
+| **Code Plugins (`.opaline-plugin`)** | Arbitrary JS trying to reach Tauri IPC, network, other widgets, storage, DOM, or infinite CPU/RAM loops | Dedicated Web Worker under `opaline-plugin://<id>/` with response CSP (`default-src 'none'; script-src 'self'; worker-src 'self' blob:; connect-src 'self'; frame-ancestors tauri://localhost`), `<iframe sandbox="allow-scripts allow-same-origin">`, strict `event.source` + origin checks, manifest-only topic filtering, allow-listed commands, 2 s heartbeat watchdog + exponential backoff, SHA-256 fingerprint approval on install & every change, disabled in `--safe-mode` | `app/src/plugins/hostile.test.ts` (6 tests), `layer::plugin_scheme::tests`, `plugins::tests` |
+| **Imported Packages (`.opaline-theme`, `.opaline-rice`, `.opaline-plugin`)** | Zip-slip path traversal, zip bombs, corrupt archives, remote CSS exfiltration (`@import` / `url(https://...)`), oversized files | Pure-Rust bounded ZIP reader (`zip_pkg.rs`): rejects `..`, absolute paths, backslashes, NUL bytes, symlinks, CRC-32 mismatches, > 16 MiB archives, > 256 entries, > 100× expansion ratio. CSS validator rejects `@import`, `url(http/https/data/javascript)`, `expression()`, `-moz-binding`. | `crates/opaline-core/tests/security.rs`, `zip_pkg::tests`, `css::tests` |
+| **Custom Data Sources (Command, File, HTTP/JSON, D-Bus, MQTT)** | Command injection, SSRF to cloud metadata / link-local, path/size DoS, unauthorized system D-Bus access, untrusted imported sources | Command sources run `argv` directly without shell by default with cleared environment (`env_clear()` + allow-list) and timeout/byte caps. HTTP/JSON sources enforce HTTPS-only (loopback opt-in), pinned DNS resolution blocking `169.254.0.0/16`, `fe80::/10`, `fd00:ec2::254`, `100.64.0.0/10`, and redirect re-checks. System D-Bus requires an explicit read-only service allowlist. Imported sources stay disabled until explicitly approved per `(id, version, SHA-256 fingerprint)`. | `crates/opaline-core/tests/security.rs`, `http::tests`, `sources::runners::tests`, `sources::model::tests`, `sources::mqtt::tests` |
+| **Secret Storage (GNOME Keyring, ADR 0019)** | Secrets leaking into `settings.json`, backups, `.opaline-rice`, logs, error strings, or `--diagnose` | Stored exclusively in `org.freedesktop.secrets` over `zbus 6` (`secrets.rs`), referenced only as `{{secret:name}}` placeholders resolved in memory immediately before outbound requests, never echoed by Settings or backups, and scrubbed from logs/diagnostics. | `secrets::tests::planted_secret_never_appears_in_backup_or_settings_json`, `crates/opaline-core/tests/security.rs` |
+| **Feed / Content Rendering** | XSS / HTML injection via untrusted RSS/Atom/JSON Feeds or Markdown notes | Feeds parsed in pure Rust and strictly stripped of all HTML tags, scripts, and styles before crossing IPC (`providers/integrations.rs`); webviews render plain text only (zero `dangerouslySetInnerHTML`). | `providers::integrations::tests` |
+| **Quick Controls & Privileged Writes (ADR 0016)** | Arbitrary command/file execution or spoofing | Core validates every toggle, slider range, launcher target (`.desktop` / `http(s)` / existing path), process UID + `/proc/<pid>/stat` start time (`EndTask`), and live drive/container/entity allow-lists before acting. Privileged RAPL helper is strictly read-only, polkit-gated to active local sessions, and rate-limited. | `providers::controls::tests`, `opaline-privileged` tests |
+| **Local IPC & D-Bus API v2** | Cross-user IPC hijacking or malformed scripted D-Bus arguments | `$XDG_RUNTIME_DIR/opaline/` (`0700`), `ipc.sock` (`0600`), `SO_PEERCRED` UID check, bounded MessagePack framing. D-Bus `io.github.ali_kenjo.Opaline1` validates every JSON path, grid coordinate, widget kind, look enum, and profile/variable id before mutating state. | `opaline-ipc` tests, `app_service::tests`, `crates/opaline-core/tests/security.rs` |
+| **Updates & Community Gallery** | MITM, unsigned or tampered `.deb` / gallery packages | HTTPS-only downloads. Both updater (`updates.rs`) and gallery (`gallery.rs`) verify SHA-256 **and** minisign Ed25519/BLAKE2b-512 signatures fail-closed before extracting or invoking `pkexec apt install`. Gallery connects **only** when explicitly clicked (zero background traffic). | `updates::tests`, `gallery::tests` |
 
-## 4. Command validation (`crates/opaline-core/src/commands.rs`)
-- **Process signals (`EndTask`):** Validates both UID ownership and `/proc/<pid>/stat` start time to defeat PID reuse; refuses foreign or changed processes (unit tested).
-- **Drive actions (`DriveEject`, `DrivePowerOff`), Docker actions (`Container`), MPRIS (`Media`), Power profiles (`SetPowerProfile`):** Validated against core's own live device/container/player/profile listings.
-- **Settings & Layouts (`UpdateSettings`, `UpdateLayouts`, `backup::import_json`):** Schema-validated (value ranges, IP address format, `https://` / `webcal://` calendar schemes, non-overlapping grid bounds, version protection) before atomic write (`tmp` → `fsync` → `rename` → dir `fsync`).
+---
 
-## 5. Privileged helper (`crates/opaline-privileged`)
-- System D-Bus service `io.github.ali_kenjo.Opaline.Privileged1`, read-only, D-Bus activated, exits after 60 s idle.
-- Strict RAPL sysfs allow-list only (`intel-rapl:*`, no arbitrary paths — unit tested).
-- Polkit action `io.github.ali_kenjo.opaline.read-sensors` (`packaging/polkit/`): restricted to active local sessions only.
-- Per-caller rate limiting enforced in process (unit tested); only contacted when `settings.privacy.privilegedSensors` is explicitly enabled by the user.
+## 2. Diagnostic & Log Redaction
 
-## 6. Network hygiene & verified updates (`crates/opaline-core/src/http.rs`, `updates.rs`)
-- Single shared HTTP client (`rustls` + system CA store, generic `Opaline/<version>` user agent, 10 s timeout).
-- `fetch_limited()` refuses non-HTTPS URLs (`http://`, `file://`), enforces MIME prefixes, and caps download sizes (unit tested).
-- Outbound network requests occur only for opt-in/explicit features: Open-Meteo weather, opt-in public IP (off by default), streamed album art, and opt-out daily GitHub Releases check. Zero telemetry.
-- Updates verify the minisign Ed25519 + BLAKE2b-512 signature on `SHA256SUMS` *before* downloading the `.deb`, then verify the `.deb` SHA-256 digest before invoking `pkexec apt install` (unit tested, including RFC 7693 vector and tamper rejection).
-- `opaline --diagnose` and Settings → Diagnostics strip topic values (no SSIDs, IPs, hostnames, usernames, or monitor serial numbers).
+`opaline --diagnose` and **Settings → Diagnostics → Copy debug report** strip:
+- All topic values (SSIDs, IP addresses, calendar titles, notes, media titles, process names),
+- Monitor hardware serial numbers (`serial_present: bool` only),
+- Custom source commands, URLs, hostnames, file paths, and tokens (`SourceDiagnoseEntry` reports only kind, state, and timing),
+- Any `${secret:...}` values via `secrets::redact()`.
+
+---
+
+## 3. Safe Mode Recovery
+
+Launching `opaline --safe-mode` — or crashing twice in a row during startup (tracked via `~/.local/state/opaline/startup-crashes`) — automatically disables user CSS, theme CSS, custom data sources, and code plugins so a broken or hostile package can never lock a user out of their desktop.
