@@ -670,6 +670,37 @@ existing baselines/checks + new `themes.spec.ts`), `eslint`, `prettier`, `tsc`, 
 **Sign-off:** ✅ 2026-11-27. Next: Round 5 (4.15 The ten built-in looks + starter layouts +
 lazy fonts, and 4.16 Lab baselines per theme with zero-truncation & contrast checks).
 
+## 2.0 · Phase 4 · Round 5: The ten built-in looks & per-theme Lab verification (2026-11-27)
+
+**Done**
+- **4.15 The ten built-in first-party looks (`spec/themes/<id>/theme.json`, `crates/opaline-core/src/themes.rs`, `tests/schemas.rs`):**
+  - Authored all eight new first-party theme packages alongside `opaline` (enriched with all §6.2 per-kind accent
+    colors) and `classic`: **Crystal** (ultra-clear glass lenses, squircles, heavy condensed numerals), **Bloom**
+    (tactile per-kind tinted glass, expressive shapes, playful motion), **Instrument** (smoked cockpit glass with
+    hairlines, extended numerals, calm motion), **Air** (frameless haloed typography directly on the wallpaper),
+    **Terminal** (opaque monospace TUI frames, slashed zeroes, instant updates, boxed `theme.css`), **Neon** (deep
+    twilight cards, glowing magenta/cyan borders, `theme.css`), **Paper** (warm light editorial matte cards, serif
+    display numerals, zero glass), and **Mono** (crisp high-contrast monochrome).
+  - Embedded all 10 built-in looks in `opaline-core` (`BUILTIN_THEME_IDS`, `EMBEDDED_THEMES`, safe-mode CSS
+    suppression) and validated all 10 manifests against `spec/schemas/theme.schema.json`.
+  - Added curated starter layouts for all 10 looks (`app/src/layer/starterLayouts.ts`, `buildStarterLayout` in
+    `presets.ts`) and lazy font loading with offline fallback stacks (`app/src/design-system/type/lazyFonts.ts`,
+    wired into `apply.ts` and `layerHost.ts`).
+- **4.16 Per-theme Lab showcase, zero-truncation & contrast checks (`LooksDemo.tsx`, `e2e/looks.spec.ts`, `themes.test.ts`):**
+  - Built `lab.html?only=looks&lookTheme=<id>&still` rendering all 10 real theme manifests with their starter layouts.
+  - Fixed multi-size layout selection (`sizes: [...]`) on Round 3–4 compositions (`processes`, `media`, `weather`,
+    `calendar`, `docker` + regenerated `spec/compositions/*.json`) and hardened text/wave/backdrop readability across
+    `liquid-fill`, `net-wave`, `battery-pill`, `now-playing`, `weather-scene`, and `calendar-view` so every single
+    built-in look passes WCAG 4.5:1+ pixel contrast, zero label/value truncation, and zero idle frames.
+
+**Checks:** 213 Rust workspace tests (all 13 `spec/compositions/*.json` and all 10 `spec/themes/*/theme.json`
+validated), `clippy -D warnings`, `rustfmt`; 296 Vitest, 71 Playwright WebKit e2e (all Classic 1.1 baselines
+pixel-identical + all 10 looks verified in `looks.spec.ts` for rendering, zero truncation, WCAG contrast, and 0 idle
+frames), `eslint`, `prettier`, `tsc`.
+
+**Sign-off:** _awaiting owner sign-off to complete Phase 4 and begin Phase 5 (Editing experience & placement)._
+
+
 
 
 

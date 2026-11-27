@@ -9,6 +9,7 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    fs: { allow: [".."] },
   },
   // Lab-only static files (spike probes); a normal build ships no public folder.
   publicDir: process.env.LAB ? "lab-public" : false,
