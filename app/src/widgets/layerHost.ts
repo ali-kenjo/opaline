@@ -1,6 +1,7 @@
 // The widget host backed by core: live values from the layer store, settings from core's
 // `settings` topic, saved through commands. Used by the layer (and the Lab's ?live mode).
 import { lookPrefs } from "../design-system/style";
+import { syncThemeFonts, type ThemeFontSpec } from "../design-system/type/lazyFonts";
 import { argbFromRgb } from "@material/material-color-utilities";
 import { useEffect, useMemo, useState } from "react";
 import { DEFAULT_SOURCE } from "../design-system/color/scheme";
@@ -323,6 +324,20 @@ export function useCoreHost(monitorKey: string | null): import("./host").WidgetH
   const themesValue = useLayer((s) => s.values[THEMES_TOPIC]);
   const settings = useMemo(() => storedSettings(settingsValue), [settingsValue]);
   const theme = useMemo(() => activeThemeLayers(themesValue), [themesValue]);
+  useEffect(() => {
+    const catalog = record(toJson(themesValue));
+    const active = record(catalog.active ?? null);
+    const pkg = record(active.package ?? null);
+    const id = typeof pkg.id === "string" ? pkg.id : "";
+    const rawFonts = Array.isArray(pkg.fonts) ? pkg.fonts : [];
+    const fonts: ThemeFontSpec[] = rawFonts.flatMap((item) => {
+      const f = record(item);
+      return typeof f.family === "string" && typeof f.file === "string"
+        ? [{ family: f.family, file: f.file }]
+        : [];
+    });
+    void syncThemeFonts(id, fonts);
+  }, [themesValue]);
   const colors = useCoreColors(monitorKey);
   return useMemo(
     () => ({

@@ -1,0 +1,66 @@
+{
+  "$schema": "file:///usr/share/opaline/schemas/theme.schema.json",
+  "schemaVersion": 1,
+  "id": "terminal",
+  "name": "Terminal",
+  "author": "Opaline",
+  "version": "2.0.0",
+  "license": "GPL-3.0-or-later",
+  "description": "JetBrains Mono typography, sharp TUI box borders, slashed zeroes, uppercase labels, and instant no-nonsense updates.",
+  "minOpalineVersion": "2.0.0",
+  "tokens": {
+    "colorSource": "wallpaper",
+    "variant": "vibrant",
+    "motionPersonality": "instant",
+    "shapeLanguage": "sharp"
+  },
+  "style": {
+    "theme": "dark",
+    "surface": "color",
+    "surfaceColor": "#0d1117",
+    "textColor": "#e6edf3",
+    "secondaryTextColor": "#9ca6b2",
+    "transparency": 10,
+    "blur": 8,
+    "refraction": 0,
+    "rim": 0,
+    "grain": 0,
+    "shadow": 24,
+    "borderWidth": 1,
+    "borderColor": "#30363d",
+    "radius": 6,
+    "legibility": true,
+    "fontFamily": "JetBrains Mono",
+    "numberFontFamily": "JetBrains Mono",
+    "tabularNumbers": true,
+    "slashedZero": true,
+    "uppercaseLabels": true,
+    "headerStyle": "title",
+    "iconSet": "sharp",
+    "animations": false,
+    "hoverEffect": "none",
+    "valueAnimation": "none",
+    "roles": {
+      "hero": {
+        "fontFamily": "JetBrains Mono",
+        "fontWeight": 700,
+        "lineHeight": 0.96,
+        "tabularNumbers": true,
+        "slashedZero": true
+      },
+      "value": {
+        "fontFamily": "JetBrains Mono",
+        "fontWeight": 600,
+        "tabularNumbers": true,
+        "slashedZero": true
+      },
+      "label": {
+        "fontFamily": "JetBrains Mono",
+        "fontWeight": 500,
+        "textCase": "uppercase",
+        "letterSpacing": 0.05
+      }
+    }
+  },
+  "css": "theme.css"
+}

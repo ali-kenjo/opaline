@@ -1,0 +1,48 @@
+{
+  "$schema": "file:///usr/share/opaline/schemas/theme.schema.json",
+  "schemaVersion": 1,
+  "id": "air",
+  "name": "Air",
+  "author": "Opaline",
+  "version": "2.0.0",
+  "license": "GPL-3.0-or-later",
+  "description": "Frameless, borderless widgets floating directly over the wallpaper with crisp adaptive haloed typography.",
+  "minOpalineVersion": "2.0.0",
+  "tokens": {
+    "colorSource": "wallpaper",
+    "variant": "tonal-spot",
+    "motionPersonality": "calm",
+    "shapeLanguage": "rounded"
+  },
+  "style": {
+    "surface": "clear",
+    "transparency": 100,
+    "blur": 0,
+    "see": "wallpaper",
+    "refraction": 0,
+    "rim": 0,
+    "grain": 0,
+    "shadow": 0,
+    "borderWidth": 0,
+    "legibility": true,
+    "textShadow": true,
+    "fontFamily": "Inter",
+    "numberFontFamily": "Roboto Flex",
+    "headerStyle": "none",
+    "iconSet": "outlined",
+    "hoverEffect": "none",
+    "roles": {
+      "hero": {
+        "fontFamily": "Roboto Flex",
+        "fontWeight": 680,
+        "fontWidth": 60,
+        "lineHeight": 0.88,
+        "tabularNumbers": true
+      },
+      "title": {
+        "fontFamily": "Inter",
+        "fontWeight": 600
+      }
+    }
+  }
+}

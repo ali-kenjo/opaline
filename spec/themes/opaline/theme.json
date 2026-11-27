@@ -6,7 +6,7 @@
   "author": "Opaline",
   "version": "2.0.0",
   "license": "GPL-3.0-or-later",
-  "description": "The Opaline 2.0 default look: see-through glass (blur 30, transparency 80), bold condensed Roboto Flex numerals, meaningful shapes, and harmonized per-widget color accents.",
+  "description": "The Opaline 2.0 default look: see-through glass (blur 30, transparency 75), bold condensed Roboto Flex numerals, meaningful shapes, and harmonized per-widget color accents.",
   "minOpalineVersion": "2.0.0",
   "tokens": {
     "colorSource": "wallpaper",
@@ -16,7 +16,7 @@
   },
   "style": {
     "surface": "glass",
-    "transparency": 80,
+    "transparency": 75,
     "blur": 30,
     "see": "wallpaper",
     "refraction": 75,
@@ -71,6 +71,21 @@
     },
     "cpu": {
       "accentColor": "#f2903a"
+    },
+    "memory": {
+      "accentColor": "#9d7cf0"
+    },
+    "gpu": {
+      "accentColor": "#7aa7ff"
+    },
+    "storage": {
+      "accentColor": "#e8a84a"
+    },
+    "network": {
+      "accentColor": "#3ec9d4"
+    },
+    "battery": {
+      "accentColor": "#50c896"
     },
     "fans": {
       "accentColor": "#f2903a"

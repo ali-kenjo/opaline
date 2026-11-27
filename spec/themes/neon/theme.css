@@ -1,0 +1,3 @@
+[data-theme="neon"] [data-role="hero"] {
+  text-shadow: 0 0 14px rgb(var(--md-primary) / 0.45);
+}

@@ -24,9 +24,73 @@ pub const TOPIC: &str = "themes";
 pub const SCHEMA_VERSION: u32 = 1;
 pub const SCHEMA_URL: &str = "file:///usr/share/opaline/schemas/theme.schema.json";
 
-/// Embedded first-party themes so dev/uninstalled builds always ship `opaline` and `classic`.
-const EMBEDDED_OPALINE: &str = include_str!("../../../spec/themes/opaline/theme.json");
-const EMBEDDED_CLASSIC: &str = include_str!("../../../spec/themes/classic/theme.json");
+/// All ten first-party built-in looks (DESIGN-2 §11, PLAN-2 4.15), embedded so dev and
+/// uninstalled builds always ship the full set.
+pub const BUILTIN_THEME_IDS: &[&str] = &[
+    "opaline",
+    "crystal",
+    "bloom",
+    "instrument",
+    "air",
+    "terminal",
+    "neon",
+    "paper",
+    "mono",
+    "classic",
+];
+
+const EMBEDDED_THEMES: &[(&str, &str, Option<&str>)] = &[
+    (
+        "builtin:opaline/theme.json",
+        include_str!("../../../spec/themes/opaline/theme.json"),
+        None,
+    ),
+    (
+        "builtin:crystal/theme.json",
+        include_str!("../../../spec/themes/crystal/theme.json"),
+        None,
+    ),
+    (
+        "builtin:bloom/theme.json",
+        include_str!("../../../spec/themes/bloom/theme.json"),
+        None,
+    ),
+    (
+        "builtin:instrument/theme.json",
+        include_str!("../../../spec/themes/instrument/theme.json"),
+        None,
+    ),
+    (
+        "builtin:air/theme.json",
+        include_str!("../../../spec/themes/air/theme.json"),
+        None,
+    ),
+    (
+        "builtin:terminal/theme.json",
+        include_str!("../../../spec/themes/terminal/theme.json"),
+        Some(include_str!("../../../spec/themes/terminal/theme.css")),
+    ),
+    (
+        "builtin:neon/theme.json",
+        include_str!("../../../spec/themes/neon/theme.json"),
+        Some(include_str!("../../../spec/themes/neon/theme.css")),
+    ),
+    (
+        "builtin:paper/theme.json",
+        include_str!("../../../spec/themes/paper/theme.json"),
+        None,
+    ),
+    (
+        "builtin:mono/theme.json",
+        include_str!("../../../spec/themes/mono/theme.json"),
+        None,
+    ),
+    (
+        "builtin:classic/theme.json",
+        include_str!("../../../spec/themes/classic/theme.json"),
+        None,
+    ),
+];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
@@ -641,18 +705,22 @@ pub fn load_catalog(
     let mut by_id: BTreeMap<String, LoadedTheme> = BTreeMap::new();
     let mut problems: Vec<ThemeProblem> = Vec::new();
 
-    // 1. Embedded first-party themes first so they are always available.
-    for (name, raw) in [
-        ("builtin:opaline/theme.json", EMBEDDED_OPALINE),
-        ("builtin:classic/theme.json", EMBEDDED_CLASSIC),
-    ] {
+    // 1. Embedded first-party themes first so all ten looks are always available.
+    for &(name, raw, raw_css) in EMBEDDED_THEMES {
         if let Ok((pkg, probs)) = parse_theme_lenient(name, raw, |_| false) {
+            let css = if safe_mode {
+                String::new()
+            } else {
+                raw_css
+                    .and_then(|c| validate_css(name, c).ok())
+                    .unwrap_or_default()
+            };
             by_id.insert(
                 pkg.id.clone(),
                 LoadedTheme {
                     package: pkg,
                     source: ThemeSource::Builtin,
-                    css: String::new(),
+                    css,
                     problems: probs,
                 },
             );
@@ -733,15 +801,26 @@ mod tests {
         let cat = load_catalog(&[], "opaline", false);
         assert_eq!(cat.active_id, "opaline");
         assert!(cat.problems.is_empty(), "{:?}", cat.problems);
+        assert_eq!(cat.themes.len(), BUILTIN_THEME_IDS.len());
+        for id in BUILTIN_THEME_IDS {
+            assert!(
+                cat.themes.iter().any(|t| t.id == *id),
+                "missing built-in theme {id}"
+            );
+        }
         let opaline = cat.active.unwrap();
         assert_eq!(opaline.package.style.blur, Some(30.0));
-        assert_eq!(opaline.package.style.transparency, Some(80.0));
-        assert!(cat.themes.iter().any(|t| t.id == "classic"));
+        assert_eq!(opaline.package.style.transparency, Some(75.0));
 
         let cat_classic = load_catalog(&[], "classic", false);
         let classic = cat_classic.active.unwrap();
         assert_eq!(classic.package.style.blur, Some(60.0));
         assert_eq!(classic.package.style.transparency, Some(60.0));
+
+        let cat_term = load_catalog(&[], "terminal", false);
+        assert!(cat_term.active.unwrap().css.contains("terminal"));
+        let cat_term_safe = load_catalog(&[], "terminal", true);
+        assert!(cat_term_safe.active.unwrap().css.is_empty());
     }
 
     #[test]

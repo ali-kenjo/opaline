@@ -1,0 +1,50 @@
+{
+  "$schema": "file:///usr/share/opaline/schemas/theme.schema.json",
+  "schemaVersion": 1,
+  "id": "mono",
+  "name": "Mono",
+  "author": "Opaline",
+  "version": "2.0.0",
+  "license": "GPL-3.0-or-later",
+  "description": "High-contrast monochrome with e-ink calm, crisp borders, no distraction, and effortless legibility.",
+  "minOpalineVersion": "2.0.0",
+  "tokens": {
+    "colorSource": "wallpaper",
+    "variant": "monochrome",
+    "motionPersonality": "calm",
+    "shapeLanguage": "rounded"
+  },
+  "style": {
+    "surface": "opaque",
+    "variant": "monochrome",
+    "contrast": 0.7,
+    "transparency": 8,
+    "blur": 0,
+    "refraction": 0,
+    "rim": 0,
+    "grain": 12,
+    "shadow": 14,
+    "borderWidth": 1,
+    "radius": 14,
+    "legibility": true,
+    "fontFamily": "Inter",
+    "numberFontFamily": "Roboto Flex",
+    "headerStyle": "title",
+    "iconSet": "outlined",
+    "hoverEffect": "none",
+    "roles": {
+      "hero": {
+        "fontFamily": "Roboto Flex",
+        "fontWeight": 650,
+        "fontWidth": 85,
+        "lineHeight": 0.9,
+        "tabularNumbers": true
+      },
+      "value": {
+        "fontFamily": "Roboto Flex",
+        "fontWeight": 600,
+        "tabularNumbers": true
+      }
+    }
+  }
+}

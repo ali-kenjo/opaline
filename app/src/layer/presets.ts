@@ -4,6 +4,17 @@ import { type SizeClass, sizes } from "../design-system/tokens/tokens";
 import type { StoredWidget } from "../widgets/host";
 import { widgetByKind } from "../widgets/registry";
 import { type LayoutItem, findNearestFree, refitLayout } from "./grid";
+import { type LookStarterLayout, starterLayoutForTheme } from "./starterLayouts";
+import type { Json } from "../widgets/json";
+
+export {
+  BUILTIN_LOOK_IDS,
+  LOOK_STARTER_LAYOUTS,
+  starterLayoutForTheme,
+  type BuiltinLookId,
+  type LookStarterLayout,
+  type StarterWidgetEntry,
+} from "./starterLayouts";
 
 export interface PresetSpec {
   id: string;
@@ -85,6 +96,39 @@ export function newWidgetId(kind: string): string {
 export function newStackId(): string {
   seq = (seq + 1) % 10000;
   return `s_${Date.now().toString(36)}_${seq.toString(36)}`;
+}
+
+/** Places a theme's curated starter layout onto the top-right columns of a `cols × rows` grid. */
+export function buildStarterLayout(
+  themeIdOrSpec: string | LookStarterLayout,
+  cols: number,
+  rows: number,
+): {
+  items: LayoutItem[];
+  widgets: Record<string, { kind: string; content?: Record<string, Json> }>;
+} {
+  const spec =
+    typeof themeIdOrSpec === "string" ? starterLayoutForTheme(themeIdOrSpec) : themeIdOrSpec;
+  const placed: LayoutItem[] = [];
+  const widgets: Record<string, { kind: string; content?: Record<string, Json> }> = {};
+  for (const entry of spec.entries) {
+    const def = widgetByKind(entry.kind);
+    if (!def) continue;
+    const { w, h } = sizes[entry.size];
+    const slot = findNearestFree(placed, cols, rows, w, h, Math.max(0, cols - w), 0);
+    if (!slot) continue;
+    const id = newWidgetId(entry.kind);
+    placed.push({ id, type: "widget", kind: entry.kind, x: slot.x, y: slot.y, w, h });
+    widgets[id] = entry.content
+      ? { kind: entry.kind, content: entry.content }
+      : { kind: entry.kind };
+  }
+  return {
+    items: refitLayout(placed, cols, rows, (it) =>
+      it.type === "widget" ? (widgetByKind(it.kind)?.sizes ?? ["S"]) : ["S"],
+    ),
+    widgets,
+  };
 }
 
 /** Places a preset onto the top-right columns of a `cols × rows` grid. */

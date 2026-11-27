@@ -1,0 +1,70 @@
+{
+  "$schema": "file:///usr/share/opaline/schemas/theme.schema.json",
+  "schemaVersion": 1,
+  "id": "bloom",
+  "name": "Bloom",
+  "author": "Opaline",
+  "version": "2.0.0",
+  "license": "GPL-3.0-or-later",
+  "description": "Tactile tinted glass colored per widget kind, playful Material Expressive shapes, rounded proportions, and bouncy morphs.",
+  "minOpalineVersion": "2.0.0",
+  "tokens": {
+    "colorSource": "wallpaper",
+    "variant": "expressive",
+    "motionPersonality": "playful",
+    "shapeLanguage": "expressive"
+  },
+  "style": {
+    "surface": "tinted",
+    "transparency": 42,
+    "blur": 56,
+    "see": "wallpaper",
+    "refraction": 55,
+    "rim": 68,
+    "grain": 38,
+    "shadow": 46,
+    "legibility": true,
+    "tintColor": "#1d1a2e",
+    "fontFamily": "Inter",
+    "numberFontFamily": "Roboto Flex",
+    "headerStyle": "icon-title",
+    "iconSet": "rounded",
+    "iconFill": true,
+    "hoverEffect": "lift",
+    "roles": {
+      "hero": {
+        "fontFamily": "Roboto Flex",
+        "fontWeight": 690,
+        "fontWidth": 100,
+        "lineHeight": 0.92,
+        "tabularNumbers": true
+      },
+      "value": {
+        "fontFamily": "Roboto Flex",
+        "fontWeight": 620,
+        "fontWidth": 100,
+        "tabularNumbers": true
+      },
+      "title": {
+        "fontFamily": "Inter",
+        "fontWeight": 650
+      }
+    }
+  },
+  "kinds": {
+    "clock": { "accentColor": "#a892ff", "tintColor": "#261c48" },
+    "cpu": { "accentColor": "#f49744", "tintColor": "#3d2412" },
+    "memory": { "accentColor": "#b296ff", "tintColor": "#2a1e47" },
+    "gpu": { "accentColor": "#7eb0ff", "tintColor": "#182b47" },
+    "storage": { "accentColor": "#f0b454", "tintColor": "#3a2910" },
+    "network": { "accentColor": "#4ad4dd", "tintColor": "#11343a" },
+    "battery": { "accentColor": "#58d49e", "tintColor": "#123426" },
+    "fans": { "accentColor": "#f49744", "tintColor": "#3b2312" },
+    "weather": { "accentColor": "#72b4ff", "tintColor": "#142c4a" },
+    "calendar": { "accentColor": "#b8c2ff", "tintColor": "#1b2142" },
+    "media": { "accentColor": "#ec6ca4", "tintColor": "#3f172b" },
+    "visualizer": { "accentColor": "#ec6ca4", "tintColor": "#3f172b" },
+    "processes": { "accentColor": "#9da8ff", "tintColor": "#1f223c" },
+    "docker": { "accentColor": "#6bc4ff", "tintColor": "#132e44" }
+  }
+}

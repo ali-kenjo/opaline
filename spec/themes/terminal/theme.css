@@ -1,0 +1,4 @@
+[data-theme="terminal"] [data-role="title"] {
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}

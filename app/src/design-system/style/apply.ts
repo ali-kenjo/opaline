@@ -9,6 +9,7 @@ import { luminance } from "../glass/legibility";
 import { type MaterialShapeName, materialShape } from "../shapes/material";
 import type { Cubic } from "../shapes/cubic";
 import { type SizeClass, cardPadding, cardRadius, type SpringToken } from "../tokens/tokens";
+import { THEME_FONT_FALLBACKS } from "../type/lazyFonts";
 import type { CardShape, GradientSpec, IconSet, ResolvedStyle, RoleTypography } from "./types";
 
 /** Bundled families and their @font-face names (fontsource "… Variable"). */
@@ -18,8 +19,10 @@ export const BUNDLED_FONTS: Readonly<Record<string, string>> = {
   "Noto Sans Arabic": "Noto Sans Arabic Variable",
 };
 
-/** A CSS font stack: the chosen family, then Arabic and system fallbacks per glyph. */
+/** A CSS font stack: the chosen family, theme-appropriate fallbacks, Arabic, and system UI. */
 export function fontStack(family: string): string {
+  const custom = THEME_FONT_FALLBACKS[family];
+  if (custom) return custom;
   const face = BUNDLED_FONTS[family] ?? family;
   return `"${face}", "Noto Sans Arabic Variable", system-ui, sans-serif`;
 }

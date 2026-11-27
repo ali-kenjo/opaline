@@ -1,0 +1,60 @@
+{
+  "$schema": "file:///usr/share/opaline/schemas/theme.schema.json",
+  "schemaVersion": 1,
+  "id": "crystal",
+  "name": "Crystal",
+  "author": "Opaline",
+  "version": "2.0.0",
+  "license": "GPL-3.0-or-later",
+  "description": "Ultra-clear glass lenses, continuous squircles, heavy condensed numerals, minimal chrome, and haloed legibility.",
+  "minOpalineVersion": "2.0.0",
+  "tokens": {
+    "colorSource": "wallpaper",
+    "variant": "fidelity",
+    "motionPersonality": "calm",
+    "shapeLanguage": "squircle"
+  },
+  "style": {
+    "surface": "glass",
+    "transparency": 78,
+    "blur": 26,
+    "see": "wallpaper",
+    "refraction": 85,
+    "rim": 95,
+    "grain": 24,
+    "shadow": 34,
+    "cornerSmoothing": 80,
+    "legibility": true,
+    "fontFamily": "Inter",
+    "numberFontFamily": "Roboto Flex",
+    "headerStyle": "none",
+    "iconSet": "rounded",
+    "hoverEffect": "lift",
+    "roles": {
+      "hero": {
+        "fontFamily": "Roboto Flex",
+        "fontWeight": 820,
+        "fontWidth": 28,
+        "letterSpacing": -0.02,
+        "lineHeight": 0.85,
+        "tabularNumbers": true
+      },
+      "unit": {
+        "fontFamily": "Roboto Flex",
+        "fontWeight": 600,
+        "fontWidth": 55
+      },
+      "value": {
+        "fontFamily": "Roboto Flex",
+        "fontWeight": 650,
+        "fontWidth": 75,
+        "tabularNumbers": true
+      },
+      "label": {
+        "fontFamily": "Inter",
+        "fontWeight": 450,
+        "opacity": 70
+      }
+    }
+  }
+}

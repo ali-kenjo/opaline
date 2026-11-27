@@ -1,0 +1,67 @@
+{
+  "$schema": "file:///usr/share/opaline/schemas/theme.schema.json",
+  "schemaVersion": 1,
+  "id": "neon",
+  "name": "Neon",
+  "author": "Opaline",
+  "version": "2.0.0",
+  "license": "GPL-3.0-or-later",
+  "description": "Deep twilight surfaces, glowing magenta-cyan outlines, vibrant synthwave accents, and Space Grotesk geometry.",
+  "minOpalineVersion": "2.0.0",
+  "tokens": {
+    "colorSource": "custom",
+    "seedColor": "#d946ef",
+    "variant": "vibrant",
+    "motionPersonality": "expressive",
+    "shapeLanguage": "rounded"
+  },
+  "style": {
+    "theme": "dark",
+    "colorSource": "custom",
+    "seedColor": "#d946ef",
+    "variant": "vibrant",
+    "surface": "color",
+    "surfaceColor": "#110c21",
+    "textColor": "#f4f0ff",
+    "secondaryTextColor": "#c3b5e8",
+    "accentColor": "#22d3ee",
+    "transparency": 18,
+    "blur": 24,
+    "refraction": 45,
+    "rim": 70,
+    "grain": 15,
+    "shadow": 50,
+    "borderWidth": 1.5,
+    "borderColor": "#e879f9",
+    "borderGlow": 65,
+    "radius": 22,
+    "legibility": true,
+    "fontFamily": "Space Grotesk",
+    "numberFontFamily": "Space Grotesk",
+    "headerStyle": "none",
+    "iconSet": "rounded",
+    "hoverEffect": "glow",
+    "roles": {
+      "hero": {
+        "fontFamily": "Space Grotesk",
+        "fontWeight": 700,
+        "letterSpacing": -0.02,
+        "lineHeight": 0.9,
+        "tabularNumbers": true
+      },
+      "value": {
+        "fontFamily": "Space Grotesk",
+        "fontWeight": 600,
+        "tabularNumbers": true
+      }
+    }
+  },
+  "kinds": {
+    "clock": { "accentColor": "#22d3ee", "borderColor": "#22d3ee" },
+    "cpu": { "accentColor": "#f472b6", "borderColor": "#f472b6" },
+    "gpu": { "accentColor": "#c084fc", "borderColor": "#c084fc" },
+    "media": { "accentColor": "#fb7185", "borderColor": "#fb7185" },
+    "visualizer": { "accentColor": "#38bdf8", "borderColor": "#38bdf8" }
+  },
+  "css": "theme.css"
+}

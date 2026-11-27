@@ -62,7 +62,7 @@ fn rice_schema_is_current() {
 
 #[test]
 fn first_party_theme_files_are_valid() {
-    for id in ["opaline", "classic"] {
+    for &id in opaline_core::themes::BUILTIN_THEME_IDS {
         let dir = spec(&format!("themes/{id}"));
         let loaded = opaline_core::themes::load_theme_dir(
             &dir,

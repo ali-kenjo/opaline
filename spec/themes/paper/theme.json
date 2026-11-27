@@ -1,0 +1,55 @@
+{
+  "$schema": "file:///usr/share/opaline/schemas/theme.schema.json",
+  "schemaVersion": 1,
+  "id": "paper",
+  "name": "Paper",
+  "author": "Opaline",
+  "version": "2.0.0",
+  "license": "GPL-3.0-or-later",
+  "description": "Warm matte editorial paper with hairline borders, Fraunces display serif paired with Inter, and zero glass.",
+  "minOpalineVersion": "2.0.0",
+  "tokens": {
+    "colorSource": "wallpaper",
+    "variant": "neutral",
+    "motionPersonality": "calm",
+    "shapeLanguage": "rounded"
+  },
+  "style": {
+    "theme": "light",
+    "surface": "color",
+    "surfaceColor": "#f6f2e9",
+    "textColor": "#1c1a17",
+    "secondaryTextColor": "#59544b",
+    "transparency": 0,
+    "blur": 0,
+    "refraction": 0,
+    "rim": 0,
+    "grain": 32,
+    "shadow": 18,
+    "borderWidth": 1,
+    "borderColor": "#d7cfc0",
+    "radius": 16,
+    "legibility": true,
+    "fontFamily": "Inter",
+    "numberFontFamily": "Fraunces",
+    "headerStyle": "title",
+    "iconSet": "outlined",
+    "hoverEffect": "lift",
+    "roles": {
+      "hero": {
+        "fontFamily": "Fraunces",
+        "fontWeight": 600,
+        "lineHeight": 0.92,
+        "tabularNumbers": true
+      },
+      "title": {
+        "fontFamily": "Fraunces",
+        "fontWeight": 600
+      },
+      "label": {
+        "fontFamily": "Inter",
+        "fontWeight": 500
+      }
+    }
+  }
+}

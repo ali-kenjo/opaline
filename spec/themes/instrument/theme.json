@@ -1,0 +1,73 @@
+{
+  "$schema": "file:///usr/share/opaline/schemas/theme.schema.json",
+  "schemaVersion": 1,
+  "id": "instrument",
+  "name": "Instrument",
+  "author": "Opaline",
+  "version": "2.0.0",
+  "license": "GPL-3.0-or-later",
+  "description": "Precision smoked glass with a subtle hairline edge, extended calm numerals, slashed zeroes, and watch-grade dials and gauges.",
+  "minOpalineVersion": "2.0.0",
+  "tokens": {
+    "colorSource": "wallpaper",
+    "variant": "neutral",
+    "motionPersonality": "calm",
+    "shapeLanguage": "rounded"
+  },
+  "style": {
+    "theme": "dark",
+    "surface": "glass",
+    "tintColor": "#0e0e12",
+    "textColor": "#f2f4f8",
+    "secondaryTextColor": "#c8ced8",
+    "transparency": 36,
+    "blur": 32,
+    "see": "wallpaper",
+    "refraction": 34,
+    "rim": 42,
+    "grain": 18,
+    "shadow": 42,
+    "borderWidth": 1,
+    "borderColor": "#ffffff20",
+    "radius": 20,
+    "legibility": true,
+    "fontFamily": "Inter",
+    "numberFontFamily": "Roboto Flex",
+    "slashedZero": true,
+    "tabularNumbers": true,
+    "uppercaseLabels": true,
+    "headerStyle": "title",
+    "iconSet": "outlined",
+    "heroVisual": "gauge",
+    "heroOptions": {
+      "ticks": true,
+      "needle": true
+    },
+    "hoverEffect": "none",
+    "roles": {
+      "hero": {
+        "fontFamily": "Roboto Flex",
+        "fontWeight": 560,
+        "fontWidth": 118,
+        "letterSpacing": 0.01,
+        "lineHeight": 0.94,
+        "tabularNumbers": true,
+        "slashedZero": true
+      },
+      "value": {
+        "fontFamily": "Roboto Flex",
+        "fontWeight": 550,
+        "fontWidth": 110,
+        "tabularNumbers": true,
+        "slashedZero": true
+      },
+      "label": {
+        "fontFamily": "Inter",
+        "fontWeight": 500,
+        "letterSpacing": 0.06,
+        "textCase": "uppercase",
+        "opacity": 72
+      }
+    }
+  }
+}
