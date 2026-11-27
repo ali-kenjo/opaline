@@ -1,8 +1,11 @@
-// Opaline Settings window — all 11 sections of brief §2.9 plus tray-parity quick actions.
+// Opaline Settings window (PLAN-2 5.6, brief §6.4): global search with deep links, Looks,
+// Appearance, Layout (Grid/Free + cell sizes), Widget defaults, Alerts, Performance, Privacy,
+// Desktop integration, Shortcuts (with conflict detection), Backup, Diagnostics, and About.
 import { DESKTOP_LOOKS } from "../design-system/style";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Slider, Snackbar, Switch } from "../design-system/components";
 import { Icon, type IconName } from "../design-system/icons";
+import { ALLOWED_CELL_SIZES, type CellSize } from "../design-system/tokens/tokens";
 import { type LanguagePref, type MessageKey, t } from "../i18n";
 import { computeGrid, matchMonitorKey } from "../layer/grid";
 import { PRESETS, type PresetSpec, buildPreset } from "../layer/presets";
@@ -21,27 +24,21 @@ import {
   triggerAction,
 } from "../shell/api";
 import { useShellTheme } from "../shell/useShellTheme";
+import { LooksSection } from "./LooksSection";
 import styles from "./Settings.module.css";
 import { AboutSection, AlertsSection, BackupSection, DiagnosticsSection } from "./SettingsSections";
-import { WidgetCustomizer } from "./WidgetCustomizer";
+import { type SettingsSectionId, detectShortcutConflicts, searchSettings } from "./settingsIndex";
 
-type SectionId =
-  | "appearance"
-  | "layout"
-  | "widgets"
-  | "alerts"
-  | "performance"
-  | "privacy"
-  | "desktop"
-  | "shortcuts"
-  | "backup"
-  | "diagnostics"
-  | "about";
-
-const NAV: readonly { id: SectionId; labelKey: MessageKey; icon: IconName }[] = [
-  { id: "appearance", labelKey: "settings.nav.appearance", icon: "palette" },
+const NAV: readonly {
+  id: SettingsSectionId;
+  labelKey?: MessageKey;
+  label?: string;
+  icon: IconName;
+}[] = [
+  { id: "looks", label: "Looks", icon: "palette" },
+  { id: "appearance", labelKey: "settings.nav.appearance", icon: "tune" },
   { id: "layout", labelKey: "settings.nav.layout", icon: "grid_view" },
-  { id: "widgets", labelKey: "settings.nav.widgets", icon: "widgets" },
+  { id: "widget-defaults", label: "Widget defaults", icon: "widgets" },
   { id: "alerts", labelKey: "settings.nav.alerts", icon: "notifications" },
   { id: "performance", labelKey: "settings.nav.performance", icon: "speed" },
   { id: "privacy", labelKey: "settings.nav.privacy", icon: "lock" },
@@ -62,7 +59,8 @@ const VARIANTS = [
 ] as const;
 
 export function SettingsApp() {
-  const [section, setSection] = useState<SectionId>("appearance");
+  const [section, setSection] = useState<SettingsSectionId>("looks");
+  const [searchQuery, setSearchQuery] = useState("");
   const [state, setState] = useState<ShellState | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [selectedMonitor, setSelectedMonitor] = useState<string>("");
@@ -73,6 +71,11 @@ export function SettingsApp() {
   const [editKey, setEditKey] = useState("<Super><Alt>e");
 
   const { locale } = useShellTheme(state);
+  const searchResults = useMemo(() => searchSettings(searchQuery), [searchQuery]);
+  const shortcutConflicts = useMemo(
+    () => detectShortcutConflicts(peekKey, editKey),
+    [peekKey, editKey],
+  );
 
   const notify = useCallback((msg: string) => {
     setToast(msg);
@@ -177,27 +180,73 @@ export function SettingsApp() {
           </div>
         </div>
 
+        <div style={{ padding: "0 12px 10px" }}>
+          <input
+            type="search"
+            role="searchbox"
+            aria-label="Search settings"
+            className={styles.input}
+            style={{ width: "100%", boxSizing: "border-box" }}
+            placeholder="Search settings…"
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+            }}
+          />
+          {searchResults.length > 0 ? (
+            <div className={styles.placeList} style={{ marginTop: 6 }} aria-label="Search results">
+              {searchResults.slice(0, 6).map((hit) => (
+                <button
+                  key={hit.id}
+                  type="button"
+                  className={styles.placeBtn}
+                  onClick={() => {
+                    setSection(hit.section);
+                    setSearchQuery("");
+                    setTimeout(() => {
+                      document.getElementById(hit.id)?.scrollIntoView({ behavior: "smooth" });
+                    }, 30);
+                  }}
+                >
+                  <span>
+                    <strong>{hit.sectionLabel}</strong> · {hit.title}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+
         <nav className={styles.navList}>
-          {NAV.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              aria-current={section === item.id ? "page" : undefined}
-              className={`${styles.navItem} ${section === item.id ? styles.navActive : ""}`}
-              onClick={() => {
-                setSection(item.id);
-              }}
-            >
-              <Icon name={item.icon} size={18} fill={section === item.id ? 1 : 0} />
-              <span>{t(locale, item.labelKey)}</span>
-            </button>
-          ))}
+          {NAV.map((item) => {
+            const label = item.labelKey ? t(locale, item.labelKey) : (item.label ?? item.id);
+            return (
+              <button
+                key={item.id}
+                type="button"
+                aria-current={section === item.id ? "page" : undefined}
+                className={`${styles.navItem} ${section === item.id ? styles.navActive : ""}`}
+                onClick={() => {
+                  setSection(item.id);
+                }}
+              >
+                <Icon name={item.icon} size={18} fill={section === item.id ? 1 : 0} />
+                <span>{label}</span>
+              </button>
+            );
+          })}
         </nav>
       </aside>
 
       <main className={styles.main}>
         <header className={styles.topbar}>
-          <h1 className={styles.topTitle}>{activeNav ? t(locale, activeNav.labelKey) : ""}</h1>
+          <h1 className={styles.topTitle}>
+            {activeNav
+              ? activeNav.labelKey
+                ? t(locale, activeNav.labelKey)
+                : (activeNav.label ?? activeNav.id)
+              : ""}
+          </h1>
           <div className={styles.quickActions}>
             <Button
               variant="tonal"
@@ -241,6 +290,15 @@ export function SettingsApp() {
         </header>
 
         <div className={styles.content}>
+          {section === "looks" ? (
+            <LooksSection
+              state={state}
+              selectedMonitor={selectedMonitor}
+              refresh={refresh}
+              notify={notify}
+            />
+          ) : null}
+
           {section === "appearance" ? (
             <>
               <div className={styles.card}>
@@ -750,8 +808,54 @@ export function SettingsApp() {
                 </div>
               </div>
 
-              <div className={styles.card}>
+              <div id="layout-cellsize" className={styles.card}>
                 <h2 className={styles.cardTitle}>Grid &amp; monitors</h2>
+                <div className={styles.row}>
+                  <div className={styles.rowText}>
+                    <span className={styles.rowLabel}>Grid cell size</span>
+                    <span className={styles.rowHint}>
+                      Choose cell size in pixels for the selected display (default 84 px).
+                    </span>
+                  </div>
+                  <div className={styles.segmented}>
+                    {ALLOWED_CELL_SIZES.map((cs: CellSize) => {
+                      const targetMon =
+                        state.monitors.find((m) => m.key === selectedMonitor) ??
+                        state.monitors.find((m) => m.primary) ??
+                        state.monitors[0];
+                      const monKey = targetMon
+                        ? (matchMonitorKey(targetMon, Object.keys(state.layouts.monitors)) ??
+                          targetMon.key)
+                        : "";
+                      const curMon = monKey ? state.layouts.monitors[monKey] : undefined;
+                      const active = (curMon?.cellSize ?? 84) === cs;
+                      return (
+                        <button
+                          key={cs}
+                          type="button"
+                          className={`${styles.segBtn} ${active ? styles.segActive : ""}`}
+                          onClick={() => {
+                            if (!monKey) return;
+                            const nextMon = {
+                              ...(curMon ?? { items: [] }),
+                              cellSize: cs,
+                            };
+                            saveLayouts({
+                              ...state.layouts,
+                              monitors: { ...state.layouts.monitors, [monKey]: nextMon },
+                            })
+                              .then(() => refresh())
+                              .catch((e: unknown) => {
+                                notify(`Could not update cell size: ${String(e)}`);
+                              });
+                          }}
+                        >
+                          {cs} px
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
                 <div className={styles.row}>
                   <div className={styles.rowText}>
                     <span className={styles.rowLabel}>
@@ -828,9 +932,29 @@ export function SettingsApp() {
             </>
           ) : null}
 
-          {section === "widgets" ? (
+          {section === "widget-defaults" ? (
             <>
-              <WidgetCustomizer state={state} refresh={refresh} notify={notify} />
+              <div id="defaults-inspector" className={styles.card}>
+                <div className={styles.row}>
+                  <div className={styles.rowText}>
+                    <h2 className={styles.cardTitle}>Per-widget styling moved to the Inspector</h2>
+                    <p className={styles.cardDesc}>
+                      Customize individual widgets live on your desktop — with style chips, scope
+                      switching, eyedropper, contrast meter, and unified undo/redo — directly inside
+                      Edit mode.
+                    </p>
+                  </div>
+                  <Button
+                    variant="tonal"
+                    icon="edit"
+                    onClick={() => {
+                      void triggerAction("edit");
+                    }}
+                  >
+                    Open Edit mode
+                  </Button>
+                </div>
+              </div>
 
               <div className={styles.card}>
                 <h2 className={styles.cardTitle}>Weather</h2>
@@ -1197,11 +1321,22 @@ export function SettingsApp() {
                 />
               </div>
 
+              {shortcutConflicts.length > 0 ? (
+                <div role="alert" style={{ color: "rgb(var(--md-error))", fontSize: 13 }}>
+                  {shortcutConflicts.map((msg) => (
+                    <p key={msg} style={{ margin: "4px 0" }}>
+                      {msg}
+                    </p>
+                  ))}
+                </div>
+              ) : null}
+
               {shortcuts.editable ? (
                 <div className={styles.inlineRow}>
                   <Button
                     variant="filled"
                     icon="check"
+                    disabled={shortcutConflicts.length > 0}
                     onClick={() => {
                       setNativeShortcuts(peekKey, editKey)
                         .then(async () => {

@@ -14,7 +14,7 @@ import { listFonts, subscribeTopics, useCoreColors, useLayerValues } from "../wi
 import { onSpectrum } from "../widgets/spectrum";
 import { widgetByKind as registryKind } from "../widgets/registry";
 import { blocksDemo } from "./blocksDemo";
-import { WidgetSettings } from "../widgets/settings/WidgetSettings";
+import { Inspector } from "../inspector/Inspector";
 import { WidgetFrame } from "../widgets/WidgetFrame";
 import { labTint } from "./labTint";
 import {
@@ -132,7 +132,7 @@ export function WidgetsDemo({ wallpaperId, dark, variant, value, still, live }: 
         />
       ))}
       {open && openDef ? (
-        <WidgetSettings
+        <Inspector
           id={open}
           def={openDef}
           open

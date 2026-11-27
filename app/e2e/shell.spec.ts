@@ -1,11 +1,14 @@
-// Settings and Onboarding windows on a fake core (e2e/stub/fakeShell.ts).
+// Settings and Onboarding windows on a fake core (e2e/stub/fakeShell.ts), updated for
+// Phase 5 (Looks, Widget defaults, Settings search deep-links, shortcut conflict detection,
+// and 7-step Onboarding with "Pick a look").
 import { expect, test } from "@playwright/test";
 import { openShellPage, shellCalls, shellSettings, shellState } from "./stub/shellFixture";
 
 const SECTIONS = [
+  "Looks",
   "Appearance",
   "Layout",
-  "Widgets",
+  "Widget defaults",
   "Alerts",
   "Performance",
   "Privacy",
@@ -29,6 +32,25 @@ test("Settings: every section opens without errors", async ({ page }) => {
     await expect(page.getByRole("heading", { level: 1 })).toContainText(name);
   }
   expect(errors).toEqual([]);
+});
+
+test("Settings: search deep-links jump directly to the matching section", async ({ page }) => {
+  await openShellPage(page, "/settings.html");
+  await page.getByRole("searchbox", { name: "Search settings" }).fill("conflict");
+  await page
+    .getByRole("button", { name: /Shortcuts/ })
+    .first()
+    .click();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Shortcuts");
+});
+
+test("Settings: Looks section switches the active theme and saves to core", async ({ page }) => {
+  await openShellPage(page, "/settings.html");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Looks");
+  await page.getByRole("button", { name: "Use look" }).first().click();
+  await expect
+    .poll(async () => (await shellCalls(page)).map((c) => c.cmd))
+    .toContain("shell_update_settings");
 });
 
 test("Settings: a change is sent to core and reloaded", async ({ page }) => {
@@ -58,21 +80,28 @@ test("Settings: quick actions reach core", async ({ page }) => {
     .toEqual([{ cmd: "shell_trigger_action", args: { action: "peek" } }]);
 });
 
-test("Onboarding: walks every step and saves the choices", async ({ page }) => {
+test("Onboarding: walks all 7 steps including Pick a look and saves choices", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await openShellPage(page, "/onboarding.html", shellState({ onboardingDone: false }));
   await page.getByRole("button", { name: "Get started" }).click();
-  await expect(page.getByRole("heading", { name: "Pick a starter layout" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Pick a look" })).toBeVisible();
+  await page.getByRole("button", { name: /Crystal/ }).click();
+
   const steps = page.getByLabel(/^Step \d+ of \d+$/);
   const total = Number(/of (\d+)/.exec((await steps.getAttribute("aria-label")) ?? "")?.[1]);
-  expect(total).toBeGreaterThanOrEqual(5);
-  for (let i = 2; i < total; i++) {
+  expect(total).toBe(7);
+
+  await page.getByRole("button", { name: "Next" }).click();
+  await expect(page.getByRole("heading", { name: "Pick a starter layout" })).toBeVisible();
+
+  for (let i = 3; i < total; i++) {
     await page.getByRole("button", { name: "Next" }).click();
     await expect(steps).toHaveAttribute("aria-label", `Step ${String(i + 1)} of ${String(total)}`);
   }
   await page.getByRole("button", { name: "Finish", exact: true }).click();
   await expect.poll(async () => (await shellSettings(page)).onboardingDone).toBe(true);
+  await expect.poll(async () => (await shellSettings(page)).theme).toBe("crystal");
   const cmds = (await shellCalls(page)).map((c) => c.cmd);
   expect(cmds).toEqual(
     expect.arrayContaining(["shell_update_layouts", "shell_set_autostart", "shell_close"]),
@@ -83,8 +112,9 @@ test("Onboarding: walks every step and saves the choices", async ({ page }) => {
 test("Onboarding: Back returns to the previous step", async ({ page }) => {
   await openShellPage(page, "/onboarding.html", shellState({ onboardingDone: false }));
   await page.getByRole("button", { name: "Get started" }).click();
+  await expect(page.getByRole("heading", { name: "Pick a look" })).toBeVisible();
   await page.getByRole("button", { name: "Next" }).click();
-  await expect(page.getByRole("heading", { name: "Desktop integration" })).toBeVisible();
-  await page.getByRole("button", { name: "Back" }).click();
   await expect(page.getByRole("heading", { name: "Pick a starter layout" })).toBeVisible();
+  await page.getByRole("button", { name: "Back" }).click();
+  await expect(page.getByRole("heading", { name: "Pick a look" })).toBeVisible();
 });

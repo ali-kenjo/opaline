@@ -1,12 +1,21 @@
-// 6-step first-run Onboarding flow (brief §2.8, PLAN 6.1):
-// Welcome → Pick a starter layout (over real wallpaper) → Desktop integration → Privacy →
-// Optional CPU power & autostart → Finish.
+// 7-step first-run Onboarding flow (PLAN-2 5.7, brief §6.5):
+// Welcome → Pick a look (live preview over real wallpaper) → Pick a starter layout →
+// Desktop integration → Privacy & network → Optional sensors & startup → Finish (with pointers to
+// the live Inspector and Widget Gallery).
 import { useEffect, useState } from "react";
 import { Button, LoadingIndicator, Snackbar, Switch } from "../design-system/components";
 import { Icon } from "../design-system/icons";
 import { t } from "../i18n";
 import { computeGrid, matchMonitorKey } from "../layer/grid";
-import { PRESETS, type PresetSpec, buildPreset } from "../layer/presets";
+import {
+  BUILTIN_LOOK_IDS,
+  type BuiltinLookId,
+  LOOK_STARTER_LAYOUTS,
+  PRESETS,
+  type PresetSpec,
+  buildPreset,
+  buildStarterLayout,
+} from "../layer/presets";
 import {
   type GeocodePlace,
   type ShellState,
@@ -24,12 +33,13 @@ import { useShellTheme } from "../shell/useShellTheme";
 import { widgetByKind } from "../widgets/registry";
 import styles from "./Onboarding.module.css";
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
 
 export function OnboardingApp() {
   const [step, setStep] = useState(0);
   const [state, setState] = useState<ShellState | null>(null);
-  const [presetId, setPresetId] = useState("essentials");
+  const [lookId, setLookId] = useState<BuiltinLookId>("opaline");
+  const [presetId, setPresetId] = useState("look-default");
   const [desktopIntegration, setDesktopIntegration] = useState(true);
   const [weatherAuto, setWeatherAuto] = useState(false);
   const [weatherLocation, setWeatherLocation] = useState<WeatherLocation | null>(null);
@@ -49,6 +59,12 @@ export function OnboardingApp() {
     getShellState()
       .then((s) => {
         setState(s);
+        if (
+          typeof s.settings.theme === "string" &&
+          BUILTIN_LOOK_IDS.includes(s.settings.theme as BuiltinLookId)
+        ) {
+          setLookId(s.settings.theme as BuiltinLookId);
+        }
         setDesktopIntegration(s.desktop.helperInstalled ? true : s.desktop.helperEnabled);
         setWeatherAuto(s.settings.weather.automatic);
         setWeatherLocation(s.settings.weather.location);
@@ -62,18 +78,10 @@ export function OnboardingApp() {
       });
   }, []);
 
-  const preset: PresetSpec = PRESETS.find((p) => p.id === presetId) ?? {
-    id: "essentials",
-    name: "Essentials",
-    description: "Clock, CPU, memory, network and weather",
-    entries: [
-      { kind: "clock", size: "M" },
-      { kind: "cpu", size: "S" },
-      { kind: "memory", size: "S" },
-      { kind: "network", size: "S" },
-      { kind: "weather", size: "M" },
-    ],
-  };
+  const chosenLook = LOOK_STARTER_LAYOUTS[lookId];
+  const chosenPreset: PresetSpec | null =
+    presetId === "look-default" ? null : (PRESETS.find((p) => p.id === presetId) ?? null);
+  const previewEntries = chosenPreset ? chosenPreset.entries : chosenLook.entries;
 
   const handleFinish = async (openEdit: boolean) => {
     if (!state) return;
@@ -90,7 +98,9 @@ export function OnboardingApp() {
           area ? area[3] : primary.height,
           state.settings.layout.marginPx,
         );
-        const built = buildPreset(preset, g.cols, g.rows);
+        const built = chosenPreset
+          ? buildPreset(chosenPreset, g.cols, g.rows)
+          : buildStarterLayout(chosenLook, g.cols, g.rows);
         Object.assign(nextWidgets, built.widgets);
         const key = matchMonitorKey(primary, Object.keys(state.layouts.monitors)) ?? primary.key;
         nextLayouts = {
@@ -101,6 +111,7 @@ export function OnboardingApp() {
 
       await patchSettings({
         onboardingDone: true,
+        theme: lookId,
         widgets: nextWidgets,
         weather: {
           location: weatherLocation,
@@ -168,16 +179,73 @@ export function OnboardingApp() {
         {step === 1 ? (
           <>
             <div>
-              <h1 className={styles.stepTitle}>Pick a starter layout</h1>
+              <h1 className={styles.stepTitle}>Pick a look</h1>
               <p className={styles.stepDesc}>
-                Previewed over your desktop wallpaper. You can add, move, resize, or stack widgets
-                anytime in Edit mode.
+                Previewed over your desktop wallpaper. Switch themes anytime from the Edit toolbar
+                or Settings → Looks.
               </p>
             </div>
 
             <div className={styles.wallpaperPreview} style={wallpaperBg}>
               <div className={styles.previewGrid}>
-                {preset.entries.map((entry, idx) => {
+                {chosenLook.entries.map((entry, idx) => {
+                  const def = widgetByKind(entry.kind);
+                  const colSpan = entry.size === "S" ? 1 : 2;
+                  const rowSpan = entry.size === "L" ? 2 : 1;
+                  return (
+                    <div
+                      key={`${lookId}-${entry.kind}-${String(idx)}`}
+                      className={styles.previewCard}
+                      style={{
+                        gridColumn: `span ${String(colSpan)}`,
+                        gridRow: `span ${String(rowSpan)}`,
+                      }}
+                    >
+                      <span className={styles.previewName}>
+                        <Icon name={def?.icon ?? "widgets"} size={15} />
+                        {def?.name ?? entry.kind}
+                      </span>
+                      <span className={styles.previewSize}>{chosenLook.name}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className={styles.presetRow}>
+              {BUILTIN_LOOK_IDS.map((id) => {
+                const l = LOOK_STARTER_LAYOUTS[id];
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    className={`${styles.presetBtn} ${lookId === id ? styles.presetBtnActive : ""}`}
+                    onClick={() => {
+                      setLookId(id);
+                    }}
+                  >
+                    <span className={styles.presetLabel}>{l.name}</span>
+                    <span className={styles.presetHint}>{l.tagline}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        ) : null}
+
+        {step === 2 ? (
+          <>
+            <div>
+              <h1 className={styles.stepTitle}>Pick a starter layout</h1>
+              <p className={styles.stepDesc}>
+                Start with {chosenLook.name}&apos;s curated layout or pick another preset. You can
+                open the Widget Gallery or live Inspector anytime in Edit mode.
+              </p>
+            </div>
+
+            <div className={styles.wallpaperPreview} style={wallpaperBg}>
+              <div className={styles.previewGrid}>
+                {previewEntries.map((entry, idx) => {
                   const def = widgetByKind(entry.kind);
                   const colSpan = entry.size === "S" ? 1 : 2;
                   const rowSpan = entry.size === "L" ? 2 : 1;
@@ -202,6 +270,18 @@ export function OnboardingApp() {
             </div>
 
             <div className={styles.presetRow}>
+              <button
+                type="button"
+                className={`${styles.presetBtn} ${presetId === "look-default" ? styles.presetBtnActive : ""}`}
+                onClick={() => {
+                  setPresetId("look-default");
+                }}
+              >
+                <span className={styles.presetLabel}>{chosenLook.name} starter</span>
+                <span className={styles.presetHint}>
+                  Curated widgets designed for the {chosenLook.name} look
+                </span>
+              </button>
               {PRESETS.map((p) => (
                 <button
                   key={p.id}
@@ -219,7 +299,7 @@ export function OnboardingApp() {
           </>
         ) : null}
 
-        {step === 2 ? (
+        {step === 3 ? (
           <>
             <div>
               <h1 className={styles.stepTitle}>Desktop integration</h1>
@@ -250,7 +330,7 @@ export function OnboardingApp() {
           </>
         ) : null}
 
-        {step === 3 ? (
+        {step === 4 ? (
           <>
             <div>
               <h1 className={styles.stepTitle}>Privacy &amp; network features</h1>
@@ -353,7 +433,7 @@ export function OnboardingApp() {
           </>
         ) : null}
 
-        {step === 4 ? (
+        {step === 5 ? (
           <>
             <div>
               <h1 className={styles.stepTitle}>Optional sensors &amp; startup</h1>
@@ -391,16 +471,19 @@ export function OnboardingApp() {
           </>
         ) : null}
 
-        {step === 5 ? (
+        {step === 6 ? (
           <div className={styles.hero} style={wallpaperBg}>
             <div className={styles.heroScrim} />
             <div className={styles.heroContent}>
               <Icon name="check" size={44} />
               <h1 className={styles.title}>You&apos;re all set</h1>
               <p className={styles.subtitle}>
-                Your <strong>{preset.name}</strong> layout is ready. Press <code>Super+Alt+W</code>{" "}
-                to Peek anytime, or <code>Super+Alt+E</code> (or long-press any widget) to arrange
-                your desktop.
+                Your <strong>{chosenLook.name}</strong> look and{" "}
+                <strong>{chosenPreset ? chosenPreset.name : `${chosenLook.name} starter`}</strong>{" "}
+                layout are ready. Press <code>Super+Alt+W</code> to Peek anytime, or{" "}
+                <code>Super+Alt+E</code> to open Edit mode — click any widget to open the{" "}
+                <strong>live Inspector</strong>, or choose <strong>Add widget</strong> to browse the{" "}
+                <strong>Widget Gallery</strong>.
               </p>
               <div className={styles.inlineRow}>
                 <Button

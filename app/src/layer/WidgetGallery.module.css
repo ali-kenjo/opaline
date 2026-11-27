@@ -1,0 +1,200 @@
+/* Widget Gallery sheet (PLAN-2 5.5, brief §6.3). */
+
+.gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 78vh;
+  color: rgb(var(--md-on-surface));
+  font-family: var(--font-ui);
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.searchWrap {
+  flex: 1;
+  min-width: 180px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgb(var(--md-surface-container-highest));
+  color: rgb(var(--md-on-surface-variant));
+}
+
+.search {
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: rgb(var(--md-on-surface));
+  font: 400 14px/1.2 var(--font-ui);
+}
+
+.sourceRow {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgb(var(--md-surface-container));
+}
+
+.sourceBtn {
+  border: none;
+  border-radius: 999px;
+  padding: 5px 11px;
+  background: transparent;
+  color: rgb(var(--md-on-surface-variant));
+  font: 500 12px/1.1 var(--font-ui);
+  cursor: pointer;
+}
+
+.sourceActive {
+  background: rgb(var(--md-primary-container));
+  color: rgb(var(--md-on-primary-container));
+  font-weight: 600;
+}
+
+.cats {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.cat {
+  border: 1px solid rgb(var(--md-outline-variant) / 0.6);
+  background: transparent;
+  color: rgb(var(--md-on-surface-variant));
+  border-radius: 999px;
+  padding: 6px 12px;
+  font: 500 12.5px/1.1 var(--font-ui);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.catActive {
+  background: rgb(var(--md-primary-container));
+  color: rgb(var(--md-on-primary-container));
+  border-color: transparent;
+  font-weight: 600;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+  overflow-y: auto;
+  padding: 2px 2px 8px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 22px;
+  background: rgb(var(--md-surface-container));
+  border: 1px solid rgb(var(--md-outline-variant) / 0.4);
+}
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cardTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 14.5px/1.2 var(--font-ui);
+}
+
+.stageRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swipeBtn {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 999px;
+  border: 1px solid rgb(var(--md-outline-variant) / 0.45);
+  background: rgb(var(--md-surface-container-high));
+  color: rgb(var(--md-on-surface-variant));
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.swipeBtn:hover {
+  color: rgb(var(--md-on-surface));
+  border-color: rgb(var(--md-primary));
+}
+
+.previewBox {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 176px;
+  padding: 8px;
+  border-radius: 16px;
+  background: rgb(var(--md-surface-container-lowest) / 0.65);
+  cursor: grab;
+  overflow: hidden;
+}
+
+.previewBox:focus-visible {
+  outline: 2px solid rgb(var(--md-primary));
+}
+
+.previewScaled {
+  position: relative;
+  flex: none;
+}
+
+.reason {
+  font-size: 12px;
+  color: rgb(var(--md-error));
+}
+
+.sizeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.sizePill {
+  border: 1px solid rgb(var(--md-outline-variant) / 0.5);
+  background: transparent;
+  color: rgb(var(--md-on-surface-variant));
+  border-radius: 999px;
+  padding: 3px 10px;
+  font: 500 11.5px/1.1 var(--font-ui);
+  cursor: pointer;
+}
+
+.sizeActive {
+  background: rgb(var(--md-secondary-container));
+  color: rgb(var(--md-on-secondary-container));
+  border-color: transparent;
+  font-weight: 600;
+}
+
+.empty {
+  padding: 36px 20px;
+  text-align: center;
+  font-size: 13.5px;
+  color: rgb(var(--md-on-surface-variant));
+}

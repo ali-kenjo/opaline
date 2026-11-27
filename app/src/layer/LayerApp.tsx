@@ -4,7 +4,16 @@
 // and content), glass context menu, shared-element detail views, Peek, Automatic appearance, and
 // tight WebGL2 canvas bounds outside Edit/Peek.
 import { invoke } from "@tauri-apps/api/core";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { cssVariables } from "../design-system/color/scheme";
 import { ContextMenu, type MenuItem, Snackbar } from "../design-system/components";
 import { GlassStage, SPIKE_WANTS_SHARP } from "../design-system/glass";
@@ -37,7 +46,6 @@ import {
   useLiveCss,
 } from "../widgets/layerHost";
 import { widgetByKind } from "../widgets/registry";
-import { WidgetSettings } from "../widgets/settings/WidgetSettings";
 import { type Rect, inTauri, report, setInputRegion } from "./bridge";
 import { readEditClipboard, writeEditClipboard } from "./clipboard";
 import { DetailModal } from "./DetailModal";
@@ -90,8 +98,11 @@ import { useDragController } from "./useDragController";
 import { useEditHistory } from "./useEditHistory";
 import { useEditKeyboard } from "./useEditKeyboard";
 import { useLayerPrefs } from "./useLayerPrefs";
-import { WidgetPicker } from "./WidgetPicker";
+import { WidgetGallery } from "./WidgetGallery";
 import styles from "./LayerApp.module.css";
+
+// Loaded only when the user inspects a widget in Edit mode (PLAN-2 5.1, §12 budget).
+const LazyInspector = lazy(() => import("../inspector/Inspector"));
 
 /** Written to settings on first run, so editing one doesn't make the others disappear. */
 const DEFAULT_WIDGETS = {
@@ -1569,7 +1580,7 @@ export function LayerApp() {
         />
       ) : null}
 
-      <WidgetPicker
+      <WidgetGallery
         open={pickerOpen}
         onClose={() => {
           setPickerOpen(false);
@@ -1597,14 +1608,37 @@ export function LayerApp() {
       ) : null}
 
       {openSettings && openDef ? (
-        <WidgetSettings
-          id={openSettings}
-          def={openDef}
-          open
-          onClose={() => {
-            setOpenSettings(null);
-          }}
-        />
+        <Suspense fallback={null}>
+          {(() => {
+            const inspectedItem =
+              monitorItems.find((it) =>
+                it.type === "widget" ? it.id === openSettings : it.children.includes(openSettings),
+              ) ?? null;
+            const inspectedOrigin = inspectedItem
+              ? itemRectPx(inspectedItem, mode, g, width, height)
+              : null;
+            return (
+              <LazyInspector
+                id={openSettings}
+                def={openDef}
+                open
+                origin={inspectedOrigin}
+                viewportW={width}
+                viewportH={height}
+                item={inspectedItem}
+                mode={mode}
+                onUpdateItem={(nextItem) => {
+                  commitMonitorItems(
+                    monitorItems.map((it) => (it.id === nextItem.id ? nextItem : it)),
+                  );
+                }}
+                onClose={() => {
+                  setOpenSettings(null);
+                }}
+              />
+            );
+          })()}
+        </Suspense>
       ) : null}
     </HostContext.Provider>
   );

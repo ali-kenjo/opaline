@@ -30,6 +30,7 @@ export interface WeatherLocation {
 
 export interface CoreSettings {
   version: number;
+  theme?: string;
   onboardingDone: boolean;
   language: LanguagePref;
   appearance: {

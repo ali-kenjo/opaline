@@ -93,17 +93,18 @@ test("widgets: every size and two custom styles", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test("the settings sheet edits content and style of one widget", async ({ page }) => {
+test("the inspector edits content and style of one widget", async ({ page }) => {
   await page.goto("/lab.html?still&wallpaper=dusk");
   const card = page.getByRole("group", { name: "Prozessor" });
   await expect(card).toContainText("Temperatur");
   await card.hover();
   await card.getByRole("button", { name: "Prozessor settings" }).click();
-  // The sheet is named after the widget's title, which this test renames.
-  const sheet = page.getByRole("dialog", { name: /^(Prozessor|Chip) settings$/ });
+  // The inspector is named after the widget's title, which this test renames.
+  const sheet = page.getByRole("dialog", { name: /^(Prozessor|Chip) inspector$/ });
   await expect(sheet).toBeVisible();
 
   // Content: hide a field; the card drops the row.
+  await sheet.getByRole("tab", { name: "Content" }).click();
   await sheet.getByRole("switch", { name: "Show Temperature" }).click();
   await expect(card).not.toContainText("Temperatur");
 
@@ -113,7 +114,8 @@ test("the settings sheet edits content and style of one widget", async ({ page }
   await expect(page.getByRole("group", { name: "Chip" })).toBeVisible();
 
   // Style: this widget's background becomes solid; the row says where the value comes from.
-  await sheet.getByRole("radio", { name: "Style" }).click();
+  await sheet.getByRole("tab", { name: "Look" }).click();
+  await sheet.getByRole("button", { name: "More style options" }).click();
   await sheet.getByRole("combobox", { name: "Background" }).selectOption({ label: "Solid" });
   await expect(sheet.getByText("This widget").first()).toBeVisible();
   await sheet.getByRole("button", { name: "Reset Background" }).click();
@@ -128,7 +130,7 @@ test("the settings sheet edits content and style of one widget", async ({ page }
     "uppercase",
   );
 
-  await sheet.getByRole("button", { name: "Close settings" }).click();
+  await sheet.getByRole("button", { name: "Close inspector" }).click();
   await expect(sheet).toBeHidden();
 });
 
@@ -137,7 +139,8 @@ test("a source option lists live choices and switches the data", async ({ page }
   const card = page.getByRole("group", { name: "GPU" });
   await card.hover();
   await card.getByRole("button", { name: "GPU settings" }).click();
-  const sheet = page.getByRole("dialog", { name: "GPU settings" });
+  const sheet = page.getByRole("dialog", { name: "GPU inspector" });
+  await sheet.getByRole("tab", { name: "Content" }).click();
   const pick = sheet.getByRole("combobox", { name: "GPU", exact: true });
   await expect(pick.locator("option")).toHaveText([
     "Automatic (discrete first)",
